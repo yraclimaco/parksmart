@@ -55,6 +55,10 @@ A clean starter template for data science and machine learning projects at UC Sa
    **.env files are generally not shared on GitHub; they are included here only as an example template.**
 4. Start working in notebooks or in the src package.
 
+## Project docs
+
+- [QPASS workbook schema audit](docs/qpass_schema_audit.md): QPASS file formats, how to load them with `src/qpass_loader.py`, and known data gaps.
+
 ## Repository guidelines
 
 - Keep notebooks for exploration and visualization.
