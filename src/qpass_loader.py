@@ -25,7 +25,13 @@ from pathlib import Path
 import pandas as pd
 from openpyxl.utils import get_column_letter
 
-from src.qpass_inventory import HEADER_SEARCH_ROWS, clean_column_name, parse_qpass_filename
+from src.qpass_inventory import (
+    HEADER_SEARCH_ROWS,
+    QPASS_FILE_GLOB,
+    RAW_QPASS_DIR,
+    clean_column_name,
+    parse_qpass_filename,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +52,8 @@ FORMAT_A_EXCLUDED_SHEET_WORDS = ("oversubscription", "summary", "sorted", "copy 
 # In Format A, the first column of the label row reads "Structure".
 FORMAT_A_LABEL = "Structure"
 FORMAT_A_LEVEL_PREFIX = "Level"
+# Surface lots are named by ID: "P" followed by digits ("P002", "P785").
+FORMAT_A_LOT_ID_PATTERN = r"P\d+"
 # Text in the header row below the labels ("Available", "Available Spaces").
 FORMAT_A_HEADER_ROW_TEXT = "Available"
 
@@ -63,6 +71,10 @@ DROP_NO_VALUES = "no counts and no total stall count"
 DROP_NO_NAME = "no structure, lot or type"
 DROP_NO_DATE = "no date"
 DROP_INVALID_DATE = "invalid date"
+# Formats B/C: rows the workbook template fills with formulas that point at an
+# empty source row. Excel shows them as 0 / blank: location and type are 0 or
+# blank and every count is 0 or blank.
+DROP_PLACEHOLDER = "empty template row (no location, type or counts)"
 
 # Excel stores a date as a number of days counted from this day (the 1900
 # date system; 1899-12-30 rather than 12-31 because Excel treats 1900 as a
@@ -127,7 +139,7 @@ FORMAT_A_COLUMNS = {
 
 # Every DataFrame returned by load_qpass has exactly these columns, in order.
 OUTPUT_COLUMNS = [
-    "source_file", "sheet_name", "format_version",
+    "source_file", "sheet_name", "source_row", "format_version",
     "academic_year", "quarter", "quarter_number",
     "date", "day", "week",
     "location", "lot_or_structure", "level",
@@ -151,9 +163,10 @@ def load_qpass(path: str | Path) -> pd.DataFrame:
 
     Each row is one location x space type x survey date, with open-space
     counts at 8am, 10am, 12pm and 2pm. academic_year, quarter and
-    source_file come from the filename and are always filled.
+    source_file come from the filename and are always filled. sheet_name and
+    source_row (the Excel row number) point at the cells each row came from.
 
-    Nothing is dropped silently. Both of these are logged and stored on the
+    Nothing is dropped silently. These are logged and stored on the
     returned DataFrame:
 
     - ``attrs["skipped_sheets"]``: list of (sheet name, reason) for sheets
@@ -267,6 +280,50 @@ def _count_non_numeric_values(data: pd.DataFrame, filename: str) -> dict[str, in
     return counts
 
 
+def load_all_qpass(folder: str | Path = RAW_QPASS_DIR) -> pd.DataFrame:
+    """Load every QPASS workbook in a folder into one combined DataFrame.
+
+    This is the starting point for later steps (cleaning, name
+    standardization, capacity matching): one table with the same columns
+    for every year and format.
+
+    pandas drops ``attrs`` when combining DataFrames, so each file's records
+    are kept here, keyed by file name:
+
+    - ``attrs["files"]``: names of the workbooks loaded, in order.
+    - ``attrs["skipped_sheets"]``: {file: [(sheet, reason), ...]}.
+    - ``attrs["dropped_rows"]``: {file: {sheet: {reason: count}}}.
+    - ``attrs["non_numeric_values"]``: {file: {column: count}}.
+
+    Args:
+        folder: Folder holding the workbooks. Defaults to data/raw/QPASS.
+
+    Returns:
+        DataFrame with columns OUTPUT_COLUMNS; source_file, sheet_name and
+        source_row say where each row came from.
+
+    Raises:
+        FileNotFoundError: If the folder has no QPASS workbooks.
+        UnsupportedQPASSFormatError: If any workbook cannot be loaded. The
+            error names the file; no file is skipped silently.
+    """
+    folder = Path(folder)
+    paths = sorted(folder.glob(QPASS_FILE_GLOB))
+    if not paths:
+        raise FileNotFoundError(
+            f"No files matching {QPASS_FILE_GLOB!r} in {folder}. "
+            "Download them with: python -m src.download_qpass"
+        )
+
+    frames = {path.name: load_qpass(path) for path in paths}
+    combined = pd.concat(frames.values(), ignore_index=True)
+    combined.attrs = {"files": list(frames)}
+    for key in ("skipped_sheets", "dropped_rows", "non_numeric_values"):
+        combined.attrs[key] = {name: frame.attrs[key] for name, frame in frames.items()}
+    logger.info("loaded %d QPASS workbooks, %d rows", len(paths), len(combined))
+    return combined
+
+
 def detect_format(sheets: dict[str, pd.DataFrame]) -> str | None:
     """Decide which QPASS layout a workbook uses, based on its sheets.
 
@@ -309,7 +366,7 @@ def _parse_long_sheet(sheet_name: str, sheet: pd.DataFrame, format_version: str)
         (DataFrame, None, dropped) on success, or (None, reason, {}) if the
         sheet is not a data sheet for this format or has no dated rows.
         dropped is {reason: count} for non-blank rows with a blank or
-        invalid date.
+        invalid date, and for empty template rows (DROP_PLACEHOLDER).
 
     Raises:
         UnsupportedQPASSFormatError: If a required column is missing or a
@@ -349,14 +406,22 @@ def _parse_long_sheet(sheet_name: str, sheet: pd.DataFrame, format_version: str)
         for header, position in positions.items()
     })
     is_non_blank = data.notna().any(axis=1)
+    data["source_row"] = body.index + 1  # sheet row 0 is Excel row 1
     raw_date = data["date"]
     data["date"] = pd.to_datetime(raw_date.map(_parse_date_cell))
     has_date = data["date"].notna()
+    counts_empty = data[OPEN_COLUMNS].apply(lambda col: col.map(_is_blank_or_zero))
+    is_placeholder = (
+        data["location"].map(_is_blank_or_zero)
+        & data["type"].map(_is_blank_or_zero)
+        & counts_empty.all(axis=1)
+    )
     dropped = _nonzero({
         DROP_NO_DATE: (is_non_blank & raw_date.isna()).sum(),
         DROP_INVALID_DATE: (raw_date.notna() & ~has_date).sum(),
+        DROP_PLACEHOLDER: (has_date & is_placeholder).sum(),
     })
-    data = data[has_date].reset_index(drop=True)
+    data = data[has_date & ~is_placeholder].reset_index(drop=True)
     if data.empty:
         return None, "no rows with a date (empty template sheet)", {}
 
@@ -365,6 +430,13 @@ def _parse_long_sheet(sheet_name: str, sheet: pd.DataFrame, format_version: str)
     else:
         data["week"] = _week_from_sheet_name(name)
     return data, None, dropped
+
+
+def _is_blank_or_zero(value) -> bool:
+    """True for a blank cell or a zero, the values Excel shows for an empty formula."""
+    if not _is_filled(value):
+        return True
+    return pd.to_numeric(value, errors="coerce") == 0
 
 
 def _parse_date_cell(value) -> pd.Timestamp:
@@ -460,8 +532,9 @@ def _parse_format_a_sheet(sheet_name: str, sheet: pd.DataFrame) -> tuple:
     Summary sections are dropped. A summary section starts at a row labelled
     with a FORMAT_A_SUMMARY_ROW_LABELS word in Structure or Lot (Summer 2018:
     "A" / "Vacancy") or at a heading-only Structure row such as
-    "West Campus" (2019 files, followed by subtotal rows like "A" 1593). It
-    lasts until the next row with a non-blank Structure.
+    "West Campus" (2019 files, followed by subtotal rows like "A" 1593)
+    whose rows are not levels or lot IDs. It lasts until the next row with
+    a non-blank Structure. See _format_a_summary_rows.
 
     Rows are kept if they name a structure, lot or type and have any count or
     total, even text such as "FULL" or "-" (kept as written, like Formats
@@ -486,7 +559,7 @@ def _parse_format_a_sheet(sheet_name: str, sheet: pd.DataFrame) -> tuple:
     column_dates = _format_a_column_dates(sheet, label_row)
     _reject_duplicate_date_times(sheet_name, column_dates)
 
-    body = sheet.iloc[label_row + 1:].reset_index(drop=True)
+    body = sheet.iloc[label_row + 1:]
     # Some sheets have an "Available Available ..." row under the labels. It
     # is part of the header, so remove it before counting dropped rows.
     is_header_row = body.apply(
@@ -494,7 +567,9 @@ def _parse_format_a_sheet(sheet_name: str, sheet: pd.DataFrame) -> tuple:
         and row.notna().any(),
         axis=1,
     )
-    body = body[~is_header_row].reset_index(drop=True)
+    body = body[~is_header_row]
+    source_row = body.index + 1  # sheet row 0 is Excel row 1
+    body = body.reset_index(drop=True)
     info = pd.DataFrame({
         FORMAT_A_COLUMNS[label]: body.iloc[:, position].to_numpy()
         for label, position in label_positions.items()
@@ -509,7 +584,10 @@ def _parse_format_a_sheet(sheet_name: str, sheet: pd.DataFrame) -> tuple:
     structure_position = label_positions[FORMAT_A_LABEL]
     other_cells = is_filled.drop(columns=body.columns[structure_position])
     is_structure_only = ~other_cells.any(axis=1)
-    is_summary = _format_a_summary_rows(structure_text, lot_text, is_structure_only)
+    has_type = info["type"].map(_is_filled)
+    is_summary = _format_a_summary_rows(
+        structure_text, lot_text, is_structure_only, has_values, has_type
+    )
 
     structure = structure_text.replace("", None)
     filled_structure = structure.ffill()
@@ -523,6 +601,7 @@ def _parse_format_a_sheet(sheet_name: str, sheet: pd.DataFrame) -> tuple:
     info["location"] = filled_structure.where(is_level | is_whole_structure, lot)
     info["level"] = lot.where(is_level)
     info["lot_or_structure"] = (is_level | is_whole_structure).map({True: "Structure", False: "Lot"})
+    info["source_row"] = source_row.to_numpy()
 
     keep = has_values & has_name & ~is_summary
     not_kept = is_filled.any(axis=1) & ~keep
@@ -558,14 +637,26 @@ def _is_filled(value) -> bool:
 
 
 def _format_a_summary_rows(
-    structure_text: pd.Series, lot_text: pd.Series, is_structure_only: pd.Series
+    structure_text: pd.Series,
+    lot_text: pd.Series,
+    is_structure_only: pd.Series,
+    has_values: pd.Series,
+    has_type: pd.Series,
 ) -> pd.Series:
     """Mark the rows of a Format A sheet that belong to a summary section.
 
     A section starts at every row with a non-blank Structure and at every
     row whose Lot is a summary label. The whole section is a summary if its
-    first row has a summary label, or is a heading: a row where only the
-    Structure cell is filled ("West Campus", "SIO").
+    first row:
+
+    - has a summary label ("Vacancy"), or
+    - is a heading, a row where only the Structure cell is filled
+      ("West Campus", "SIO"), and none of the section's rows with values
+      is a real observation. A real observation has a level in Lot
+      ("Level 1"), a lot ID ("P002"), or a blank Lot with a Type (a
+      structure without levels). Under the real headings every row's Lot
+      is a space type ("A", "SIO B"), but a structure name on its own row
+      followed by its levels ("Athena", then "Level 1") is not a summary.
 
     Returns:
         Boolean Series, True for rows inside a summary section.
@@ -574,9 +665,15 @@ def _format_a_summary_rows(
         structure_text.str.casefold().isin(FORMAT_A_SUMMARY_ROW_LABELS)
         | lot_text.str.casefold().isin(FORMAT_A_SUMMARY_ROW_LABELS)
     )
-    is_heading = (structure_text != "") & is_structure_only
     starts_section = (structure_text != "") | is_label
     section = starts_section.cumsum()
+    is_observation = has_values & (
+        lot_text.str.startswith(FORMAT_A_LEVEL_PREFIX)
+        | lot_text.str.fullmatch(FORMAT_A_LOT_ID_PATTERN)
+        | ((lot_text == "") & has_type)
+    )
+    has_observations = is_observation.groupby(section).transform("any")
+    is_heading = (structure_text != "") & is_structure_only & ~has_observations
     starts_summary = starts_section & (is_label | is_heading)
     return starts_summary.groupby(section).transform("any")
 

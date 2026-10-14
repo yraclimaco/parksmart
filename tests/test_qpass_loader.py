@@ -16,6 +16,7 @@ from src.qpass_loader import (
     DROP_INVALID_DATE,
     DROP_NO_DATE,
     DROP_NO_VALUES,
+    DROP_PLACEHOLDER,
     DROP_SUMMARY,
     FORMAT_A,
     FORMAT_A_SUMMARY_ROW_LABELS,
@@ -25,6 +26,7 @@ from src.qpass_loader import (
     UnsupportedQPASSFormatError,
     _parse_date_cell,
     _week_from_sheet_name,
+    load_all_qpass,
     load_qpass,
 )
 
@@ -268,6 +270,29 @@ def _make_long_sheet(folder, rows, header=LONG_HEADER):
     return _save(workbook, folder, "QPASS 2024-2025-2 Fall.xlsx")
 
 
+def test_format_b_source_row_is_the_excel_row(tmp_path):
+    data = load_qpass(_make_format_b(tmp_path))
+    assert data["source_row"].tolist() == [3, 4]  # title row 1, header row 2
+
+
+def test_format_b_drops_empty_template_rows_but_keeps_counts(tmp_path):
+    """Formula rows pointing at an empty source show 0 / blank everywhere: dropped.
+
+    A row with no location or type but real counts is an observation, so it
+    is kept for the cleaning step rather than lost.
+    """
+    empty = _long_row(MONDAY, "Athena", 50)
+    empty[7:15] = [0, 0, 0, 0, 0, 0, None, 0]  # location .. open_2pm
+    orphan = _long_row(MONDAY, "Athena", 1)
+    orphan[7:15] = [0, 0, 0, 0, 1, 1, 1, 1]
+    rows = [_long_row(MONDAY, "Athena", 50), empty, orphan]
+    data = load_qpass(_make_long_sheet(tmp_path, rows))
+    assert data["location"].tolist() == ["Athena", 0]
+    assert data["source_row"].tolist() == [3, 5]
+    expected = {"QPASS Data Entry (Week 1)": {DROP_PLACEHOLDER: 1}}
+    assert data.attrs["dropped_rows"] == expected
+
+
 def test_format_b_keeps_text_counts_and_reports_them(tmp_path):
     row = _long_row(MONDAY, "Athena", "FULL")
     data = load_qpass(_make_long_sheet(tmp_path, [row]))
@@ -367,6 +392,13 @@ def test_format_a_structure_after_surface_lot_keeps_its_name(tmp_path):
     assert gilman["lot_or_structure"].tolist() == ["Structure", "Structure"]
     assert gilman["level"].isna().all()
     assert (monday["location"] == "P002").sum() == 1
+
+
+def test_format_a_source_row_is_the_excel_row(tmp_path):
+    data = load_qpass(_make_format_a(tmp_path))
+    monday = data[data["date"].dt.date == MONDAY.date()]
+    # labels on Excel row 4, "Available" row 5, observations from row 6
+    assert monday["source_row"].tolist() == [6, 7, 8, 9, 10, 11]
 
 
 def test_format_a_counts_dropped_rows(tmp_path):
@@ -501,6 +533,52 @@ def test_format_a_structure_with_blank_counts_is_not_a_heading(tmp_path):
     assert data["level"].tolist() == ["Level 2"]
 
 
+def test_format_a_structure_name_row_followed_by_levels_is_kept(tmp_path):
+    """Regression: a structure name on its own row is a heading for its levels.
+
+    It looks like a summary heading ("West Campus": only Structure filled),
+    but the rows under it are levels, so they are real observations.
+    """
+    rows = [
+        ["Athena"],
+        [None, "Level 1", "A", 40, 30, 20, 10, 5],
+        [None, "Level 2", "B", 50, 40, 30, 20, 10],
+        ["West Campus"],
+        [None, "A", None, 1593, 993, 372, 362, 403],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["Athena", "Athena"]
+    assert data["level"].tolist() == ["Level 1", "Level 2"]
+    assert data["lot_or_structure"].tolist() == ["Structure", "Structure"]
+    assert data["open_8am"].tolist() == [30, 40]
+    expected = {"W1 Data": {DROP_NO_VALUES: 2, DROP_SUMMARY: 1}}
+    assert data.attrs["dropped_rows"] == expected
+
+#Regression test that Yra mentioned
+def test_format_a_structure_name_row_without_levels_is_kept(tmp_path):
+    """A structure without levels: its rows have a blank Lot but a Type and counts."""
+    rows = [
+        ["Gilman"],
+        [None, None, "B", 80, 70, 60, 50, 40],
+        [None, None, "S", 90, 80, 70, 60, 50],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["Gilman", "Gilman"]
+    assert data["type"].tolist() == ["B", "S"]
+
+
+def test_format_a_label_row_followed_by_surface_lots_is_kept(tmp_path):
+    """A label on its own row above lot IDs ("P002") is not a summary heading."""
+    rows = [
+        ["Regents Parking Lots"],
+        [None, "P002", "B", 70, 60, 50, 40, 30],
+        [None, "P003", "A", 64, 53, 23, 7, 15],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["P002", "P003"]
+    assert data["lot_or_structure"].tolist() == ["Lot", "Lot"]
+
+
 def test_format_a_keeps_text_counts_and_reports_them(tmp_path):
     """Regression: text counts ("FULL", "n/a") are kept as written, like Formats B/C."""
     rows = [
@@ -524,6 +602,38 @@ def test_format_a_duplicate_date_and_time_columns_raise(tmp_path):
     message = r"columns E, I .*2024-09-30 open_8am"
     with pytest.raises(UnsupportedQPASSFormatError, match=message):
         load_qpass(path)
+
+
+# ---------- load_all_qpass ----------
+
+def test_load_all_qpass_combines_files_and_keeps_records_per_file(tmp_path):
+    _make_format_b(tmp_path)
+    _make_format_c(tmp_path)
+    data = load_all_qpass(tmp_path)
+    assert list(data.columns) == OUTPUT_COLUMNS
+    files = ["QPASS 2024-2025-2 Fall.xlsx", "QPASS 2026-2027-2  Fall.xlsx"]
+    assert data.attrs["files"] == files
+    assert data["source_file"].value_counts().to_dict() == {files[0]: 2, files[1]: 1}
+    assert set(data.attrs["skipped_sheets"]) == set(files)
+    skipped = dict(data.attrs["skipped_sheets"][files[0]])
+    assert skipped["Monday (1)"] == "not a data sheet"
+    assert data.attrs["dropped_rows"] == {files[0]: {}, files[1]: {}}
+
+
+def test_load_all_qpass_empty_folder_raises(tmp_path):
+    with pytest.raises(FileNotFoundError, match="No files matching"):
+        load_all_qpass(tmp_path)
+
+
+def test_load_all_qpass_names_the_file_that_fails(tmp_path):
+    """A broken workbook stops the load with its name; it is never skipped silently."""
+    _make_format_b(tmp_path)
+    workbook = Workbook()
+    workbook.active.append(["Something else entirely"])
+    _save(workbook, tmp_path, "QPASS 2025-2026-2 Fall.xlsx")
+    message = "QPASS 2025-2026-2 Fall.xlsx"
+    with pytest.raises(UnsupportedQPASSFormatError, match=message):
+        load_all_qpass(tmp_path)
 
 
 # ---------- real data (runs only if data/raw/QPASS exists) ----------
@@ -556,3 +666,11 @@ def test_real_workbook_has_no_summary_rows_as_locations(path):
     locations = data["location"].astype(str).str.strip().str.casefold()
     assert not locations.isin(NOT_LOCATIONS).any()
     assert data["date"].dt.year.gt(1970).all()
+
+
+@pytest.mark.skipif(not REAL_FILES, reason="real QPASS workbooks not downloaded")
+def test_real_load_all_qpass_includes_every_workbook():
+    data = load_all_qpass()
+    assert data.attrs["files"] == [path.name for path in REAL_FILES]
+    assert set(data["source_file"]) == set(data.attrs["files"])
+    assert list(data.columns) == OUTPUT_COLUMNS
