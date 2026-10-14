@@ -13,11 +13,17 @@ from openpyxl import Workbook
 
 from src.qpass_inventory import RAW_QPASS_DIR, find_header_row, parse_qpass_filename
 from src.qpass_loader import (
+    DROP_INVALID_DATE,
+    DROP_NO_DATE,
+    DROP_NO_VALUES,
+    DROP_SUMMARY,
     FORMAT_A,
+    FORMAT_A_SUMMARY_ROW_LABELS,
     FORMAT_B,
     FORMAT_C,
     OUTPUT_COLUMNS,
     UnsupportedQPASSFormatError,
+    _parse_date_cell,
     _week_from_sheet_name,
     load_qpass,
 )
@@ -33,6 +39,8 @@ LONG_HEADER = [
 ]
 MONDAY = dt.datetime(2024, 9, 30)
 TUESDAY = dt.datetime(2024, 10, 1)
+# A Monday inside academic year 2026-2027, for the Format C fixture.
+FALL_2026_MONDAY = dt.datetime(2026, 9, 28)
 
 
 def _long_row(date, location, open_8am):
@@ -64,7 +72,9 @@ def _make_format_b(folder, filename="QPASS 2024-2025-2 Fall.xlsx"):
     return _save(workbook, folder, filename)
 
 
-def _make_format_c(folder, filename="QPASS 2026-2027-2  Fall.xlsx"):
+def _make_format_c(
+    folder, filename="QPASS 2026-2027-2  Fall.xlsx", date=FALL_2026_MONDAY
+):
     """Format C: one 'Data Entry' sheet with Week # and Sub Type, plus a duplicate Day column."""
     workbook = Workbook()
     sheet = workbook.active
@@ -72,7 +82,7 @@ def _make_format_c(folder, filename="QPASS 2026-2027-2  Fall.xlsx"):
     header = LONG_HEADER[:2] + ["Week #"] + LONG_HEADER[2:9] + ["Sub Type"] + LONG_HEADER[9:] + ["Day"]
     sheet.append(["Name(s):"])
     sheet.append(header)
-    row = _long_row(MONDAY, "Gilman", 12)
+    row = _long_row(date, "Gilman", 12)
     sheet.append(row[:2] + ["Week 0"] + row[2:9] + ["24/7 Enforced"] + row[9:] + ["helper value"])
     workbook.create_sheet("Directions & Links").append(["Read me"])
     return _save(workbook, folder, filename)
@@ -203,7 +213,8 @@ def test_format_b_counts_undated_leftover_rows(tmp_path):
     sheet.append([None, None, None, None, "East Campus", None, "Lot"])  # leftover row
     data = load_qpass(_save(workbook, tmp_path, "QPASS 2024-2025-2 Fall.xlsx"))
     assert len(data) == 1
-    assert data.attrs["dropped_rows"] == {"QPASS Data Entry (Week 1)": 1}
+    expected = {"QPASS Data Entry (Week 1)": {DROP_NO_DATE: 1}}
+    assert data.attrs["dropped_rows"] == expected
 
 
 def test_format_b_skips_and_records_empty_and_view_sheets(tmp_path):
@@ -227,6 +238,92 @@ def test_format_c_reads_week_and_sub_type(tmp_path):
 def test_sub_type_is_empty_for_formats_without_it(tmp_path):
     data = load_qpass(_make_format_b(tmp_path))
     assert data["sub_type"].isna().all()
+
+
+def test_format_c_fixture_dates_match_its_academic_year(tmp_path, caplog):
+    data = load_qpass(_make_format_c(tmp_path))
+    assert data["date"].dt.date.tolist() == [FALL_2026_MONDAY.date()]
+    assert "outside academic year" not in caplog.text
+
+
+def test_dates_outside_academic_year_log_a_warning(tmp_path, caplog):
+    """A 2024 date in a file named 2026-2027 is kept but flagged."""
+    path = _make_format_c(tmp_path, date=MONDAY)
+    data = load_qpass(path)
+    assert len(data) == 1
+    assert "1 rows have dates outside academic year 2026-2027" in caplog.text
+
+
+# ---------- Formats B/C: review regressions ----------
+
+def _make_long_sheet(folder, rows, header=LONG_HEADER):
+    """Build a Format B workbook with one week sheet holding the given rows."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "QPASS Data Entry (Week 1)"
+    sheet.append(["Name(s):"])
+    sheet.append(header)
+    for row in rows:
+        sheet.append(row)
+    return _save(workbook, folder, "QPASS 2024-2025-2 Fall.xlsx")
+
+
+def test_format_b_keeps_text_counts_and_reports_them(tmp_path):
+    row = _long_row(MONDAY, "Athena", "FULL")
+    data = load_qpass(_make_long_sheet(tmp_path, [row]))
+    assert data["open_8am"].tolist() == ["FULL"]
+    assert data.attrs["non_numeric_values"] == {"open_8am": 1}
+
+
+def test_format_b_duplicate_count_column_raises(tmp_path):
+    """Regression: a second 'Open Spaces 8am' column must not be silently ignored."""
+    header = LONG_HEADER + ["Open Spaces 8am"]
+    row = _long_row(MONDAY, "Athena", 50) + [49]
+    path = _make_long_sheet(tmp_path, [row], header=header)
+    message = r"more than one 'Open Spaces 8am' column \(L, P\)"
+    with pytest.raises(UnsupportedQPASSFormatError, match=message):
+        load_qpass(path)
+
+
+def test_excel_serial_date_is_converted_not_read_as_1970(tmp_path):
+    """Regression: 45565 is Excel's number for 2024-09-30, not 1970-01-01."""
+    row = _long_row(MONDAY, "Athena", 50)
+    row[0] = 45565
+    data = load_qpass(_make_long_sheet(tmp_path, [row]))
+    assert data["date"].dt.date.tolist() == [MONDAY.date()]
+
+
+def test_invalid_date_is_dropped_and_reported(tmp_path, caplog):
+    rows = [_long_row(MONDAY, "Athena", 50), _long_row(MONDAY, "Gilman", 12)]
+    rows[1][0] = "TBD"
+    data = load_qpass(_make_long_sheet(tmp_path, rows))
+    assert data["location"].tolist() == ["Athena"]
+    expected = {"QPASS Data Entry (Week 1)": {DROP_INVALID_DATE: 1}}
+    assert data.attrs["dropped_rows"] == expected
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert warnings == [
+        "QPASS 2024-2025-2 Fall.xlsx: dropped 1 rows in sheet "
+        "'QPASS Data Entry (Week 1)': invalid date"
+    ]
+
+
+@pytest.mark.parametrize("value, expected", [
+    (45565, pd.Timestamp("2024-09-30")),
+    (45565.75, pd.Timestamp("2024-09-30")),   # a time of day is dropped
+    (MONDAY, pd.Timestamp("2024-09-30")),
+    ("2024-09-30", pd.Timestamp("2024-09-30")),
+    (0, pd.NaT),                              # not a valid Excel date
+    (-3, pd.NaT),
+    (1e20, pd.NaT),                           # far too large to be a date
+    ("Week 0", pd.NaT),
+    (None, pd.NaT),
+])
+def test_parse_date_cell(value, expected):
+    result = _parse_date_cell(value)
+    if pd.isna(expected):
+        assert pd.isna(result)
+    else:
+        assert result == expected
 
 
 # ---------- Format A ----------
@@ -273,9 +370,10 @@ def test_format_a_structure_after_surface_lot_keeps_its_name(tmp_path):
 
 
 def test_format_a_counts_dropped_rows(tmp_path):
-    """The 'SIO' heading and the 'Vacancy' summary row are dropped and counted."""
+    """The 'SIO' heading and the 'Vacancy' row are dropped and counted by reason."""
     data = load_qpass(_make_format_a(tmp_path))
-    assert data.attrs["dropped_rows"] == {"W1 Data": 2}
+    expected = {"W1 Data": {DROP_NO_VALUES: 1, DROP_SUMMARY: 1}}
+    assert data.attrs["dropped_rows"] == expected
 
 
 def test_format_a_missing_required_label_raises(tmp_path):
@@ -340,6 +438,94 @@ def test_format_a_skips_view_sheets(tmp_path):
     assert skipped == {"W1 Oversubscription": "not a data sheet"}
 
 
+def _make_format_a_one_day(folder, rows, times=None):
+    """Build a one-day Format A sheet (Monday) with the given body rows.
+
+    Each row is [Structure, Lot, Type, Total Spaces, 8am, 10am, 12pm, 2pm].
+    """
+    times = times or [dt.time(8), dt.time(10), dt.time(12), dt.time(14)]
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "W1 Data"
+    sheet.append([None] * 4 + ["Monday"])
+    sheet.append([None] * 4 + [MONDAY])
+    sheet.append(["Structure", "Lot", "Type", "Total Spaces"] + times)
+    for row in rows:
+        sheet.append(row)
+    return _save(workbook, folder, "QPASS 2024-2025-2 Fall.xlsx")
+
+
+def test_format_a_summary_sections_never_become_locations(tmp_path):
+    """Regression: summary labels and the rows under them must not become locations.
+
+    Copies two real layouts: Summer 2018 puts the space type in Structure and
+    "Vacancy" in Lot; the 2019 files end with "West Campus" / "SIO" headings
+    followed by subtotal rows whose Lot cell is a space type ("A", "SIO B").
+    """
+    rows = [
+        ["Athena", "Level 1", "A", 40, 30, 20, 10, 5],
+        [None, "P002", "B", 70, 60, 50, 40, 30],
+        ["A", "Vacancy", None, None, 989, 297, 223, 234],
+        [None, "Physical Capacity", None, 2217, 2217, 2217, 2217, 2217],
+        [None, "Occupancy", None, None, 0.55, 0.87, 0.90, 0.89],
+        ["West Campus"],
+        [None, "A", None, 1593, 993, 372, 362, 403],
+        [None, "Short Term A", None, 56, 48, 23, 16, 18],
+        ["SIO"],
+        [None, "SIO B", None, 295, 211, 93, 50, 48],
+        [None, "Aquarium", None, 258, 240, 130, 23, 48],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["Athena", "P002"]
+    expected = {"W1 Data": {DROP_SUMMARY: 7, DROP_NO_VALUES: 2}}
+    assert data.attrs["dropped_rows"] == expected
+
+
+def test_format_a_summary_label_is_matched_without_case(tmp_path):
+    rows = [
+        [None, "P002", "B", 70, 60, 50, 40, 30],
+        [None, "VACANCY ", None, None, 989, 297, 223, 234],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["P002"]
+
+
+def test_format_a_structure_with_blank_counts_is_not_a_heading(tmp_path):
+    """A structure row with a type but no counts must not start a summary section."""
+    rows = [
+        ["Hopkins", None, "B", None, None, None, None, None],
+        [None, "Level 2", "A", 50, 40, 30, 20, 10],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["Hopkins"]
+    assert data["level"].tolist() == ["Level 2"]
+
+
+def test_format_a_keeps_text_counts_and_reports_them(tmp_path):
+    """Regression: text counts ("FULL", "n/a") are kept as written, like Formats B/C."""
+    rows = [
+        ["Hopkins", None, "B", None, "FULL", "FULL", "FULL", "FULL"],
+        [None, "P002", "B", 70, "n/a", 50, 40, 30],
+    ]
+    data = load_qpass(_make_format_a_one_day(tmp_path, rows))
+    assert data["location"].tolist() == ["Hopkins", "P002"]
+    assert data["open_8am"].tolist() == ["FULL", "n/a"]
+    assert data.attrs["dropped_rows"] == {}
+    assert data.attrs["non_numeric_values"] == {
+        "open_8am": 2, "open_10am": 1, "open_12pm": 1, "open_2pm": 1,
+    }
+
+
+def test_format_a_duplicate_date_and_time_columns_raise(tmp_path):
+    """Regression: two Monday 8am columns would let one value overwrite the other."""
+    times = [dt.time(8), dt.time(10), dt.time(12), dt.time(14), dt.time(8)]
+    rows = [["Athena", "Level 1", "A", 40, 30, 20, 10, 5, 29]]
+    path = _make_format_a_one_day(tmp_path, rows, times=times)
+    message = r"columns E, I .*2024-09-30 open_8am"
+    with pytest.raises(UnsupportedQPASSFormatError, match=message):
+        load_qpass(path)
+
+
 # ---------- real data (runs only if data/raw/QPASS exists) ----------
 
 @pytest.mark.skipif(not REAL_FILES, reason="real QPASS workbooks not downloaded")
@@ -354,3 +540,19 @@ def test_real_workbook_loads(path):
     assert (data["source_file"] == path.name).all()
     start_year, end_year = (int(year) for year in info["academic_year"].split("-"))
     assert data["date"].dt.year.between(start_year, end_year).all()
+
+
+# Values that are space types or summary labels, never parking locations.
+# They appeared as locations before the summary-section fix (2019 files).
+NOT_LOCATIONS = FORMAT_A_SUMMARY_ROW_LABELS | {
+    "a", "b", "s", "v", "d", "sio b", "sio s",
+}
+
+
+@pytest.mark.skipif(not REAL_FILES, reason="real QPASS workbooks not downloaded")
+@pytest.mark.parametrize("path", REAL_FILES, ids=lambda p: p.name)
+def test_real_workbook_has_no_summary_rows_as_locations(path):
+    data = load_qpass(path)
+    locations = data["location"].astype(str).str.strip().str.casefold()
+    assert not locations.isin(NOT_LOCATIONS).any()
+    assert data["date"].dt.year.gt(1970).all()

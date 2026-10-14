@@ -48,8 +48,8 @@ academic year named in the file.
 | QPASS 2018-2019-2 Fall.xlsx | A | 2,696 | 2018-09-17 to 2018-10-11 | Loaded (3.8 weeks) |
 | QPASS 2018-2019-3 Winter.xlsx | A | 1,440 | 2019-01-07 to 2019-01-18 | Loaded |
 | QPASS 2018-2019-4 Spring.xlsx | A | 1,060 | 2019-04-01 to 2019-04-12 | Loaded |
-| QPASS 2019-2020-1 Summer.xlsx | A | 1,280 | 2019-07-01 to 2019-07-12 | Loaded |
-| QPASS 2019-2020-2 Fall.xlsx | A | 1,400 | 2019-09-30 to 2019-10-11 | Loaded; one sheet unsupported (see below) |
+| QPASS 2019-2020-1 Summer.xlsx | A | 1,120 | 2019-07-01 to 2019-07-12 | Loaded |
+| QPASS 2019-2020-2 Fall.xlsx | A | 1,180 | 2019-09-30 to 2019-10-11 | Loaded; one sheet unsupported (see below) |
 | QPASS 2024-2025-1 Summer.xlsm | B | 1,090 | 2024-07-01 to 2024-07-12 | Loaded |
 | QPASS 2024-2025-2 Fall.xlsm | B | 1,346 | 2024-09-26 to 2024-10-11 | Loaded (includes Week 0) |
 | QPASS 2024-2025-3 Winter.xlsm | B | 1,130 | 2025-01-06 to 2025-01-17 | Loaded |
@@ -106,9 +106,19 @@ Variations within Format A:
 - Blank `Structure`/`Lot` cells mean "same as above" for structure levels,
   but surface lots (`P002`, `P785`) with a blank `Structure` are **not** part
   of the structure above them.
-- Some sheets end with summary rows (`Vacancy`, `Physical Capacity`,
-  `Occupancy`, `Oversubscription`), section headings (`SIO`), or a
-  "Deleted/Closed Lots" list. These are not observations.
+- Some sheets end with summary sections. These are not observations and
+  are dropped (counted in `attrs["dropped_rows"]`):
+  - Summer 2018: a space type in `Structure` and `Vacancy`,
+    `Physical Capacity`, `Occupancy`, `Oversubscription` in `Lot`.
+  - Summer and Fall 2019: headings `West Campus`, `East Campus`, `SIO`
+    (only the `Structure` cell filled), each followed by subtotal rows whose
+    `Lot` is a space type (`A` 1593, `Short Term A`, `SIO B` 290, ...).
+    Checked: in Summer 2019, West + East `A` (1593 + 708) equals the sum of
+    all type-A rows (2,301); in Fall 2019, `SIO B` 290 equals the sum of the
+    10 SIO B lots. The `Aquarium` row under `SIO` repeats lot `P017`
+    (same total and counts). Before this was fixed these rows were loaded as
+    locations named `A`, `B`, `SIO B`, etc.
+  - Fall 2019: a "Deleted/Closed Lots" list (lot names, no counts).
 
 ### Format B — long, one sheet per week (2024-2025 to Fall 2025-2026, 6 files)
 
@@ -136,13 +146,15 @@ Same core columns as Format B, in a single `Data Entry` sheet, plus:
 
 ### Sheets that are not raw data
 
-All formats include formatted views of the same numbers: day tabs
+All formats include sheets that are not the raw survey rows: day tabs
 (`Monday (1)`), `Summary`, `Oversubscription`, `Text Week N`, `Print`,
 `PT Summary`, `Stall Type`, `Directions & Links`, `Copy of ... Data`,
 `Current Week Data Sorted by Lot`. The loader skips them.
 
-Verified: the Fall 2024 `Monday (1)` tab equals `QPASS Data Entry (Week 1)`
-summed by `Report Type` (105/105 rows identical).
+Verified for the 2024-2025 files: the day tabs equal the data-entry sheet
+summed by `Report Type` (e.g. Fall 2024 `Monday (1)`: 105/105 rows
+identical). In the Format C files (Spring 2026 onward) the day tabs are a
+different summary that does not match these sums; they are not used.
 
 Warning: Spring 2019 contains `Current Week Data Sorted by Lot` with
 **January 2019** (Winter) dates. Reading every sheet would mislabel Winter
@@ -168,22 +180,47 @@ columns:
 | `open_8am`, `open_10am`, `open_12pm`, `open_2pm` | Open-space counts |
 | `raw_structure`, `raw_lot` | Format A only: original cells before filling down |
 
-Nothing is dropped silently:
+Nothing is dropped silently. All of these are stored on the result and
+logged:
 
 - `df.attrs["skipped_sheets"]`: sheets not read, with the reason.
-- `df.attrs["dropped_rows"]`: per sheet, how many non-blank rows were not
-  kept. Current counts: Summer 2018 64 (summary blocks: `Vacancy`,
-  `Physical Capacity`, `Occupancy`, `Oversubscription`), Summer 2019 6
-  (`SIO` section headings), Fall 2019 14 ("Deleted/Closed Lots" list),
-  Fall 2024 4 (leftover template rows with no date, location, or counts).
-  All other files 0.
+- `df.attrs["dropped_rows"]`: `{sheet: {reason: count}}` for non-blank
+  rows inside data sheets that were not kept. Reasons: summary section,
+  no counts and no total, no structure/lot/type (Format A); no date,
+  invalid date (Formats B/C). Current counts per file:
 
-Both are also logged. `UnsupportedQPASSFormatError` is raised when a file
-does not match a known layout, or when a data sheet is missing a required
-column (Formats B/C: `Date`, `Location`, `Type`, `Total Stall Count`, the
-four `Open Spaces` columns; Format A: `Structure`, `Lot`, `Type`,
-`Total Spaces`). This stops a renamed column in a future workbook from
-silently producing blank values.
+  | File | Summary section | No counts or total | No date |
+  |---|---|---|---|
+  | Summer 2018 | 64 | | |
+  | Summer 2019 | 32 | 6 (`West Campus`/`East Campus`/`SIO` headings) | |
+  | Fall 2019 | 46 | 12 (headings, closed-lot names) | |
+  | Fall 2024 | | | 4 (leftover template rows) |
+
+  All other files: nothing dropped.
+- `df.attrs["non_numeric_values"]`: `{column: count}` of count/total cells
+  holding text. These rows are **kept** with the text as written, in every
+  format. Current values: `-` (Fall 2019, Campus Point East B, Monday),
+  a non-breaking space (Fall 2024), spaces (Winter 2025), and `` `95 ``
+  (Summer 2025, a typo for 95). Cleaning decides what they mean.
+
+`UnsupportedQPASSFormatError` is raised when:
+
+- a file does not match a known layout;
+- a data sheet is missing a required column (Formats B/C: `Date`,
+  `Location`, `Type`, `Total Stall Count`, the four `Open Spaces` columns;
+  Format A: `Structure`, `Lot`, `Type`, `Total Spaces`), so a renamed column
+  cannot silently produce blank values;
+- two columns hold the same survey date and time (Format A), or a
+  required Format B/C column appears twice, so one value cannot silently
+  overwrite another. The error names the Excel columns. No current file
+  does this. Repeated helper headers (`Day`, and `Sub Type` in Fall 2026,
+  whose two columns hold identical values) are allowed; the first is used.
+
+Dates (Formats B/C): a date stored as an Excel serial number (e.g. 45565)
+is converted to the real date (2024-09-30), not read as 1970. A value that
+is not a valid date is dropped as "invalid date" with a warning. No current
+file stores dates as numbers. A date outside the file's academic year is
+kept and logged as a warning.
 
 ## Assumptions and decisions
 
@@ -193,7 +230,8 @@ silently producing blank values.
    later issue.
 2. **Blank cells are kept.** Many rows have blank count cells (16-377 per
    file) and Fall 2024 Week 0 has 2 rows with only a date. They are not
-   dropped here.
+   dropped here. Text such as `n/a` or `NA` is kept as text too (pandas
+   would otherwise read it as blank).
 3. **Week is left blank when not stated**: Summer and Fall 2018 sheet names
    have no week number, and Summer 2024's first sheet is `QPASS Data Entry`
    with no number (probably Week 1, not assumed).
