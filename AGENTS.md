@@ -166,10 +166,11 @@ python -m pip install -r requirements.txt
 
 If `.env.example` exists, copy it to `.env` and add local API keys there. Never commit `.env`.
 
-QPASS workbooks are not committed to GitHub. Download them and place them in:
+QPASS workbooks are not committed to GitHub. Download them into
+`data/raw/QPASS/` with one command (safe to rerun; existing files are kept):
 
-```text
-data/raw/QPASS/
+```bash
+python -m src.download_qpass
 ```
 
 ## Running things
@@ -180,11 +181,16 @@ data/raw/QPASS/
   python -m src.qpass_inventory
   ```
 
-- Import the reusable QPASS loader:
+- Import the reusable QPASS loader (all workbooks in `data/raw/QPASS/` in
+  one table, or one workbook):
 
   ```python
-  from src.qpass_loader import load_qpass
+  from src.qpass_loader import load_all_qpass, load_qpass
+  df = load_all_qpass()
   ```
+
+  Use `load_all_qpass()` instead of `pd.concat` over `load_qpass()`, which
+  would drop the per-file `attrs` (skipped sheets, dropped rows).
 
 - Launch notebooks:
 
