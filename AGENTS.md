@@ -175,6 +175,37 @@ python -m src.download_qpass
 
 ## Running things
 
+### Inventory capacity work — Issue #4
+
+Extract capacity groups from an Inventory workbook:
+
+```bash
+python -m src.clean_inventory data/raw/inventory/Inventory_2025-2026_Fall.xlsm --academic-year 2025-2026 --quarter Fall
+```
+
+Compare the extracted capacities with a QPASS workbook:
+
+```bash
+python -m src.compare_capacities --inventory "data/interim/inventory/Inventory_2025-2026_Fall_capacity_groups.csv" --qpass "data/raw/qpass/QPASS 2025-2026-2 Fall.xlsm"
+```
+
+Run these commands from the repository root.
+Extraction currently supports the reviewed Inventory layout:
+`Pivot Table Data`, with headers on Excel row 4.
+
+Intermediate Inventory CSVs go into `data/interim/inventory/`.
+Comparison reports go into `results/capacity_matching/`.
+Each comparison run replaces the previous comparison reports.
+
+Candidate coverage is not verified capacity matching.
+Historical applicability and ambiguous category groups remain unresolved.
+
+Capacity validation tests:
+
+```bash
+python -m pytest tests/test_inventory_capacity.py -q
+```
+
 - Audit QPASS workbook structures:
 
   ```bash

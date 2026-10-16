@@ -1,21 +1,27 @@
 """Compare representative QPASS records with Inventory candidates."""
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
+from src.qpass_loader import load_qpass
 
 
 KEYS = ["academic_year", "quarter", "facility", "category"]
 
 
-def compare_capacities():
-    inventory_path = Path(
-        "data/interim/inventory/"
-        "Inventory_2025-2026_Fall_capacity_groups.csv"
-    )
-    qpass_path = Path(
-        "data/raw/qpass/QPASS 2025-2026-2 Fall.xlsm"
-    )
+def compare_capacities(inventory_path, qpass_path):
+    """Compare a cleaned Inventory CSV with a QPASS workbook.
+
+    Args:
+        inventory_path: Path to the extracted Inventory capacity CSV.
+        qpass_path: Path to the QPASS workbook.
+
+    Returns:
+        None. Writes comparison reports and prints the summary.
+    """
+    inventory_path = Path(inventory_path)
+    qpass_path = Path(qpass_path)
 
     inventory = pd.read_csv(
         inventory_path,
@@ -42,38 +48,44 @@ def compare_capacities():
         candidates.append(record)
 
     candidates = pd.DataFrame(candidates)
+    qpass = load_qpass(qpass_path)
+
+    # Save the loader's audit information before transforming its output.
+    import json
+
+    audit_dir = Path("results/capacity_matching")
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    with (audit_dir / "qpass_loader_audit.json").open(
+        "w", encoding="utf-8"
+    ) as handle:
+        json.dump(qpass.attrs, handle, indent=2, default=str)
+
     observations = []
+    time_columns = {
+        "8am": "open_8am",
+        "10am": "open_10am",
+        "12pm": "open_12pm",
+        "2pm": "open_2pm",
+    }
 
-    with pd.ExcelFile(qpass_path, engine="openpyxl") as workbook:
-        for sheet in workbook.sheet_names:
-            if not sheet.startswith("QPASS Data Entry (Week "):
-                continue
+    for _, row in qpass.iterrows():
+        for time, column in time_columns.items():
+            observations.append({
+                "academic_year": row["academic_year"],
+                "quarter": row["quarter"],
+                "facility": str(row["location"]),
+                "category": str(row["type"]),
+                "qpass_subtype_raw": row["sub_type"],
+                "qpass_level_raw": row["level"],
+                "observation_date": row["date"],
+                "observation_time": time,
+                "open_spaces_raw": row[column],
+                "qpass_capacity_raw": row["total_stall_count"],
+                "qpass_source_file": row["source_file"],
+                "qpass_source_sheet": row["sheet_name"],
+                "qpass_source_row": row["source_row"],
+            })
 
-            data = pd.read_excel(workbook, sheet_name=sheet, header=1)
-
-            # Only actual Excel date values identify dated source records.
-            dated = data["Date"].map(
-                lambda value: isinstance(value, pd.Timestamp)
-            )
-            data = data.loc[
-                dated & data["Location"].notna() & data["Type"].notna()
-            ].copy()
-
-            for index, row in data.iterrows():
-                for time in ["8am", "10am", "12pm", "2pm"]:
-                    observations.append({
-                        "academic_year": "2025-2026",
-                        "quarter": "Fall",
-                        "facility": str(row["Location"]),
-                        "category": str(row["Type"]),
-                        "observation_date": row["Date"],
-                        "observation_time": time,
-                        "open_spaces_raw": row[f"Open Spaces {time}"],
-                        "qpass_capacity_raw": row["Total\nStall\nCount"],
-                        "qpass_source_file": qpass_path.name,
-                        "qpass_source_sheet": sheet,
-                        "qpass_source_row": index + 3,
-                    })
 
     results = pd.DataFrame(observations).merge(
         candidates,
@@ -157,4 +169,9 @@ def compare_capacities():
 
 
 if __name__ == "__main__":
-    compare_capacities()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--inventory", required=True, type=Path)
+    parser.add_argument("--qpass", required=True, type=Path)
+    args = parser.parse_args()
+
+    compare_capacities(args.inventory, args.qpass)
