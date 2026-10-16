@@ -175,6 +175,16 @@ python -m src.download_qpass
 
 ## Running things
 
+Capacity matching accepts --output-dir to keep quarter runs separate.
+Reports include capacity_comparison.csv, quarter_summary.csv,
+overall_summary.csv, unresolved_cases.csv, unmatched_records.csv,
+conflicting_records.csv, and qpass_loader_audit.json.
+
+Overall rates cover only the files supplied in that invocation.
+Missing or invalid observations are retained and flagged but excluded
+from rate denominators. Zero capacities require review. Agreement
+between reported totals does not establish historical verification.
+
 ### Inventory capacity work — Issue #4
 
 Extract capacity groups from an Inventory workbook:

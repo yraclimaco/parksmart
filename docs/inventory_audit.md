@@ -80,3 +80,34 @@ spaces in QPASS, but the December Inventory reports 34 A spaces.
 Next steps:
 Verify historical capacity changes, category scope, and source
 workbook formulas. Do not force this capacity match.
+
+## Results from the updated capacity comparison
+
+The pipeline was run on Summer and Fall 2025–2026.
+
+| Quarter | Eligible observation slots | Exact-key candidates | Candidate rate |
+|---|---:|---:|---:|
+| Summer | 4380 | 2625 | 59.93% |
+| Fall | 6522 | 6474 | 99.26% |
+
+Matching uses academic year, quarter, facility, and category.
+Surrounding whitespace is removed from facility/category join values.
+Original labels are preserved separately.
+
+Summer had 2760 observation slots with agreeing positive reported
+totals, pending verification of historical timing and category scope.
+Fall had no comparable reported totals.
+
+Summer flagged 16 slots where open spaces exceeded candidate capacity.
+Fall flagged 312. These counts include excluded observation slots.
+
+Separate reports preserve unmatched, conflicting, and unresolved cases.
+Missing or invalid observations remain in the reports but are excluded
+from rate denominators.
+
+No capacities have been accepted as historically verified.
+The current script leaves matched_capacity empty. Historical acceptance,
+remaining workbook coverage, and verified identifier mappings still
+require work.
+
+Validation: 138 tests passed.
