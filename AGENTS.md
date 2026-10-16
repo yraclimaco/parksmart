@@ -175,6 +175,13 @@ python -m src.download_qpass
 
 ## Running things
 
+Download Inventory workbooks corresponding to local QPASS quarters:
+python -m src.download_inventory
+
+Existing workbooks are retained. Source URLs and unavailable quarters
+are recorded in results/capacity_matching/inventory_sources.csv.
+Downloading does not mark a workbook as audited or capacity verified.
+
 Legacy Inventory workbooks with the audited “5A By Lot” and
 “6A By Structure” layout use src.clean_inventory_legacy.
 
