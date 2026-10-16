@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 from src.qpass_loader import load_qpass
+from src.capacity_scope import apply_scope_review
 
 
 KEYS = ["academic_year", "quarter", "facility", "category"]
@@ -195,6 +196,7 @@ def compare_capacities(
     ] = "no_exact_inventory_key"
 
     results["open_spaces_exceed_candidate"] = opened.gt(capacity)
+    results = apply_scope_review(results)
 
     # No candidate is accepted as historically verified yet.
     results["matched_capacity"] = pd.NA
@@ -233,6 +235,10 @@ def compare_capacities(
     ] = "invalid_open_spaces"
 
     next_steps = {
+        "level_scope_review": (
+            "Verify the Inventory lot/category corresponding to the QPASS "
+            "level before using a whole-facility capacity."
+        ),
         "historical_verification_required":
             "Verify workbook timing and category scope before accepting capacity.",
         "missing_or_invalid_capacity":

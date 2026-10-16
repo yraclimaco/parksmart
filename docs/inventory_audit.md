@@ -111,3 +111,41 @@ remaining workbook coverage, and verified identifier mappings still
 require work.
 
 Validation: 138 tests passed.
+
+## Legacy Inventory layout and level-scope review
+
+Reviewed Inventory 2018-2019-2 October 1.xlsx for Fall 2018–2019.
+
+Unlike the newer workbooks, it has no Pivot Table Data sheet.
+The legacy loader reshapes category columns from:
+- 5A By Lot: 186 lot rows
+- 6A By Structure: 11 structure rows
+
+Extraction produced 1970 records:
+- 600 positive, unverified capacities
+- 1315 missing capacities
+- 53 zero capacities requiring review
+- 2 text values: Closed for construction
+
+Original values and source cells are preserved. All-category totals
+and motorcycle-section counts are excluded. Lot and structure tables
+overlap and must not be summed together.
+
+Fall 2018–2019 candidate matching:
+- Eligible observation slots: 10189
+- Exact-key candidates: 6733
+- Candidate rate: 66.08%
+
+Across all 10784 inspected slots:
+- 2904 require level-scope review
+- 3632 have agreeing reported totals, still unverified
+- 396 have reported-total disagreements
+- 3852 have no comparable reported totals
+
+Individual QPASS levels must not be compared directly with whole-facility
+Inventory totals without a verified scope mapping.
+
+The scope correction was also run on Summer and Fall 2025–2026.
+No capacities have yet been accepted as historically verified.
+
+Latest validation: 149 tests and 17 subtests passed.

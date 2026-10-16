@@ -175,6 +175,13 @@ python -m src.download_qpass
 
 ## Running things
 
+Legacy Inventory workbooks with the audited “5A By Lot” and
+“6A By Structure” layout use src.clean_inventory_legacy.
+
+The loader preserves missing cells, zeros, closure text, and source
+coordinates. It excludes all-category totals and motorcycle sections.
+Do not sum lot records together with structure records: some overlap.
+
 Capacity matching accepts --output-dir to keep quarter runs separate.
 Reports include capacity_comparison.csv, quarter_summary.csv,
 overall_summary.csv, unresolved_cases.csv, unmatched_records.csv,
