@@ -376,3 +376,41 @@ User inputs
 → first choice and backup
 → interactive map and recommendation explanation
 ```
+
+## Newer Inventory extraction (Issue 4)
+
+Use `python -m src.clean_inventory_modern WORKBOOK --academic-year YYYY-YYYY --quarter QUARTER`
+for newer Inventory layouts. The API is `clean_modern_inventory(path, academic_year, quarter, output_dir)`.
+Outputs are capacity-group CSVs and per-workbook modern_audit.json files in data/interim/inventory.
+Run `python -m pytest tests/test_inventory_modern.py -v` for layout tests.
+The original clean_inventory.capacity_status helper remains shared with both cleaners.
+The new extractor detects headers, preserves populated rows and raw values, selects the
+requested quarter column for the 2024 layout, and flags repeated rows and column conflicts.
+It uses Inventory By Location for grouped layouts, never the all-category Combined Inventory by Lot.
+Period metadata conflicts block capacity candidates. Extraction never verifies historical capacity.
+
+
+## Capacity snapshot acceptance (Issue 4)
+
+compare_capacities now calls capacity_acceptance.apply_capacity_acceptance after observation exclusions.
+Acceptance is limited to audited legacy lot tables on the snapshot date, with a unique positive
+Inventory count equal to the QPASS total and no level/subtype/time-limit or key/date count conflict.
+No capacity is carried backward or forward in time. Modern files need separate dated evidence.
+Outputs now include matched_records.csv plus acceptance status, reason, basis and snapshot date.
+Run python -m pytest tests/test_capacity_acceptance.py -v, and full pytest before the PR.
+Existing verified_capacity_match_rate means the fraction accepted under this documented policy;
+it is not an independently certified accuracy measure or guaranteed parking availability.
+
+
+## Batch capacity matching (Issue 4)
+
+Run python -m src.run_capacity_matching from the repository root after cleaning Inventory.
+It reads results/capacity_matching/inventory_sources.csv and data/raw/QPASS by default.
+The --manifest, --qpass-dir, --inventory-dir, and --output-dir flags override locations.
+The default output directory is results/capacity_matching/batch.
+It includes unavailable-Inventory quarters, weighted overall/quarter rates, coverage,
+combined comparison/matched/unresolved/unmatched/conflict reports and inventory_cleaned.csv.
+The latter has one row per academic_year/quarter/facility/category with lossless source_groups_json.
+Ambiguous groups are not summed; source labels are trimmed, without unverified alias mappings.
+Tests: python -m pytest tests/test_capacity_batch.py -v.
+The comparator supports header-only Inventory input for explicitly missing source quarters.

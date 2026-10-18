@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 from src.qpass_loader import load_qpass
+from src.capacity_acceptance import apply_capacity_acceptance
 from src.capacity_scope import apply_scope_review
 
 
@@ -118,12 +119,34 @@ def compare_capacities(
         record["inventory_capacity_statuses"] = (
             group["capacity_status"].tolist() if "capacity_status" in group else []
         )
+        evidence_columns = {
+            "inventory_source_sheet": "source_sheet",
+            "inventory_facility_granularity": "facility_granularity",
+            "inventory_report_title_raw": "report_title_raw",
+            "inventory_subtype_raw": "subtype_raw",
+            "inventory_time_limit_raw": "time_limit_raw",
+            "inventory_single_capacity_status": "capacity_status",
+        }
+        for output_name, source_name in evidence_columns.items():
+            record[output_name] = (
+                group[source_name].iloc[0]
+                if len(group) == 1 and source_name in group else ""
+            )
         record["candidate_capacity"] = (
             group["capacity"].iloc[0] if len(group) == 1 else pd.NA
         )
         candidates.append(record)
 
-    candidates = pd.DataFrame(candidates)
+    candidate_columns = KEYS + [
+        "inventory_group_count", "inventory_source_file", "inventory_source_rows",
+        "inventory_facility_raw_values", "inventory_category_raw_values",
+        "inventory_capacity_raw_values", "inventory_capacity_statuses",
+        "inventory_source_sheet", "inventory_facility_granularity",
+        "inventory_report_title_raw", "inventory_subtype_raw",
+        "inventory_time_limit_raw", "inventory_single_capacity_status",
+        "candidate_capacity",
+    ]
+    candidates = pd.DataFrame(candidates, columns=candidate_columns)
     qpass = load_qpass(qpass_path)
 
     # Save the loader's audit information before transforming its output.
@@ -198,7 +221,7 @@ def compare_capacities(
     results["open_spaces_exceed_candidate"] = opened.gt(capacity)
     results = apply_scope_review(results)
 
-    # No candidate is accepted as historically verified yet.
+    # Acceptance is evaluated after observation-quality exclusions.
     results["matched_capacity"] = pd.NA
     results["recommended_next_step"] = (
         "Verify historical capacity and category scope; "
@@ -234,7 +257,14 @@ def compare_capacities(
         "exclusion_reason",
     ] = "invalid_open_spaces"
 
+    results = apply_capacity_acceptance(results)
+    accepted = results["matched_capacity"].notna()
+    results.loc[accepted, "comparison_status"] = "matched_verified_snapshot"
+    results.loc[accepted, "capacity_scope_status"] = "corroborated_snapshot_lot_category"
+    results.loc[accepted, "reported_capacity_comparison"] = "agree_verified_snapshot"
+
     next_steps = {
+        "matched_verified_snapshot": "No action required for this snapshot-date match.",
         "level_scope_review": (
             "Verify the Inventory lot/category corresponding to the QPASS "
             "level before using a whole-facility capacity."
@@ -266,6 +296,8 @@ def compare_capacities(
     results.loc[conflict, "recommended_next_step"] += (
         " Resolve the QPASS/Inventory total disagreement using dated source evidence."
     )
+    results["unresolved_reason"] += "; acceptance=" + results["capacity_acceptance_reason"]
+    results.loc[accepted, "unresolved_reason"] = ""
     results["verified_capacity_found"] = results["matched_capacity"].notna()
 
     eligible_for_summary = results.loc[
@@ -306,6 +338,9 @@ def compare_capacities(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     results.to_csv(output_dir / "capacity_comparison.csv", index=False)
+    results.loc[results["matched_capacity"].notna()].to_csv(
+        output_dir / "matched_records.csv", index=False
+    )
     summary.to_csv(output_dir / "quarter_summary.csv")
     overall.to_csv(output_dir / "overall_summary.csv", index=False)
     results.loc[results["matched_capacity"].isna()].to_csv(
@@ -331,7 +366,7 @@ def compare_capacities(
     print(summary.to_string())
     print(f"\nReports saved in: {output_dir}")
     print("Candidate rates are not verified capacity match rates.")
-    print("Historical verification is pending; matched_capacity remains empty.")
+    print("Accepted matches require corroborated snapshot-date evidence; other cases remain unresolved.")
 
 
 if __name__ == "__main__":

@@ -81,3 +81,64 @@ class TestLegacyInventory(unittest.TestCase):
         data.iloc[7, 0] = "Grand total"
         with self.assertRaises(ValueError):
             self.extract(data, True)
+
+    def test_summer_shifted_header_and_title_in_first_column(self):
+        data = self.table()
+        data.iloc[1, 1] = ""
+        data.iloc[1, 0] = "Parking Space Inventory, Summer 2018"
+        data = pd.concat(
+            [
+                data.iloc[:5],
+                pd.DataFrame([[""] * data.shape[1]]),
+                data.iloc[5:],
+            ],
+            ignore_index=True,
+        )
+        rows = self.extract(data, quarter="Summer")
+        self.assertEqual(len(rows), 10)
+        self.assertEqual(rows[0]["source_cell"], "C9")
+        self.assertEqual(rows[0]["capacity"], 25)
+
+    def test_added_d_category_does_not_shift_visitor_values(self):
+        data = self.table()
+        data.iloc[1, 1] = "Parking Space Inventory, Fall 2019"
+        extra = pd.Series([""] * len(data), dtype=object)
+        extra.iloc[5], extra.iloc[7] = "D", 17
+        data = pd.concat(
+            [data.iloc[:, :5], extra, data.iloc[:, 5:]],
+            axis=1,
+            ignore_index=True,
+        )
+        data.iloc[7, 6] = 22
+        rows = self.extract(data, year="2019-2020")
+        self.assertEqual(len(rows), 11)
+        by_category = {row["category"]: row for row in rows}
+        self.assertEqual(by_category["D"]["capacity"], 17)
+        self.assertEqual(by_category["Visitor"]["capacity"], 22)
+        self.assertEqual(by_category["UC Vehicle"]["source_cell"], "K8")
+
+    def test_letter_suffix_lots_are_preserved(self):
+        for facility in ("P406a", "P406b"):
+            with self.subTest(facility=facility):
+                data = self.table()
+                data.iloc[7, 1] = facility
+                row = self.extract(data)[0]
+                self.assertEqual(row["facility_raw"], facility)
+                self.assertEqual(row["facility"], facility)
+    def test_closed_lot_keeps_note_and_never_accepts_capacity(self):
+        for raw_capacity in ("", 123):
+            with self.subTest(raw_capacity=raw_capacity):
+                data = self.table()
+                data.iloc[7, 1] = "P005 (closed for construction)"
+                data.iloc[7, 2] = raw_capacity
+                row = self.extract(data)[0]
+                self.assertEqual(
+                    row["facility_raw"], "P005 (closed for construction)"
+                )
+                self.assertEqual(row["facility"], row["facility_raw"])
+                self.assertEqual(
+                    row["facility_note_raw"], "(closed for construction)"
+                )
+                self.assertEqual(row["capacity_status"], "closure_review")
+                self.assertTrue(pd.isna(row["capacity"]))
+                self.assertIn(repr(raw_capacity), row["capacity_raw_values"])

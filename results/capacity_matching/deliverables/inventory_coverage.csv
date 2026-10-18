@@ -1,0 +1,16 @@
+academic_year,quarter,qpass_file,inventory_coverage_status,source_manifest_reason
+2018-2019,Summer,QPASS 2018-2019-1 Summer.xlsx,downloaded,
+2018-2019,Fall,QPASS 2018-2019-2 Fall.xlsx,already_present,
+2018-2019,Winter,QPASS 2018-2019-3 Winter.xlsx,downloaded,
+2018-2019,Spring,QPASS 2018-2019-4 Spring.xlsx,downloaded,
+2019-2020,Summer,QPASS 2019-2020-1 Summer.xlsx,downloaded,
+2019-2020,Fall,QPASS 2019-2020-2 Fall.xlsx,downloaded,
+2024-2025,Summer,QPASS 2024-2025-1  Summer.xlsm,downloaded,
+2024-2025,Fall,QPASS 2024-2025-2 Fall.xlsm,downloaded,
+2024-2025,Winter,QPASS 2024-2025-3 Winter.xlsm,downloaded,
+2024-2025,Spring,QPASS 2024-2025-4 Spring.xlsm,downloaded,
+2025-2026,Summer,QPASS 2025-2026-1 Summer.xlsm,already_present,
+2025-2026,Fall,QPASS 2025-2026-2 Fall.xlsm,already_present,
+2025-2026,Spring,QPASS 2025-2026-4 Spring.xlsm,downloaded,
+2026-2027,Summer,QPASS 2026-2027-1 Summer.xlsm,downloaded,
+2026-2027,Fall,QPASS 2026-2027-2  Fall.xlsm,not_listed_in_archive,No Excel link for this exact academic year and quarter

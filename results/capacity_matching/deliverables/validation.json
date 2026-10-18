@@ -1,0 +1,15 @@
+{
+  "checks_passed": true,
+  "qpass_quarters": 15,
+  "inventory_workbooks": 14,
+  "inventory_source_groups": 17368,
+  "unique_inventory_keys": 16554,
+  "report_counts": {
+    "capacity_comparison": 93712,
+    "matched_records": 604,
+    "unresolved_cases": 93108,
+    "unmatched_records": 27732,
+    "conflicting_records": 5392
+  },
+  "accepted_capacity_policy": "same_day_legacy_inventory_and_qpass_agreement"
+}
