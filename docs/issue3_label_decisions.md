@@ -34,12 +34,14 @@ space type on one survey day. They are neither parking-space totals nor counts
 of unique physical stalls. Multiple field problems count once in the overall
 unresolved total. Source-row groups combine daily repetitions for inspection.
 
-The saved 23,428-record export from 15 workbooks was reprocessed after the
-review fixes: **16,590 unchanged, 2,020 standardized, 4,618 keep_separate, and
-200 unresolved (0.85%)**. Closure labels account for the 12 additional unresolved
-records. These reports were regenerated from the saved JSON export without
-reopening the original workbooks. The saved notebook has now been rerun through all 23 code cells without saved
-errors. Section 8B regenerates the report totals.
+The current reports cover **23,428 records from 15 workbooks**:
+16,590 unchanged, 2,000 standardized, 4,618 keep_separate, and
+**220 unresolved (0.94%)**. Closure labels account for 12 unresolved records;
+`EV (Bagged Or Not In Use)` accounts for 20 additional unresolved records.
+The notebook was rerun locally after the EV decision and saved with current
+outputs and passing integration checks. The agent separately validated the
+saved JSON export without reopening original workbooks. Section 8B regenerates
+the reports.
 
 ## Formatting
 
@@ -105,7 +107,15 @@ Statuses have this precedence: `unresolved`, `keep_separate`, `standardized`,
 as its record status. Field statuses and notes explain the decision. Unchanged
 means no implemented transformation, not independent verification of eligibility.
 
+Other specialized labels remain distinct. `unchanged` does not imply permit
+eligibility or operational availability.
+
 ## Unresolved values and limits
+
+`EV (Bagged Or Not In Use)` retains its wording and is unresolved: the label
+leaves the operational status ambiguous and cannot establish usable EV parking
+or permit eligibility. Downstream code must review it rather than merge it with
+ordinary Electric Vehicle labels.
 
 Missing categories remain missing. Missing subtype alone is allowed because
 many source layouts have no subtype field. Zero identifiers, P103/other unverified
@@ -162,13 +172,3 @@ Run the repository's full `pytest` suite locally before submitting. Real-workboo
 tests need the source files; the agent's filesystem profile does not allow reading
 those files. Saved notebook checks verify raw/provenance preservation and
 repeatability across the 15 loaded workbooks.
-
-## Validation after reviewer feedback
-
-The label suite passed **92 tests**, including a generated-workbook integration
-test running `load_all_qpass` → `prepare_label_records` → `standardize_labels` →
-`validate_label_output`. It verifies unchanged row counts, all loader fields,
-raw labels, and provenance. This test runs without downloaded workbooks.
-The full suite in a temporary code-only copy passed **168 tests, 3 skipped**;
-the skipped tests require the omitted raw workbooks. Ruff passed on the label
-modules and their tests. No source workbook was opened in this session.

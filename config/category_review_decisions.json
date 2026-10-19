@@ -79,5 +79,11 @@
     "standard_value": "Visitor 2-Hour Limit 6",
     "status": "unresolved",
     "notes": "Wording retained. Trailing 6 is unexplained; retain complete label and flag uncertainty."
+  },
+  {
+    "raw_value": "EV (Bagged Or Not In Use)",
+    "standard_value": "EV (Bagged Or Not In Use)",
+    "status": "unresolved",
+    "notes": "Ambiguous operational status: bagged or not in use does not establish usable EV parking or permit eligibility for this source record. Preserve the original wording and require downstream review; do not merge with ordinary Electric Vehicle categories."
   }
 ]

@@ -171,6 +171,22 @@
   },
   {
     "field":"category",
+    "raw_value_repr":"'EV (bagged or not in use)'",
+    "affected_records":20,
+    "files":[
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Spring",
+      "2026-2027 Summer"
+    ],
+    "notes":[
+      "category: Ambiguous operational status: bagged or not in use does not establish usable EV parking or permit eligibility for this source record. Preserve the original wording and require downstream review; do not merge with ordinary Electric Vehicle categories.; "
+    ]
+  },
+  {
+    "field":"category",
     "raw_value_repr":"'Closed For Improvements \/ Constrruction'",
     "affected_records":12,
     "files":[

@@ -213,13 +213,26 @@ python -m src.download_qpass
   preserves raw columns, and
   adds field statuses plus `label_status` and reasons. Reviewed wording
   decisions live in `config/category_review_decisions.json`; visitor qualifiers
-  and populated subtypes are flagged `keep_separate` without merging. It flags the audited
+  and populated subtypes are flagged `keep_separate` without merging.
+  Reserved, Accessible, Carpool, and Electric Vehicle wording also receives
+  `keep_separate`: downstream eligibility checks must preserve its restrictions.
+  Closure wording containing Closed becomes `Closure`, with unresolved status.
+  Raw wording and dates remain unchanged; closure applies only to that source
+  record's survey time, not permanently to the facility. It flags the audited
   unnamed Summer 2019 Week 2 row rather than asserting Pangea ownership.
+  Missing guard columns produce a logger warning and an audit entry in
+  `cleaned.attrs["summer_2019_check"]`; missing columns set status
+  `skipped_missing_columns`, while a complete check sets `checked` and records
+  its match count.
   Decisions may include an exact `scope` on original columns (the P602-only
-  `2hr As` correction, followed by an unresolved fallback elsewhere);
+  `2hr As` correction takes priority over the general unresolved fallback,
+  regardless of JSON list order; the most-specific matching scope wins);
   historical category changes such as P782 SS to VA
   are preserved separately, not treated as aliases.
-  Missing subtype alone is allowed; unchanged labels are not proof of review.
+  Missing subtype alone is allowed; unchanged labels are not proof of review
+  or permit eligibility. Other specialized categories remain distinct.
+  `EV (Bagged Or Not In Use)` remains verbatim and unresolved with a note
+  explaining its ambiguous operational status.
   Zero identifiers are unresolved across numeric/text forms, including `0.0`,
   while original values are retained.
 
@@ -253,6 +266,13 @@ python -m src.download_qpass
   ```
 
 - Some tests use generated sample workbooks and do not require the original data.
+- `tests/test_label_integration.py` runs the shared loader and label pipeline
+  together using generated workbooks and checks row counts and raw/provenance
+  preservation through `validate_label_output`. Run it with:
+
+  ```bash
+  python -m pytest tests/test_label_integration.py -q
+  ```
 - Real-data tests require the QPASS files in `data/raw/QPASS/`.
 - Before opening or updating a PR, run `pytest` and make sure it passes.
 - New reusable logic in `src/` should include corresponding tests in `tests/`.

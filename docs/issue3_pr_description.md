@@ -7,10 +7,16 @@ explicit aliases while preserving raw values, source rows, dates, and meaningful
 restrictions. Uncertain labels remain in the output with reasons.
 
 The notebook uses the Issue #1 shared loader. Current reports cover 23,428
-records across 15 workbooks, with 200 unresolved records (0.85%). Counts refer
+records across 15 workbooks, with 220 unresolved records (0.94%). Counts refer
 to loader records before Issue #2 observation-time reshaping.
 
 Review fixes:
+
+- Flag EV (Bagged Or Not In Use) as unresolved without changing its wording;
+  20 additional records require review. Other specialized categories stay
+  distinct, and unchanged does not imply permit eligibility.
+- Update AGENTS.md with closure handling, scope priority, ownership-check status,
+  the integration-test command, and the EV decision.
 - Consistently flag Reserved, Accessible, Carpool, and Electric Vehicle wording
   as keep_separate; preserve restrictions for downstream eligibility checks.
 - Standardize closed category wording to Closure with unresolved status,
@@ -21,10 +27,11 @@ Review fixes:
 - Prioritize the P602-specific 2hr As correction regardless of mapping order;
   retain unresolved wording at P103 and other unverified facilities.
 
-Validation: 92 label tests passed. The full suite passed 168 tests, with 3
+Validation: 93 label tests passed. The full suite passed 169 tests, with 3
 real-workbook tests skipped in a temporary code-only copy. Ruff and whitespace
-checks passed. The saved notebook has sequential execution through all 23 code
-cells with no saved errors. Compact reports are included; the full dataset and
+checks passed. The notebook was rerun locally after the EV decision; its saved
+outputs show 220 unresolved records and passing integration checks across 15
+workbooks. Compact reports are included; the full dataset and
 code_review.md remain ignored. The DS3 review found no Must fix or Should fix
 items; remote main freshness could not be verified because GitHub was unreachable.
 

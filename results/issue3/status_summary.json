@@ -6,8 +6,8 @@
   },
   {
     "label_status":"standardized",
-    "records":2020,
-    "percent":8.6221615161
+    "records":2000,
+    "percent":8.5367935803
   },
   {
     "label_status":"keep_separate",
@@ -16,7 +16,7 @@
   },
   {
     "label_status":"unresolved",
-    "records":200,
-    "percent":0.853679358
+    "records":220,
+    "percent":0.9390472938
   }
 ]

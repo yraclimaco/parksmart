@@ -441,3 +441,31 @@ def test_closure_is_limited_to_its_dated_record():
     assert "survey time only" in clean.iloc[0].label_notes
     validate_label_output(records, clean)
     pd.testing.assert_series_equal(clean.date, records.date)
+
+
+def test_bagged_ev_is_unresolved_without_merging_specialized_categories():
+    from src.label_reports import validate_label_output
+
+    raw = ["EV (Bagged Or Not In Use)", "EV4", "Electric Vehicle"]
+    records = pd.DataFrame(
+        {
+            "facility_raw": ["P602"] * 3,
+            "category_raw": raw,
+            "subtype_raw": [pd.NA] * 3,
+        }
+    )
+    cleaned = standardize_labels(records)
+    assert cleaned.category.tolist() == raw
+    assert cleaned.category_status.tolist() == [
+        "unresolved",
+        "unchanged",
+        "keep_separate",
+    ]
+    assert cleaned.label_status.tolist() == [
+        "unresolved",
+        "unchanged",
+        "keep_separate",
+    ]
+    assert "bagged or not in use" in cleaned.iloc[0].label_notes
+    assert "permit eligibility" in cleaned.iloc[0].label_notes
+    validate_label_output(records, cleaned)
