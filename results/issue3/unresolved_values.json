@@ -168,5 +168,19 @@
     "notes":[
       "facility: missing or zero identifier; category: missing or zero identifier; "
     ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'Closed For Improvements \/ Constrruction'",
+    "affected_records":12,
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ],
+    "notes":[
+      "category: closure label for this source record and survey time only; do not treat as usable parking or infer permanent facility closure; "
+    ]
   }
 ]

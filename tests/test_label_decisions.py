@@ -299,3 +299,145 @@ def test_zero_detection_does_not_flag_nonzero_or_alphanumeric_identifiers():
     clean = standardize_labels(records)
     assert clean.facility_status.tolist() == ["unchanged"] * 3
     assert clean.label_status.tolist() == ["unchanged"] * 3
+
+
+@pytest.mark.parametrize(
+    "category",
+    [
+        "Reserved",
+        "Accessible",
+        "Carpool",
+        "Electric Vehicle",
+        "Reserved Gold Pool",
+        "A Carpool",
+        "Electric Vehicle Charging",
+        "RESERVED",
+        "accessible",
+        "electric vehicle",
+    ],
+)
+def test_restricted_categories_are_flagged_without_losing_wording(category):
+    records = pd.DataFrame(
+        {
+            "facility_raw": ["P602"],
+            "category_raw": [category],
+            "subtype_raw": ["Patient/Visitor Reserved"],
+        }
+    )
+    clean = standardize_labels(records)
+    assert clean.iloc[0].category_status == "keep_separate"
+    assert clean.iloc[0].subtype_status == "keep_separate"
+    assert clean.iloc[0].label_status == "keep_separate"
+    assert clean.iloc[0].category.casefold() == category.casefold()
+    pd.testing.assert_series_equal(clean.category_raw, records.category_raw)
+    pd.testing.assert_series_equal(clean.subtype_raw, records.subtype_raw)
+    assert clean.iloc[0].subtype == "Patient/Visitor Reserved"
+
+
+@pytest.mark.parametrize(
+    "category",
+    [
+        "Closed For Improvements / Constrruction",
+        "CLOSED FOR IMPROVEMENTS / CONSTRUCTION",
+        "Closed",
+    ],
+)
+def test_closure_categories_are_standardized_and_raw_wording_retained(category):
+    records = pd.DataFrame(
+        {
+            "facility_raw": ["P602"],
+            "category_raw": [category],
+            "subtype_raw": [pd.NA],
+        }
+    )
+    clean = standardize_labels(records)
+    assert clean.iloc[0].category_status == "unresolved"
+    assert clean.iloc[0].label_status == "unresolved"
+    assert clean.iloc[0].category == "Closure"
+    assert clean.iloc[0].category_raw == category
+    assert "closure label" in clean.iloc[0].label_notes
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "source_file",
+        "sheet_name",
+        "source_row",
+        "raw_structure",
+        "raw_lot",
+        "total_stall_count",
+    ],
+)
+def test_summer_2019_missing_guards_are_reported(missing, caplog):
+    records = sample().drop(columns=[missing])
+    clean = standardize_labels(records)
+    audit = clean.attrs["summer_2019_check"]
+    assert audit == {
+        "status": "skipped_missing_columns",
+        "missing_columns": [missing],
+        "matched_records": None,
+    }
+    assert "Summer 2019 ownership check skipped" in caplog.text
+    assert missing in caplog.text
+    assert clean.iloc[1].facility == "Pangea"
+    assert len(clean) == len(records)
+
+
+def test_summer_2019_complete_guards_report_check_and_match_count():
+    clean = standardize_labels(sample())
+    assert clean.attrs["summer_2019_check"] == {
+        "status": "checked",
+        "missing_columns": [],
+        "matched_records": 1,
+    }
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_scoped_p602_decision_wins_regardless_of_config_order(reverse):
+    import json
+    from src.label_decisions import DEFAULT_CATEGORY_REVIEW
+
+    decisions = [
+        d
+        for d in json.loads(DEFAULT_CATEGORY_REVIEW.read_text())
+        if d["raw_value"] == "2hr As"
+    ]
+    if reverse:
+        decisions.reverse()
+    records = pd.DataFrame(
+        {
+            "facility_raw": ["P602", "P103", "Other"],
+            "category_raw": ["2hr As"] * 3,
+            "subtype_raw": [pd.NA] * 3,
+        }
+    )
+    clean = standardize_labels(records, {"category": decisions})
+    assert clean.category.tolist() == ["A 2 Hour", "2hr As", "2hr As"]
+    assert clean.category_status.tolist() == [
+        "keep_separate",
+        "unresolved",
+        "unresolved",
+    ]
+    assert "Unverified meaning" not in clean.iloc[0].label_notes
+    pd.testing.assert_series_equal(clean.category_raw, records.category_raw)
+
+
+def test_closure_is_limited_to_its_dated_record():
+    from src.label_reports import validate_label_output
+
+    records = pd.DataFrame(
+        {
+            "facility_raw": ["P602", "P602"],
+            "category_raw": ["Closed For Improvements / Constrruction", "A"],
+            "subtype_raw": [pd.NA, pd.NA],
+            "date": pd.to_datetime(["2024-09-30", "2024-10-01"]),
+        }
+    )
+    clean = standardize_labels(records)
+    assert clean.category.tolist() == ["Closure", "A"]
+    assert clean.category_status.tolist() == ["unresolved", "unchanged"]
+    assert clean.facility.tolist() == ["P602", "P602"]
+    assert "survey time only" in clean.iloc[0].label_notes
+    validate_label_output(records, clean)
+    pd.testing.assert_series_equal(clean.date, records.date)

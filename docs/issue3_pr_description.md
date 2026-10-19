@@ -2,33 +2,34 @@
 
 Closes #3
 
-QPASS labels vary across quarters, so the same facility or category can appear
-under several names. This change adds reusable formatting and exact alias
-mappings while preserving raw values, source rows, and meaningful restrictions.
-Uncertain labels remain in the output with unresolved flags and notes.
+QPASS labels vary across quarters. This change adds reusable formatting and
+explicit aliases while preserving raw values, source rows, dates, and meaningful
+restrictions. Uncertain labels remain in the output with reasons.
 
-The notebook uses the Issue #1 loader. It inventories labels by file and quarter,
-compares raw/cleaned values, and exports unresolved lists and summaries. The
-reviewed run covers 23,428 records across 15 workbooks, with 188 unresolved
-records (0.80%). Missing categories and ambiguous source wording are not guessed.
-See `docs/issue3_label_decisions.md` for evidence and coverage limits.
+The notebook uses the Issue #1 shared loader. Current reports cover 23,428
+records across 15 workbooks, with 200 unresolved records (0.85%). Counts refer
+to loader records before Issue #2 observation-time reshaping.
 
-Validation: 144 tests passed and 3 real-workbook tests skipped when running the
-full suite in a temporary code-only copy using myenv. All 86 selected project
-unit tests also passed in the working checkout, and Ruff passed on the label
-modules and tests. Regression tests cover integer, float, and text zero
-identifiers while preserving raw values.
+Review fixes:
+- Consistently flag Reserved, Accessible, Carpool, and Electric Vehicle wording
+  as keep_separate; preserve restrictions for downstream eligibility checks.
+- Standardize closed category wording to Closure with unresolved status,
+  retaining raw text and limiting closure to its source record's survey time.
+- Add generated-workbook integration coverage for the shared loader and label
+  pipeline, checking raw values, provenance, counts, and output validation.
+- Log missing Summer 2019 guard columns and record check status in attrs.
+- Prioritize the P602-specific 2hr As correction regardless of mapping order;
+  retain unresolved wording at P103 and other unverified facilities.
 
-The saved notebook completed a sequential run through 8B across all 15 loaded
-workbooks. Reapplying the float-zero fix to the saved 23,428-record export changed
-no record statuses; the unresolved total remains 188 (0.80%). Compact reports
-are included; the full dataset and code_review.md remain ignored.
+Validation: 92 label tests passed. The full suite passed 168 tests, with 3
+real-workbook tests skipped in a temporary code-only copy. Ruff and whitespace
+checks passed. The saved notebook has sequential execution through all 23 code
+cells with no saved errors. Compact reports are included; the full dataset and
+code_review.md remain ignored. The DS3 review found no Must fix or Should fix
+items; remote main freshness could not be verified because GitHub was unreachable.
 
-The 3 skipped tests require raw workbooks. They were not run because this
-session cannot read those files; the code-only test copy contains no raw data.
-The notebook's saved integration checks provide separate real-data evidence.
+Decision evidence and limitations are in docs/issue3_label_decisions.md.
 
-Issue #2 integration: counts currently refer to loader records before time
-reshaping. The functions can run before or after reshaping while retaining raw
-labels and provenance. Confirm column names, count units, and duplicate-check
-keys when integrating the two issues.
+Issue #2 integration: agree on column names, count units, and duplicate-check
+keys while retaining raw labels and provenance. Matching standardized labels
+alone do not establish duplicate observations.

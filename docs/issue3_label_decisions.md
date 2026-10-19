@@ -34,10 +34,12 @@ space type on one survey day. They are neither parking-space totals nor counts
 of unique physical stalls. Multiple field problems count once in the overall
 unresolved total. Source-row groups combine daily repetitions for inspection.
 
-The saved workbook run reviewed on October 18 contains **23,428 records from
-15 workbooks**: 18,276 unchanged, 2,110 standardized, 2,854 keep_separate, and
-**188 unresolved (0.80%)**, across 82 source-row groups. Section 8B regenerates
-these totals; use its summary if later decisions change them.
+The saved 23,428-record export from 15 workbooks was reprocessed after the
+review fixes: **16,590 unchanged, 2,020 standardized, 4,618 keep_separate, and
+200 unresolved (0.85%)**. Closure labels account for the 12 additional unresolved
+records. These reports were regenerated from the saved JSON export without
+reopening the original workbooks. The saved notebook has now been rerun through all 23 code cells without saved
+errors. Section 8B regenerates the report totals.
 
 ## Formatting
 
@@ -61,6 +63,17 @@ The JSON files use `raw_value`, `standard_value`, `status`, and `notes`.
 A decision may include `scope` to restrict it to original-column values.
 Basic whitespace and capitalization fixes are handled in code.
 
+Mapping priority is based on scope specificity, not JSON list order. Decisions
+match the original formatted label; the matching decision with the most scope
+columns wins. Equal-specificity entries retain their configured order. Thus the
+P602-specific `2hr As` → `A 2 Hour` correction wins over the general unresolved
+`2hr As` rule even if the fallback appears first. At P103, the reviewed
+workbooks do not clearly establish that `2hr As` means `A 2 Hour`: the Winter
+2019 13-space row and its absence from later summaries are insufficient to
+confirm that correction. P103 therefore retains `2hr As` with unresolved status,
+separate from confirmed `A 2 Hour` labels. Other facilities also remain unresolved
+unless evidence supports a scoped correction. Tests cover both list orders.
+
 | Decision | Evidence |
 |---|---|
 | V → Visitor | [UCSD permit definitions](https://transportation.ucsd.edu/commute/permits/index.html) |
@@ -71,6 +84,14 @@ Basic whitespace and capitalization fixes are handled in code.
 | Repeated Visitor duration / Carpool wording | Workbook comparisons; exact corrections and references are in the decision notes |
 | A Physician A → Physician A | Summer 2025 Stall Type list, Fall 2026 P759 subtype, and [October 2020 Inventory, Table 10, PDF page 66](https://rmp-wapps.ucsd.edu/TS/Survey/Parking%20Space%20Inventory/Quarterly%20Tables/Inventory%202020-2021-2%20October%201.pdf) |
 | 2hr As → A 2 Hour at P602 only | P602 comparisons: Fall 2019 `2hr As`, Summer 2024 `2 hour A` |
+
+`keep_separate` means the label carries a restriction that downstream code must
+retain when grouping records or checking eligibility. It does not mean the space
+is available or that a permit holder is eligible. Reserved, Accessible, Carpool,
+and Electric Vehicle categories (including qualified wording) are consistently
+flagged, alongside the existing visitor and duration restrictions. No restriction
+is stripped, no category is merged into ordinary A/B/Visitor, and populated
+subtypes remain in their own field.
 
 Corrections preserve restrictions. Visitor modifiers, hour limits, physician and
 person-count conditions, and populated subtypes remain separate from broader
@@ -92,11 +113,25 @@ many source layouts have no subtype field. Zero identifiers, P103/other unverifi
 `Visitor Loading 2`, and `Visitor 2-Hour Limit 6` remain unresolved with their
 wording intact.
 
+Closure wording containing the word `Closed`, including
+`Closed For Improvements / Constrruction`, becomes `Closure` in the cleaned
+category and remains flagged unresolved with a closure reason. `category_raw`
+retains the original wording, including the typo. This applies only to the
+respective source record and survey date/time; it does not mark the facility
+permanently closed or change its records from other times. Downstream code can
+filter `category == "Closure"` and must exclude those records from usable parking
+categories.
+
 Summer 2019 Week 2's unnamed 9-space V row after Pangea has an unresolved
 facility. The guarded rule checks workbook, week, Excel row 101, raw blank
 Structure/Lot cells, V category, and nine spaces. Its cleaned facility is missing;
 the loader location and original cells remain available. See the shared schema
-audit for the ownership uncertainty.
+audit for the ownership uncertainty. If any guard columns are missing, the
+module logs a warning naming them and sets
+`cleaned.attrs["summer_2019_check"]` to `skipped_missing_columns`, with the
+missing-column list and a null matched count. A completed check reports
+`checked` and the number of matched records (zero when none match).
+Skipped ownership checks do not establish ownership or certify the labels.
 
 Potential relationships between Nuevo West and Nuevo West/Vela, and between
 TDLLN and Theatre District Garage, are not merged without stronger evidence.
@@ -120,7 +155,7 @@ that two observations are duplicates.
 Run the label tests with:
 
 ```bash
-python -m pytest tests/test_labels.py tests/test_label_decisions.py tests/test_label_reports.py -q
+python -m pytest tests/test_labels.py tests/test_label_decisions.py tests/test_label_reports.py tests/test_label_integration.py -q
 ```
 
 Run the repository's full `pytest` suite locally before submitting. Real-workbook
@@ -128,12 +163,12 @@ tests need the source files; the agent's filesystem profile does not allow readi
 those files. Saved notebook checks verify raw/provenance preservation and
 repeatability across the 15 loaded workbooks.
 
-## Final validation after review fixes
+## Validation after reviewer feedback
 
-The zero-identifier check now recognizes numeric/text forms such as `0.0`.
-All raw values are retained. The full test suite passed in a temporary code-only
-copy: **144 passed, 3 skipped** (real-workbook tests require the omitted raw
-files). The working-checkout selection passed **86 tests**; Ruff passed on the
-label modules and tests. Revalidation of the saved 23,428-record notebook export
-changed no record statuses, leaving **188 unresolved**. A local full-suite run
-with source workbooks remains additional validation, not evidence claimed here.
+The label suite passed **92 tests**, including a generated-workbook integration
+test running `load_all_qpass` → `prepare_label_records` → `standardize_labels` →
+`validate_label_output`. It verifies unchanged row counts, all loader fields,
+raw labels, and provenance. This test runs without downloaded workbooks.
+The full suite in a temporary code-only copy passed **168 tests, 3 skipped**;
+the skipped tests require the omitted raw workbooks. Ruff passed on the label
+modules and their tests. No source workbook was opened in this session.

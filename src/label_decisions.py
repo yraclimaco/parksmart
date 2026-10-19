@@ -1,6 +1,7 @@
 """Apply explicit label decisions without changing raw labels or provenance."""
 
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +14,7 @@ DEFAULT_CATEGORY_REVIEW = DEFAULT_CATEGORY_ALIASES.with_name(
     "category_review_decisions.json"
 )
 FIELDS = ("facility", "category", "subtype")
+LOGGER = logging.getLogger(__name__)
 
 
 def standardize_labels(records, mappings=None):
@@ -31,6 +33,12 @@ def standardize_labels(records, mappings=None):
         the cleaned column; loader location and all original cells are retained.
         Precedence: unresolved, keep_separate, standardized, unchanged.
         Unlisted nonmissing labels are preserved; unchanged is not verification.
+        keep_separate preserves restricted categories/subtypes for downstream
+        eligibility checks; it does not grant permission to use those spaces.
+        More-specific scopes win over general decisions, regardless of list
+        order. Equal-specificity decisions retain their configured order.
+        attrs["summer_2019_check"] reports whether the guarded check ran;
+        missing guard columns also produce a warning in the module logger.
     """
     if mappings is None:
         mappings = {
@@ -64,7 +72,7 @@ def standardize_labels(records, mappings=None):
                 )
             )
             restricted_wording = clean.str.contains(
-                r"\bphysician\b|\bcarpool\b.*\b\d+[ -]person\b",
+                r"\b(?:physician|reserved|accessible|carpool|electric[ -]vehicle)\b",
                 case=False,
                 regex=True,
                 na=False,
@@ -87,7 +95,15 @@ def standardize_labels(records, mappings=None):
                 qualified, "label_notes"
             ] += "subtype: populated subtype retained separately; "
         seen = set()
-        for decision in mappings.get(field, []):
+        applied = pd.Series(False, index=result.index)
+        # Match the original formatted value, then let the most-specific
+        # matching scope win. JSON list order cannot override a scoped fix.
+        decisions = sorted(
+            mappings.get(field, []),
+            key=lambda decision: len(decision.get("scope", {})),
+            reverse=True,
+        )
+        for decision in decisions:
             formatter = format_category if field == "category" else format_label
             key = formatter(decision["raw_value"])
             decision_key = (key, tuple(sorted(decision.get("scope", {}).items())))
@@ -97,7 +113,7 @@ def standardize_labels(records, mappings=None):
             status = decision["status"]
             if status not in {"verified", "keep_separate", "unresolved"}:
                 raise ValueError(f"Invalid decision status: {status}")
-            mask = result[field].eq(key).fillna(False)
+            mask = clean.eq(key).fillna(False) & ~applied
             for column, expected in decision.get("scope", {}).items():
                 if column not in result:
                     raise ValueError(f"Decision scope column missing: {column}")
@@ -112,6 +128,7 @@ def standardize_labels(records, mappings=None):
                 raise ValueError("Resolved decisions require a standard value")
             if status == "keep_separate" and target != key:
                 raise ValueError("keep_separate must preserve the formatted label")
+            applied |= mask
             result.loc[mask, field] = target
             mapped_status = {
                 "verified": "standardized",
@@ -143,6 +160,19 @@ def standardize_labels(records, mappings=None):
                 field + ": missing or zero identifier; "
             )
 
+    # Closure applies only to the dated source record, not the facility forever.
+    # Retain the original wording in category_raw and override any alias.
+    closure = (
+        result["category_raw"]
+        .astype("string")
+        .str.contains(r"\bclosed\b", case=False, regex=True, na=False)
+    )
+    result.loc[closure, "category"] = "Closure"
+    result.loc[closure, "category_status"] = "unresolved"
+    result.loc[
+        closure, "label_notes"
+    ] += "category: closure label for this source record and survey time only; do not treat as usable parking or infer permanent facility closure; "
+
     # The shared loader reconstructs this row as Pangea. Ownership is not
     # established: use workbook + week + source row and original-cell guards.
     required = {
@@ -153,7 +183,18 @@ def standardize_labels(records, mappings=None):
         "raw_lot",
         "total_stall_count",
     }
-    if required.issubset(result.columns):
+    missing = sorted(required.difference(result.columns))
+    result.attrs["summer_2019_check"] = {
+        "status": "skipped_missing_columns" if missing else "checked",
+        "missing_columns": missing,
+        "matched_records": None,
+    }
+    if missing:
+        LOGGER.warning(
+            "Summer 2019 ownership check skipped; missing required columns: %s",
+            ", ".join(missing),
+        )
+    else:
 
         def blank(col):
             return col.isna() | col.astype("string").str.strip().eq("").fillna(False)
@@ -169,6 +210,7 @@ def standardize_labels(records, mappings=None):
             & result["category_raw"].map(format_label).eq("V").fillna(False)
             & pd.to_numeric(result["total_stall_count"], errors="coerce").eq(9)
         )
+        result.attrs["summer_2019_check"]["matched_records"] = int(uncertain.sum())
         result.loc[uncertain, "facility"] = pd.NA
         result.loc[uncertain, "facility_status"] = "unresolved"
         result.loc[uncertain, "label_notes"] += (

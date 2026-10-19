@@ -1,22 +1,22 @@
 [
   {
     "label_status":"unchanged",
-    "records":18276,
-    "percent":78.0092197371
+    "records":16590,
+    "percent":70.8127027488
   },
   {
     "label_status":"standardized",
-    "records":2110,
-    "percent":9.0063172272
+    "records":2020,
+    "percent":8.6221615161
   },
   {
     "label_status":"keep_separate",
-    "records":2854,
-    "percent":12.1820044391
+    "records":4618,
+    "percent":19.711456377
   },
   {
     "label_status":"unresolved",
-    "records":188,
-    "percent":0.8024585966
+    "records":200,
+    "percent":0.853679358
   }
 ]

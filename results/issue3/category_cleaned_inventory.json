@@ -380,7 +380,7 @@
       "'B Carpool'"
     ],
     "field_statuses":[
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2018-2019-2 Fall.xlsx",
@@ -410,7 +410,7 @@
       "'S Carpool'"
     ],
     "field_statuses":[
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2018-2019-4 Spring.xlsx",
@@ -452,7 +452,7 @@
       "'A Carpool'"
     ],
     "field_statuses":[
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2019-2020-1 Summer.xlsx",
@@ -909,8 +909,7 @@
       "'Carpool'"
     ],
     "field_statuses":[
-      "standardized",
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2024-2025-4 Spring.xlsm",
@@ -1254,7 +1253,7 @@
       "'Accessible Scripps Institution of Oceanography '"
     ],
     "field_statuses":[
-      "standardized"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2025-2026-1 Summer.xlsm"
@@ -1270,7 +1269,7 @@
       "'Electric Vehicle Scripps Institution of Oceanography '"
     ],
     "field_statuses":[
-      "standardized"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2025-2026-1 Summer.xlsm"
@@ -1446,7 +1445,7 @@
       "'Reserved'"
     ],
     "field_statuses":[
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2025-2026-2 Fall.xlsm",
@@ -1490,7 +1489,7 @@
       "'Electric Vehicle'"
     ],
     "field_statuses":[
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2025-2026-2 Fall.xlsm",
@@ -1528,7 +1527,7 @@
       "'Accessible'"
     ],
     "field_statuses":[
-      "unchanged"
+      "keep_separate"
     ],
     "files":[
       "QPASS 2025-2026-4 Spring.xlsm",
@@ -1560,13 +1559,13 @@
     ]
   },
   {
-    "category":"Closed For Improvements \/ Constrruction",
+    "category":"Closure",
     "records":12,
     "raw_variants":[
       "'Closed For Improvements \/ Constrruction'"
     ],
     "field_statuses":[
-      "unchanged"
+      "unresolved"
     ],
     "files":[
       "QPASS 2026-2027-2  Fall.xlsm"
