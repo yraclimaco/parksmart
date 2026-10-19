@@ -201,7 +201,11 @@ python -m src.download_qpass
   The notebook uses `load_all_qpass()` from task #1, then
   `reshape_loaded_observations()` and `validate_observations()` from task #2.
   Reports cover all local workbooks and retain loader audit metadata.
-  Missing report categories remain flagged; no category mapping is guessed.
+  Shared loader names are retained: `type` is category and `sub_type` is
+  subtype. Optional format-absent fields are informational. Blank and text
+  counts have separate flags; exact repeats and conflicting identities have
+  separate flags. All parsing uses the shared loader; see
+  `docs/qpass_observation_contract.md` for the output contract.
 
   ```bash
   jupyter lab notebooks/
