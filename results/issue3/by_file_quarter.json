@@ -1,0 +1,92 @@
+[
+  {
+    "source_file":"QPASS 2018-2019-1 Summer.xlsx",
+    "quarter_label":"2018-2019 Summer",
+    "records":2655,
+    "unresolved":20
+  },
+  {
+    "source_file":"QPASS 2018-2019-2 Fall.xlsx",
+    "quarter_label":"2018-2019 Fall",
+    "records":2696,
+    "unresolved":38
+  },
+  {
+    "source_file":"QPASS 2018-2019-3 Winter.xlsx",
+    "quarter_label":"2018-2019 Winter",
+    "records":1440,
+    "unresolved":20
+  },
+  {
+    "source_file":"QPASS 2018-2019-4 Spring.xlsx",
+    "quarter_label":"2018-2019 Spring",
+    "records":1060,
+    "unresolved":10
+  },
+  {
+    "source_file":"QPASS 2019-2020-1 Summer.xlsx",
+    "quarter_label":"2019-2020 Summer",
+    "records":1120,
+    "unresolved":15
+  },
+  {
+    "source_file":"QPASS 2019-2020-2 Fall.xlsx",
+    "quarter_label":"2019-2020 Fall",
+    "records":1180,
+    "unresolved":30
+  },
+  {
+    "source_file":"QPASS 2024-2025-1  Summer.xlsm",
+    "quarter_label":"2024-2025 Summer",
+    "records":1090,
+    "unresolved":24
+  },
+  {
+    "source_file":"QPASS 2024-2025-2 Fall.xlsm",
+    "quarter_label":"2024-2025 Fall",
+    "records":1344,
+    "unresolved":0
+  },
+  {
+    "source_file":"QPASS 2024-2025-3 Winter.xlsm",
+    "quarter_label":"2024-2025 Winter",
+    "records":1090,
+    "unresolved":0
+  },
+  {
+    "source_file":"QPASS 2024-2025-4 Spring.xlsm",
+    "quarter_label":"2024-2025 Spring",
+    "records":1400,
+    "unresolved":0
+  },
+  {
+    "source_file":"QPASS 2025-2026-1 Summer.xlsm",
+    "quarter_label":"2025-2026 Summer",
+    "records":1360,
+    "unresolved":30
+  },
+  {
+    "source_file":"QPASS 2025-2026-2 Fall.xlsm",
+    "quarter_label":"2025-2026 Fall",
+    "records":1669,
+    "unresolved":1
+  },
+  {
+    "source_file":"QPASS 2025-2026-4 Spring.xlsm",
+    "quarter_label":"2025-2026 Spring",
+    "records":1600,
+    "unresolved":0
+  },
+  {
+    "source_file":"QPASS 2026-2027-1 Summer.xlsm",
+    "quarter_label":"2026-2027 Summer",
+    "records":1720,
+    "unresolved":0
+  },
+  {
+    "source_file":"QPASS 2026-2027-2  Fall.xlsm",
+    "quarter_label":"2026-2027 Fall",
+    "records":2004,
+    "unresolved":0
+  }
+]

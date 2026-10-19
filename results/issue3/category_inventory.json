@@ -1,0 +1,2001 @@
+[
+  {
+    "category_raw":"B",
+    "count":5748,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "1 Summer 2018 June 18",
+      "2 Summer 2018 June 25th",
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "Data Entry",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"A",
+    "count":4184,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "1 Summer 2018 June 18",
+      "2 Summer 2018 June 25th",
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "Data Entry",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Visitor",
+    "count":3376,
+    "quarters":[
+      "2018-2019 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "1 Summer 2018 June 18",
+      "2 Summer 2018 June 25th",
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "Data Entry",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"S",
+    "count":1999,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "1 Summer 2018 June 18",
+      "2 Summer 2018 June 25th",
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "Data Entry",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Reserved",
+    "count":1076,
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"V",
+    "count":827,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "1 Summer 2018 June 18",
+      "2 Summer 2018 June 25th",
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"SR",
+    "count":590,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Carpool",
+    "count":494,
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"SIO B",
+    "count":438,
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "SS19 W1 Data",
+      "SS19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Visitor: PAD",
+    "count":406,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Winter"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "sheets":[
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"D",
+    "count":302,
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Visitor: PBS",
+    "count":290,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Winter"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "sheets":[
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"B Carpool",
+    "count":240,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Visitor  ",
+    "count":220,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor: Meter",
+    "count":216,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Winter"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "sheets":[
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Allocated: SIO",
+    "count":204,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx"
+    ],
+    "sheets":[
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "S19 W1 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"B  ",
+    "count":190,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A  ",
+    "count":150,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"2 Person Carpool",
+    "count":146,
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "SS19 W1 Data",
+      "SS19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"SIO S",
+    "count":131,
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "SS19 W1 Data"
+    ]
+  },
+  {
+    "category_raw":"B Scripps Institution of Oceanography ",
+    "count":110,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"2hr As",
+    "count":108,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Accessible",
+    "count":100,
+    "quarters":[
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry"
+    ]
+  },
+  {
+    "category_raw":"S Carpool",
+    "count":92,
+    "quarters":[
+      "2018-2019 Spring",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"S  ",
+    "count":90,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"SS",
+    "count":88,
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Electric Vehicle",
+    "count":78,
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"SR  ",
+    "count":70,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"3hr A",
+    "count":69,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"2 hour Visitor",
+    "count":64,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":null,
+    "count":63,
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Summer",
+      "2024-2025 Summer"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm"
+    ],
+    "sheets":[
+      "3 Summer 2018 July 2nd",
+      "4 Summer 2018 July 9th",
+      "F18 Oct1 Data",
+      "F18 Oct8",
+      "F18 Sep17 Data",
+      "F18 Sept24 Data",
+      "QPASS Data Entry",
+      "S19 W1 Data",
+      "S19 W2 Data",
+      "SS19 W1 Data",
+      "SS19 W2 Data",
+      "W19 W1 Data",
+      "W19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"A Carpool",
+    "count":52,
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2",
+      "SS19 W1 Data",
+      "SS19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"2 hour A",
+    "count":42,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Aquarium",
+    "count":42,
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Physician A",
+    "count":42,
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data",
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"A 24\/7 Enforced ",
+    "count":40,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"4 hour A",
+    "count":32,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"1 hour B",
+    "count":32,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"3 hour Visitor",
+    "count":32,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Preuss A",
+    "count":32,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"A (24\/7)",
+    "count":32,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"D ($5.00)",
+    "count":30,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"D ($5.00)  ",
+    "count":30,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"SIO",
+    "count":30,
+    "quarters":[
+      "2018-2019 Spring"
+    ],
+    "files":[
+      "QPASS 2018-2019-4 Spring.xlsx"
+    ],
+    "sheets":[
+      "S19 W2 Data"
+    ]
+  },
+  {
+    "category_raw":"Carpool B 3-Person ",
+    "count":30,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"2 hour B",
+    "count":22,
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry (Week 0)",
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Carpool  ",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"S Scripps Institution of Oceanography ",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Carpool 2 Person ",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"SS ($3.25)  ",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor 5 Minute 5 minutes",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor  3 hours",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"EV (bagged or not in use)",
+    "count":20,
+    "quarters":[
+      "2025-2026 Spring",
+      "2026-2027 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "Data Entry"
+    ]
+  },
+  {
+    "category_raw":"Carpool A 3-Person ",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Patient\/Visitor Reserved 3 minutes",
+    "count":20,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"SS ($3.25)",
+    "count":20,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"$3",
+    "count":20,
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data"
+    ]
+  },
+  {
+    "category_raw":"Carpool 3 Person",
+    "count":20,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor 5 Min",
+    "count":20,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor 30 Min",
+    "count":20,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":3.25,
+    "count":20,
+    "quarters":[
+      "2024-2025 Summer"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry",
+      "QPASS Data Entry W2"
+    ]
+  },
+  {
+    "category_raw":"Visitor 2 Hour",
+    "count":20,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"UC Vehicle",
+    "count":12,
+    "quarters":[
+      "2026-2027 Fall"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry"
+    ]
+  },
+  {
+    "category_raw":"Closed For Improvements \/ Constrruction",
+    "count":12,
+    "quarters":[
+      "2026-2027 Fall"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry"
+    ]
+  },
+  {
+    "category_raw":"Motorcycle Section",
+    "count":12,
+    "quarters":[
+      "2026-2027 Fall"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry"
+    ]
+  },
+  {
+    "category_raw":"VA",
+    "count":12,
+    "quarters":[
+      "2026-2027 Fall"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "sheets":[
+      "Data Entry"
+    ]
+  },
+  {
+    "category_raw":"B  1 hour",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A  2 Hour",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor  2 Hour",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"B Sanford Consortium ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Sanford Consortium ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A  4 hours",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"3hr B",
+    "count":10,
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data"
+    ]
+  },
+  {
+    "category_raw":"24\/7",
+    "count":10,
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data"
+    ]
+  },
+  {
+    "category_raw":"B Oversized",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A  3 hours",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Police Visitor ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor  2 hours",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"24\/7 A",
+    "count":10,
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data"
+    ]
+  },
+  {
+    "category_raw":"B Oversized ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"2hr A",
+    "count":10,
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "sheets":[
+      "Fall19 Week 1 Data",
+      "Fall19 Week 2 Data"
+    ]
+  },
+  {
+    "category_raw":"A 2hr 12",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Radiation ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Infusion ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor 2-Hour Limit 6",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Loading 20 Min",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Carpool B 3 Person",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A 2 Hour",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Radiation Oncology Center Patient ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A Preuss ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"B Preuss ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor  3 minutes",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"A Physician A ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Radiation",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Infusion",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Birch Aquarium ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Scripps Institution of Oceanography ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Accessible Scripps Institution of Oceanography ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Electric Vehicle Scripps Institution of Oceanography ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Loading 2",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor 2 hour 2 hour",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Visitor Police",
+    "count":10,
+    "quarters":[
+      "2024-2025 Spring"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Carpool S 3-Person ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":"Carpool 2 Person Carpool ",
+    "count":10,
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)",
+      "QPASS Data Entry (Week 2)"
+    ]
+  },
+  {
+    "category_raw":0,
+    "count":1,
+    "quarters":[
+      "2025-2026 Fall"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "sheets":[
+      "QPASS Data Entry (Week 1)"
+    ]
+  }
+]

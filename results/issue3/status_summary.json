@@ -1,0 +1,22 @@
+[
+  {
+    "label_status":"unchanged",
+    "records":18276,
+    "percent":78.0092197371
+  },
+  {
+    "label_status":"standardized",
+    "records":2110,
+    "percent":9.0063172272
+  },
+  {
+    "label_status":"keep_separate",
+    "records":2854,
+    "percent":12.1820044391
+  },
+  {
+    "label_status":"unresolved",
+    "records":188,
+    "percent":0.8024585966
+  }
+]

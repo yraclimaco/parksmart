@@ -1,0 +1,20 @@
+[
+  {
+    "raw_value": "Gliderport",
+    "standard_value": "P386",
+    "status": "verified",
+    "notes": "UCSD explicitly identifies Torrey Pines Gliderport as Lot P386; exact QPASS facility label only. https://today.ucsd.edu/story/transportation_services_working_to_expand_parking_commuter_options"
+  },
+  {
+    "raw_value": "P386 (Gliderport)",
+    "standard_value": "P386",
+    "status": "verified",
+    "notes": "UCSD event directions explicitly identify Parking Lot P386 (Gliderport). https://cwc.ucsd.edu/node/225"
+  },
+  {
+    "raw_value": "Osler",
+    "standard_value": "South",
+    "status": "verified",
+    "notes": "UCSD identifies South Parking Structure as formerly Osler. Exact facility alias only; raw name, date, and historical capacities remain unchanged. https://mandeville.ucsd.edu/directions/index.html"
+  }
+]
