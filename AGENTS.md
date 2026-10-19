@@ -194,6 +194,15 @@ python -m src.download_qpass
 
 - Launch notebooks:
 
+  Issue #2 walkthrough: `notebooks/reshape-qpass-observations.ipynb` imports
+  the loader adapter and validation functions from
+  `src/qpass_observations.py`. Focused tests:
+  `python -m pytest tests/test_qpass_observations.py -q`.
+  The notebook uses `load_all_qpass()` from task #1, then
+  `reshape_loaded_observations()` and `validate_observations()` from task #2.
+  Reports cover all local workbooks and retain loader audit metadata.
+  Missing report categories remain flagged; no category mapping is guessed.
+
   ```bash
   jupyter lab notebooks/
   ```
