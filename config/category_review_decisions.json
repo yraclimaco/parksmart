@@ -1,0 +1,89 @@
+[
+  {
+    "raw_value": "Visitor 5 Minute 5 minutes",
+    "standard_value": "Visitor 5 Minute",
+    "status": "verified",
+    "notes": "Workbook review (2026-10-18): Summer 2025-2026 QPASS Type cell explicitly repeats the same five-minute duration; later QPASS shows Visitor with a separate 5 Min subtype. Remove only duplicated duration wording, preserve the five-minute restriction and raw text. This does not move category text to subtype or establish identical physical spaces across years."
+  },
+  {
+    "raw_value": "Visitor 2 hour 2 hour",
+    "standard_value": "Visitor 2 Hour",
+    "status": "verified",
+    "notes": "Workbook screenshots (2026-10-18): Summer 2025-2026 Gilman Type repeats 2 hour; Winter 2024-2025 Gilman Type is 2 hour Visitor, and Fall 2026-2027 Gilman has Visitor with subtype 2 Hours. Exact duplicate-wording correction; retain restriction without merging category/subtype fields."
+  },
+  {
+    "raw_value": "Carpool 2 Person Carpool",
+    "standard_value": "Carpool 2 Person",
+    "status": "verified",
+    "notes": "Workbook review compared subsequent quarters (2026-10-18); Summer 2025-2026 Stall Type list contains 2 Person Carpool and source data shows Carpool 2 Person. Exact duplicated-Carpool correction to Carpool 2 Person; retain the two-person condition and original raw label."
+  },
+  {
+    "raw_value": "A Physician A",
+    "standard_value": "Physician A",
+    "status": "verified",
+    "notes": "Workbook screenshots (2026-10-18): Summer 2025-2026 Stall Type list contains Physician A; Fall 2026-2027 P759 has Type A, subtype Physician A. Official October 2020 Inventory Table 10, PDF page 66, lists lot 759 as Physician A. Remove only redundant leading A; keep Physician A separate from generic A. Do not infer eligibility or merge subtype fields. https://rmp-wapps.ucsd.edu/TS/Survey/Parking%20Space%20Inventory/Quarterly%20Tables/Inventory%202020-2021-2%20October%201.pdf"
+  },
+  {
+    "raw_value": "2hr As",
+    "standard_value": "A 2 Hour",
+    "status": "verified",
+    "scope": {
+      "facility_raw": "P602"
+    },
+    "notes": "Workbook review compared the P602 two-hour A row across 2018/2019 and 2024 QPASS (2026-10-18). Provided Fall 2019 Week 2 screenshot shows P602, Type 2hr As; Summer 2024 screenshot shows P602, Type 2 hour A. Scoped to P602 only; retain two-hour restriction, raw text, dates, and differing capacities. Do not interpret As globally."
+  },
+  {
+    "raw_value": "VA",
+    "standard_value": "VA",
+    "status": "keep_separate",
+    "notes": "Provided QPASS screenshots show P782 as SS in Summer 2026 and VA in Fall 2026. Preserve VA distinctly from historical SS and D. This records a source category distinction, not an SS alias; exact effective date and acronym expansion are not independently verified. Do not rewrite historical categories."
+  },
+  {
+    "raw_value": "2hr As",
+    "standard_value": "2hr As",
+    "status": "unresolved",
+    "notes": "Unverified meaning outside the explicitly verified P602 scope. P103 Winter 2019 has a separate 13-space row; Spring/Summer summaries do not establish its intended category. Keep wording and restriction indication; do not merge ordinary A."
+  },
+  {
+    "raw_value": "A 2hr 12",
+    "standard_value": "A 2hr 12",
+    "status": "unresolved",
+    "notes": "Trailing 12 is unexplained; preserve it without inferring that it is a duration or row number."
+  },
+  {
+    "raw_value": "24/7",
+    "standard_value": "24/7",
+    "status": "unresolved",
+    "notes": "Permit type is absent; do not infer A from adjacent records."
+  },
+  {
+    "raw_value": "$3",
+    "standard_value": "$3",
+    "status": "unresolved",
+    "notes": "Price alone does not establish a permit category; do not infer SS or D."
+  },
+  {
+    "raw_value": "3.25",
+    "standard_value": "3.25",
+    "status": "unresolved",
+    "notes": "Numeric price-like label does not establish a category; retain raw value."
+  },
+  {
+    "raw_value": "Visitor Loading 2",
+    "standard_value": "Visitor Loading 2",
+    "status": "unresolved",
+    "notes": "Trailing 2 is unexplained; retain loading restriction and original wording."
+  },
+  {
+    "raw_value": "Visitor 2-Hour Limit 6",
+    "standard_value": "Visitor 2-Hour Limit 6",
+    "status": "unresolved",
+    "notes": "Wording retained. Trailing 6 is unexplained; retain complete label and flag uncertainty."
+  },
+  {
+    "raw_value": "EV (Bagged Or Not In Use)",
+    "standard_value": "EV (Bagged Or Not In Use)",
+    "status": "unresolved",
+    "notes": "Ambiguous operational status: bagged or not in use does not establish usable EV parking or permit eligibility for this source record. Preserve the original wording and require downstream review; do not merge with ordinary Electric Vehicle categories."
+  }
+]

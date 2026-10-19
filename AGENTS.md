@@ -192,6 +192,63 @@ python -m src.download_qpass
   Use `load_all_qpass()` instead of `pd.concat` over `load_qpass()`, which
   would drop the per-file `attrs` (skipped sheets, dropped rows).
 
+- Issue #3 label exploration lives in `notebooks/01_issue3.ipynb` and uses
+  `load_all_qpass()` followed by `src.labels.prepare_label_records()`.
+  The adapter preserves loader fields and audit metadata and adds raw label
+  columns; it does not resolve aliases. Set the notebook's `qpass_dir` to
+  the folder directly containing the workbooks when using a custom location.
+  The notebook reports the team-excluded Winter 2025–2026 workbook separately
+  if present and omits it from label counts without modifying raw files.
+  Label formatting preserves existing uppercase tokens and word boundaries
+  around slashes/parentheses; uppercase words are not inferred to be aliases.
+  Attached duration abbreviations use lowercase (for example `2hr`);
+  durations and restriction wording are preserved.
+  `format_category` reorders only exact numeric Hour/Hours category labels
+  with recognized types to type-first order and normalizes Hr/Hrs/Hours to Hour;
+  additional qualifiers and separate
+  subtype restrictions are not moved or inferred.
+
+- `src.label_decisions.standardize_labels(records)` applies formatting and
+  decisions from `config/category_aliases.json` and `config/facility_aliases.json`,
+  preserves raw columns, and
+  adds field statuses plus `label_status` and reasons. Reviewed wording
+  decisions live in `config/category_review_decisions.json`; visitor qualifiers
+  and populated subtypes are flagged `keep_separate` without merging.
+  Reserved, Accessible, Carpool, and Electric Vehicle wording also receives
+  `keep_separate`: downstream eligibility checks must preserve its restrictions.
+  Closure wording containing Closed becomes `Closure`, with unresolved status.
+  Raw wording and dates remain unchanged; closure applies only to that source
+  record's survey time, not permanently to the facility. It flags the audited
+  unnamed Summer 2019 Week 2 row rather than asserting Pangea ownership.
+  Missing guard columns produce a logger warning and an audit entry in
+  `cleaned.attrs["summer_2019_check"]`; missing columns set status
+  `skipped_missing_columns`, while a complete check sets `checked` and records
+  its match count.
+  Decisions may include an exact `scope` on original columns (the P602-only
+  `2hr As` correction takes priority over the general unresolved fallback,
+  regardless of JSON list order; the most-specific matching scope wins);
+  historical category changes such as P782 SS to VA
+  are preserved separately, not treated as aliases.
+  Missing subtype alone is allowed; unchanged labels are not proof of review
+  or permit eligibility. Other specialized categories remain distinct.
+  `EV (Bagged Or Not In Use)` remains verbatim and unresolved with a note
+  explaining its ambiguous operational status.
+  Zero identifiers are unresolved across numeric/text forms, including `0.0`,
+  while original values are retained.
+
+- Issue #3 Sections 6B–8B use `src.label_reports` to group unresolved source
+  rows, validate raw-value preservation, and export current inventories,
+  unresolved reports, and examples as JSON under `results/issue3/`. These
+  reports reflect implemented decisions, not certification of unreviewed labels.
+  Section 8B calls `export_label_reports` to write compact submission reports
+  and a local `standardized_records.json`; `.gitignore` allows the compact
+  reports but keeps the full dataset ignored. Decision notes and a PR draft
+  are in `docs/issue3_label_decisions.md` and `docs/issue3_pr_description.md`.
+  Section 7C saves complete compact cleaned-label inventories for human review
+  using `src.label_reports.build_cleaned_inventories`.
+  Section 7D traces an exact raw label to workbook/sheet/source-row groups
+  for evidence review without rereading raw workbooks.
+
 - Launch notebooks:
 
   ```bash
@@ -209,6 +266,13 @@ python -m src.download_qpass
   ```
 
 - Some tests use generated sample workbooks and do not require the original data.
+- `tests/test_label_integration.py` runs the shared loader and label pipeline
+  together using generated workbooks and checks row counts and raw/provenance
+  preservation through `validate_label_output`. Run it with:
+
+  ```bash
+  python -m pytest tests/test_label_integration.py -q
+  ```
 - Real-data tests require the QPASS files in `data/raw/QPASS/`.
 - Before opening or updating a PR, run `pytest` and make sure it passes.
 - New reusable logic in `src/` should include corresponding tests in `tests/`.
@@ -238,7 +302,9 @@ python -m src.download_qpass
 - Keep pull requests focused on the assigned task.
 - Include `Closes #<issue-number>` in the pull-request description.
 - Explain what changed, how it was tested, and any unresolved questions.
-- Before opening a PR, run `pytest` and the `ds3-code-review` skill when available.
+- Before opening a PR, update the branch from main, run `pytest`, and run
+  the mentor-provided DS3 code-review skill against main. Read the findings,
+  fix important issues, and rerun tests. Do not commit `code_review.md`.
 - Another team member should review or test the work when possible.
 - Only the project mentor may approve and merge pull requests into `main`.
 - Team members must not merge their own pull requests.

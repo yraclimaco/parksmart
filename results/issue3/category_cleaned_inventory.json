@@ -1,0 +1,1625 @@
+[
+  {
+    "category":"Visitor",
+    "records":4423,
+    "raw_variants":[
+      "'V'",
+      "'Visitor  '",
+      "'Visitor'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"A",
+    "records":4334,
+    "raw_variants":[
+      "'A  '",
+      "'A'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"B",
+    "records":5938,
+    "raw_variants":[
+      "'B  '",
+      "'B'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"S",
+    "records":2089,
+    "raw_variants":[
+      "'S  '",
+      "'S'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":null,
+    "records":63,
+    "raw_variants":[
+      "nan"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Summer",
+      "2024-2025 Summer"
+    ]
+  },
+  {
+    "category":"2hr As",
+    "records":39,
+    "raw_variants":[
+      "'2hr As'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Summer",
+      "2018-2019 Winter"
+    ]
+  },
+  {
+    "category":"A 3 Hour",
+    "records":79,
+    "raw_variants":[
+      "'3hr A'",
+      "'A  3 hours'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"A 2 Hour",
+    "records":141,
+    "raw_variants":[
+      "'2 hour A'",
+      "'2hr A'",
+      "'2hr As'",
+      "'A  2 Hour'",
+      "'A 2 Hour'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor: PBS",
+    "records":290,
+    "raw_variants":[
+      "'Visitor: PBS'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Winter"
+    ]
+  },
+  {
+    "category":"Visitor: PAD",
+    "records":406,
+    "raw_variants":[
+      "'Visitor: PAD'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Winter"
+    ]
+  },
+  {
+    "category":"Visitor: Meter",
+    "records":216,
+    "raw_variants":[
+      "'Visitor: Meter'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Winter"
+    ]
+  },
+  {
+    "category":"Allocated: SIO",
+    "records":204,
+    "raw_variants":[
+      "'Allocated: SIO'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter"
+    ]
+  },
+  {
+    "category":"B Carpool",
+    "records":240,
+    "raw_variants":[
+      "'B Carpool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"S Carpool",
+    "records":92,
+    "raw_variants":[
+      "'S Carpool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Spring",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"SIO",
+    "records":30,
+    "raw_variants":[
+      "'SIO'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-4 Spring.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Spring"
+    ]
+  },
+  {
+    "category":"A Carpool",
+    "records":52,
+    "raw_variants":[
+      "'A Carpool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"SIO B",
+    "records":438,
+    "raw_variants":[
+      "'SIO B'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"Carpool 2 Person",
+    "records":176,
+    "raw_variants":[
+      "'2 Person Carpool'",
+      "'Carpool 2 Person '",
+      "'Carpool 2 Person Carpool '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"SIO S",
+    "records":131,
+    "raw_variants":[
+      "'SIO S'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"A 24\/7 Enforced",
+    "records":82,
+    "raw_variants":[
+      "'24\/7 A'",
+      "'A (24\/7)'",
+      "'A 24\/7 Enforced '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"24\/7",
+    "records":10,
+    "raw_variants":[
+      "'24\/7'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Fall"
+    ]
+  },
+  {
+    "category":"Physician A",
+    "records":52,
+    "raw_variants":[
+      "'A Physician A '",
+      "'Physician A'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"B 3 Hour",
+    "records":10,
+    "raw_variants":[
+      "'3hr B'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Fall"
+    ]
+  },
+  {
+    "category":"Aquarium",
+    "records":42,
+    "raw_variants":[
+      "'Aquarium'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"$3",
+    "records":20,
+    "raw_variants":[
+      "'$3'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Fall"
+    ]
+  },
+  {
+    "category":"D",
+    "records":302,
+    "raw_variants":[
+      "'D'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"3.25",
+    "records":20,
+    "raw_variants":[
+      "3.25"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Summer"
+    ]
+  },
+  {
+    "category":"B 2 Hour",
+    "records":22,
+    "raw_variants":[
+      "'2 hour B'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer"
+    ]
+  },
+  {
+    "category":"SR",
+    "records":660,
+    "raw_variants":[
+      "'SR  '",
+      "'SR'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"Visitor 2 Hour",
+    "records":114,
+    "raw_variants":[
+      "'2 hour Visitor'",
+      "'Visitor  2 Hour'",
+      "'Visitor  2 hours'",
+      "'Visitor 2 Hour'",
+      "'Visitor 2 hour 2 hour'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"A 4 Hour",
+    "records":42,
+    "raw_variants":[
+      "'4 hour A'",
+      "'A  4 hours'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"B 1 Hour",
+    "records":42,
+    "raw_variants":[
+      "'1 hour B'",
+      "'B  1 hour'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor 3 Hour",
+    "records":52,
+    "raw_variants":[
+      "'3 hour Visitor'",
+      "'Visitor  3 hours'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Preuss A",
+    "records":32,
+    "raw_variants":[
+      "'Preuss A'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "category":"B Oversized",
+    "records":20,
+    "raw_variants":[
+      "'B Oversized '",
+      "'B Oversized'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Carpool",
+    "records":514,
+    "raw_variants":[
+      "'Carpool  '",
+      "'Carpool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"SS ($3.25)",
+    "records":40,
+    "raw_variants":[
+      "'SS ($3.25)  '",
+      "'SS ($3.25)'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Carpool 3 Person",
+    "records":20,
+    "raw_variants":[
+      "'Carpool 3 Person'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring"
+    ]
+  },
+  {
+    "category":"Visitor 5 Min",
+    "records":20,
+    "raw_variants":[
+      "'Visitor 5 Min'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring"
+    ]
+  },
+  {
+    "category":"Visitor Police",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Police'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring"
+    ]
+  },
+  {
+    "category":"D ($5.00)",
+    "records":60,
+    "raw_variants":[
+      "'D ($5.00)  '",
+      "'D ($5.00)'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor 30 Min",
+    "records":20,
+    "raw_variants":[
+      "'Visitor 30 Min'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring"
+    ]
+  },
+  {
+    "category":"Visitor Infusion",
+    "records":20,
+    "raw_variants":[
+      "'Visitor Infusion '",
+      "'Visitor Infusion'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Radiation",
+    "records":20,
+    "raw_variants":[
+      "'Visitor Radiation '",
+      "'Visitor Radiation'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Carpool B 3 Person",
+    "records":10,
+    "raw_variants":[
+      "'Carpool B 3 Person'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring"
+    ]
+  },
+  {
+    "category":"Visitor Loading 20 Min",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Loading 20 Min'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring"
+    ]
+  },
+  {
+    "category":"Visitor Patient\/Visitor Reserved 3 Minutes",
+    "records":20,
+    "raw_variants":[
+      "'Visitor Patient\/Visitor Reserved 3 minutes'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Radiation Oncology Center Patient",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Radiation Oncology Center Patient '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"A Preuss",
+    "records":10,
+    "raw_variants":[
+      "'A Preuss '"
+    ],
+    "field_statuses":[
+      "standardized"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"B Preuss",
+    "records":10,
+    "raw_variants":[
+      "'B Preuss '"
+    ],
+    "field_statuses":[
+      "standardized"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor 3 Minutes",
+    "records":10,
+    "raw_variants":[
+      "'Visitor  3 minutes'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"B Scripps Institution Of Oceanography",
+    "records":110,
+    "raw_variants":[
+      "'B Scripps Institution of Oceanography '"
+    ],
+    "field_statuses":[
+      "standardized"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"S Scripps Institution Of Oceanography",
+    "records":20,
+    "raw_variants":[
+      "'S Scripps Institution of Oceanography '"
+    ],
+    "field_statuses":[
+      "standardized"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Birch Aquarium",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Birch Aquarium '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Scripps Institution Of Oceanography",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Scripps Institution of Oceanography '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Accessible Scripps Institution Of Oceanography",
+    "records":10,
+    "raw_variants":[
+      "'Accessible Scripps Institution of Oceanography '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Electric Vehicle Scripps Institution Of Oceanography",
+    "records":10,
+    "raw_variants":[
+      "'Electric Vehicle Scripps Institution of Oceanography '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Loading 2",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Loading 2'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor 5 Minute",
+    "records":20,
+    "raw_variants":[
+      "'Visitor 5 Minute 5 minutes'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Carpool S 3-Person",
+    "records":10,
+    "raw_variants":[
+      "'Carpool S 3-Person '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor 2-Hour Limit 6",
+    "records":10,
+    "raw_variants":[
+      "'Visitor 2-Hour Limit 6'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Carpool B 3-Person",
+    "records":30,
+    "raw_variants":[
+      "'Carpool B 3-Person '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"B Sanford Consortium",
+    "records":10,
+    "raw_variants":[
+      "'B Sanford Consortium '"
+    ],
+    "field_statuses":[
+      "standardized"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Sanford Consortium",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Sanford Consortium '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Visitor Police Visitor",
+    "records":10,
+    "raw_variants":[
+      "'Visitor Police Visitor '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"A 2hr 12",
+    "records":10,
+    "raw_variants":[
+      "'A 2hr 12'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Carpool A 3-Person",
+    "records":20,
+    "raw_variants":[
+      "'Carpool A 3-Person '"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "category":"Reserved",
+    "records":1076,
+    "raw_variants":[
+      "'Reserved'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"SS",
+    "records":88,
+    "raw_variants":[
+      "'SS'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"Electric Vehicle",
+    "records":78,
+    "raw_variants":[
+      "'Electric Vehicle'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"0",
+    "records":1,
+    "raw_variants":[
+      "0"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall"
+    ]
+  },
+  {
+    "category":"Accessible",
+    "records":100,
+    "raw_variants":[
+      "'Accessible'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"EV (Bagged Or Not In Use)",
+    "records":20,
+    "raw_variants":[
+      "'EV (bagged or not in use)'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Spring",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "category":"Closure",
+    "records":12,
+    "raw_variants":[
+      "'Closed For Improvements \/ Constrruction'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "category":"VA",
+    "records":12,
+    "raw_variants":[
+      "'VA'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "category":"Motorcycle Section",
+    "records":12,
+    "raw_variants":[
+      "'Motorcycle Section'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "category":"UC Vehicle",
+    "records":12,
+    "raw_variants":[
+      "'UC Vehicle'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  }
+]

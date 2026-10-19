@@ -1,0 +1,446 @@
+[
+  {
+    "subtype":null,
+    "records":22600,
+    "raw_variants":[
+      "nan"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "subtype":"A\/B",
+    "records":12,
+    "raw_variants":[
+      "'A\/B'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Gold Pool",
+    "records":168,
+    "raw_variants":[
+      "'Gold Pool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Loading",
+    "records":12,
+    "raw_variants":[
+      "'Loading'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Loading Reserved",
+    "records":12,
+    "raw_variants":[
+      "'Loading Reserved'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Infusion",
+    "records":12,
+    "raw_variants":[
+      "'Infusion'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Patient\/Visitor Reserved",
+    "records":24,
+    "raw_variants":[
+      "'Patient\/Visitor Reserved'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Radiation",
+    "records":12,
+    "raw_variants":[
+      "'Radiation'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"24\/7 Enforced",
+    "records":36,
+    "raw_variants":[
+      "'24\/7 Enforced'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Blue Pool",
+    "records":132,
+    "raw_variants":[
+      "'Blue Pool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"2 Hours",
+    "records":24,
+    "raw_variants":[
+      "'2 Hours'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Scripps Institution Of Oceanography",
+    "records":180,
+    "raw_variants":[
+      "'Scripps Institution of Oceanography'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Birch Aquarium",
+    "records":12,
+    "raw_variants":[
+      "'Birch Aquarium'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"5 Min",
+    "records":12,
+    "raw_variants":[
+      "'5 Min'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Police Visitor",
+    "records":12,
+    "raw_variants":[
+      "'Police Visitor'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"B",
+    "records":36,
+    "raw_variants":[
+      "'B'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Radiation Oncology Center Patient",
+    "records":12,
+    "raw_variants":[
+      "'Radiation Oncology Center Patient'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Preuss",
+    "records":24,
+    "raw_variants":[
+      "'Preuss'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Physician A",
+    "records":12,
+    "raw_variants":[
+      "'Physician A'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Van",
+    "records":12,
+    "raw_variants":[
+      "'Van'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"EV4",
+    "records":12,
+    "raw_variants":[
+      "'EV4'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Enterprise",
+    "records":12,
+    "raw_variants":[
+      "'Enterprise'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"2-Hour Limit",
+    "records":12,
+    "raw_variants":[
+      "'2-Hour Limit'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Oversized",
+    "records":12,
+    "raw_variants":[
+      "'Oversized'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"A",
+    "records":12,
+    "raw_variants":[
+      "'A'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "subtype":"Vanpool",
+    "records":12,
+    "raw_variants":[
+      "'Vanpool'"
+    ],
+    "field_statuses":[
+      "keep_separate"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  }
+]

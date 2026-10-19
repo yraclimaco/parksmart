@@ -1,0 +1,202 @@
+[
+  {
+    "field":"facility",
+    "raw_value_repr":"'Pangea'",
+    "affected_records":5,
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Summer"
+    ],
+    "notes":[
+      "category: UCSD defines V as Visitor space. Exact category only; do not merge restricted visitor categories. https:\/\/transportation.ucsd.edu\/commute\/permits\/index.html; facility: unnamed 9-space V row after Pangea; ownership unresolved. Evidence: docs\/qpass_schema_audit.md, Known data issues; "
+    ]
+  },
+  {
+    "field":"facility",
+    "raw_value_repr":"0",
+    "affected_records":1,
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall"
+    ],
+    "notes":[
+      "facility: missing or zero identifier; category: missing or zero identifier; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"nan",
+    "affected_records":63,
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Summer",
+      "2024-2025 Summer"
+    ],
+    "notes":[
+      "category: missing or zero identifier; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'2hr As'",
+    "affected_records":39,
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Summer",
+      "2018-2019 Winter"
+    ],
+    "notes":[
+      "category: Unverified meaning outside the explicitly verified P602 scope. P103 Winter 2019 has a separate 13-space row; Spring\/Summer summaries do not establish its intended category. Keep wording and restriction indication; do not merge ordinary A.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'24\/7'",
+    "affected_records":10,
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "notes":[
+      "category: Permit type is absent; do not infer A from adjacent records.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'$3'",
+    "affected_records":20,
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Fall"
+    ],
+    "notes":[
+      "category: Price alone does not establish a permit category; do not infer SS or D.; ",
+      "facility: UCSD explicitly identifies Torrey Pines Gliderport as Lot P386; exact QPASS facility label only. https:\/\/today.ucsd.edu\/story\/transportation_services_working_to_expand_parking_commuter_options; category: Price alone does not establish a permit category; do not infer SS or D.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"3.25",
+    "affected_records":20,
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Summer"
+    ],
+    "notes":[
+      "category: Numeric price-like label does not establish a category; retain raw value.; ",
+      "facility: UCSD explicitly identifies Torrey Pines Gliderport as Lot P386; exact QPASS facility label only. https:\/\/today.ucsd.edu\/story\/transportation_services_working_to_expand_parking_commuter_options; category: Numeric price-like label does not establish a category; retain raw value.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'Visitor Loading 2'",
+    "affected_records":10,
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "notes":[
+      "category: explicit restriction retained separately; category: Trailing 2 is unexplained; retain loading restriction and original wording.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'Visitor 2-Hour Limit 6'",
+    "affected_records":10,
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "notes":[
+      "category: explicit restriction retained separately; category: Wording retained. Trailing 6 is unexplained; retain complete label and flag uncertainty.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'A 2hr 12'",
+    "affected_records":10,
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Summer"
+    ],
+    "notes":[
+      "category: Trailing 12 is unexplained; preserve it without inferring that it is a duration or row number.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"0",
+    "affected_records":1,
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall"
+    ],
+    "notes":[
+      "facility: missing or zero identifier; category: missing or zero identifier; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'EV (bagged or not in use)'",
+    "affected_records":20,
+    "files":[
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Spring",
+      "2026-2027 Summer"
+    ],
+    "notes":[
+      "category: Ambiguous operational status: bagged or not in use does not establish usable EV parking or permit eligibility for this source record. Preserve the original wording and require downstream review; do not merge with ordinary Electric Vehicle categories.; "
+    ]
+  },
+  {
+    "field":"category",
+    "raw_value_repr":"'Closed For Improvements \/ Constrruction'",
+    "affected_records":12,
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ],
+    "notes":[
+      "category: closure label for this source record and survey time only; do not treat as usable parking or infer permanent facility closure; "
+    ]
+  }
+]

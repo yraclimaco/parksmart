@@ -35,3 +35,18 @@ models/*
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Issue #3: compact review deliverables; keep the full dataset local.
+!results/issue3/
+results/issue3/*
+!results/issue3/summary.md
+!results/issue3/status_summary.json
+!results/issue3/unresolved_sources.json
+!results/issue3/unresolved_values.json
+!results/issue3/by_file_quarter.json
+!results/issue3/unresolved_records.json
+!results/issue3/*_inventory.json
+!results/issue3/raw_cleaned_examples.json
+
+# Local DS3 review output; do not submit.
+/code_review.md
