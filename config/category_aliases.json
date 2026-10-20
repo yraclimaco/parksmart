@@ -1,0 +1,26 @@
+[
+  {
+    "raw_value": "V",
+    "standard_value": "Visitor",
+    "status": "verified",
+    "notes": "UCSD defines V as Visitor space. Exact category only; do not merge restricted visitor categories. https://transportation.ucsd.edu/commute/permits/index.html"
+  },
+  {
+    "raw_value": "A (24/7)",
+    "standard_value": "A 24/7 Enforced",
+    "status": "verified",
+    "notes": "Workbook screenshots show P402 Type A (24/7) in Summer/Fall 2024 and A 24/7 Enforced in Summer 2025. UCSD explicitly distinguishes A 24/7 reserved-faculty spaces from ordinary A. Preserve the restriction, not generic A. https://transportation.ucsd.edu/commute/permits/index.html"
+  },
+  {
+    "raw_value": "24/7 A",
+    "standard_value": "A 24/7 Enforced",
+    "status": "verified",
+    "notes": "Exact category states both A and 24/7; canonicalized to A 24/7 Enforced. User P402 screenshots corroborate A (24/7) and A 24/7 Enforced. Bare 24/7 is not mapped because it omits a permit type. https://transportation.ucsd.edu/commute/permits/index.html"
+  },
+  {
+    "raw_value": "2 Person Carpool",
+    "standard_value": "Carpool 2 Person",
+    "status": "verified",
+    "notes": "Workbook screenshots show Hopkins Type 2 Person Carpool in Fall 2024 and Carpool 2 Person in Summer 2025. Preserve the two-person condition. This exact word-order mapping does not merge generic Carpool or other occupancy requirements."
+  }
+]

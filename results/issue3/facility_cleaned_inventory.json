@@ -1,0 +1,3147 @@
+[
+  {
+    "facility":"Athena",
+    "records":1063,
+    "raw_variants":[
+      "'Athena'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Campus Point East",
+    "records":423,
+    "raw_variants":[
+      "'Campus Point East'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Campus Point West",
+    "records":689,
+    "raw_variants":[
+      "'Campus Point West'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Gilman",
+    "records":918,
+    "raw_variants":[
+      "'Gilman'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Hopkins",
+    "records":1278,
+    "raw_variants":[
+      "'Hopkins'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Pangea",
+    "records":1086,
+    "raw_variants":[
+      "'Pangea'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Torrey Pines Center North",
+    "records":734,
+    "raw_variants":[
+      "'Torrey Pines Center North'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Torrey Pines Center South",
+    "records":604,
+    "raw_variants":[
+      "'Torrey Pines Center South'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P011",
+    "records":175,
+    "raw_variants":[
+      "'P011'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P012",
+    "records":175,
+    "raw_variants":[
+      "'P012'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P013",
+    "records":175,
+    "raw_variants":[
+      "'P013'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P014",
+    "records":525,
+    "raw_variants":[
+      "'P014'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P016",
+    "records":175,
+    "raw_variants":[
+      "'P016'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P021",
+    "records":185,
+    "raw_variants":[
+      "'P021'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P102",
+    "records":178,
+    "raw_variants":[
+      "'P102'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P103",
+    "records":256,
+    "raw_variants":[
+      "'P103'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P111",
+    "records":79,
+    "raw_variants":[
+      "'P111'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P113",
+    "records":175,
+    "raw_variants":[
+      "'P113'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P201",
+    "records":175,
+    "raw_variants":[
+      "'P201'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P206",
+    "records":520,
+    "raw_variants":[
+      "'P206'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P302",
+    "records":62,
+    "raw_variants":[
+      "'P302'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Summer",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P303",
+    "records":422,
+    "raw_variants":[
+      "'P303'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P304",
+    "records":185,
+    "raw_variants":[
+      "'P304'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P308",
+    "records":79,
+    "raw_variants":[
+      "'P308'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P309",
+    "records":79,
+    "raw_variants":[
+      "'P309'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P351",
+    "records":175,
+    "raw_variants":[
+      "'P351'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P357",
+    "records":350,
+    "raw_variants":[
+      "'P357'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P359",
+    "records":175,
+    "raw_variants":[
+      "'P359'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P383",
+    "records":111,
+    "raw_variants":[
+      "'P383'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "facility":"P385",
+    "records":52,
+    "raw_variants":[
+      "'P385'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Summer",
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "facility":"P386",
+    "records":155,
+    "raw_variants":[
+      "'Gliderport'",
+      "'P386 (Gliderport)'",
+      "'P386'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P395",
+    "records":173,
+    "raw_variants":[
+      "'P395'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "facility":"P401",
+    "records":254,
+    "raw_variants":[
+      "'P401'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P405",
+    "records":79,
+    "raw_variants":[
+      "'P405'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P406",
+    "records":175,
+    "raw_variants":[
+      "'P406'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P411",
+    "records":158,
+    "raw_variants":[
+      "'P411'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P416",
+    "records":84,
+    "raw_variants":[
+      "'P416'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Summer",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P502",
+    "records":237,
+    "raw_variants":[
+      "'P502'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P503",
+    "records":438,
+    "raw_variants":[
+      "'P503'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P504",
+    "records":350,
+    "raw_variants":[
+      "'P504'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P506",
+    "records":382,
+    "raw_variants":[
+      "'P506'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P507",
+    "records":436,
+    "raw_variants":[
+      "'P507'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P508",
+    "records":382,
+    "raw_variants":[
+      "'P508'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P510",
+    "records":545,
+    "raw_variants":[
+      "'P510'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P511",
+    "records":79,
+    "raw_variants":[
+      "'P511'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"P602",
+    "records":695,
+    "raw_variants":[
+      "'P602 '",
+      "'P602'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P603",
+    "records":354,
+    "raw_variants":[
+      "'P603'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P610",
+    "records":180,
+    "raw_variants":[
+      "'P610'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Summer",
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P701",
+    "records":254,
+    "raw_variants":[
+      "'P701'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P703",
+    "records":239,
+    "raw_variants":[
+      "'P703'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P704",
+    "records":276,
+    "raw_variants":[
+      "'P704'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P705",
+    "records":185,
+    "raw_variants":[
+      "'P705'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P706",
+    "records":271,
+    "raw_variants":[
+      "'P706'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P753",
+    "records":123,
+    "raw_variants":[
+      "'P753'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Summer",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P759",
+    "records":214,
+    "raw_variants":[
+      "'P759'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P760",
+    "records":333,
+    "raw_variants":[
+      "'P760'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "facility":"P782",
+    "records":194,
+    "raw_variants":[
+      "'P782'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P784",
+    "records":175,
+    "raw_variants":[
+      "'P784'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P785",
+    "records":175,
+    "raw_variants":[
+      "'P785'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P017",
+    "records":165,
+    "raw_variants":[
+      "'P017'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-1 Summer.xlsx",
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Summer",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P002",
+    "records":155,
+    "raw_variants":[
+      "'P002'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P003",
+    "records":155,
+    "raw_variants":[
+      "'P003'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P006",
+    "records":113,
+    "raw_variants":[
+      "'P006'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Summer",
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P007",
+    "records":145,
+    "raw_variants":[
+      "'P007'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P008",
+    "records":155,
+    "raw_variants":[
+      "'P008'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P010",
+    "records":155,
+    "raw_variants":[
+      "'P010'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"South",
+    "records":904,
+    "raw_variants":[
+      "'Osler'",
+      "'South'"
+    ],
+    "field_statuses":[
+      "standardized",
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2018-2019-2 Fall.xlsx",
+      "QPASS 2018-2019-3 Winter.xlsx",
+      "QPASS 2018-2019-4 Spring.xlsx",
+      "QPASS 2019-2020-1 Summer.xlsx",
+      "QPASS 2019-2020-2 Fall.xlsx",
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2018-2019 Fall",
+      "2018-2019 Spring",
+      "2018-2019 Winter",
+      "2019-2020 Fall",
+      "2019-2020 Summer",
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":null,
+    "records":5,
+    "raw_variants":[
+      "'Pangea'"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2019-2020-1 Summer.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Summer"
+    ]
+  },
+  {
+    "facility":"Nuevo West",
+    "records":30,
+    "raw_variants":[
+      "'Nuevo West'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2019-2020-2 Fall.xlsx"
+    ],
+    "quarters":[
+      "2019-2020 Fall"
+    ]
+  },
+  {
+    "facility":"P384",
+    "records":64,
+    "raw_variants":[
+      "'P384'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "facility":"Scholars",
+    "records":564,
+    "raw_variants":[
+      "'Scholars'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P402",
+    "records":192,
+    "raw_variants":[
+      "'P402'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P702",
+    "records":96,
+    "raw_variants":[
+      "'P702'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P707",
+    "records":96,
+    "raw_variants":[
+      "'P707'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm",
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Spring",
+      "2024-2025 Summer",
+      "2024-2025 Winter",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Nuevo West\/Vela",
+    "records":64,
+    "raw_variants":[
+      "'Nuevo West\/Vela'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-1  Summer.xlsm",
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Summer",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "facility":"Theatre District Garage",
+    "records":88,
+    "raw_variants":[
+      "'Theatre District Garage'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-2 Fall.xlsm",
+      "QPASS 2024-2025-3 Winter.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Fall",
+      "2024-2025 Winter"
+    ]
+  },
+  {
+    "facility":"P751",
+    "records":42,
+    "raw_variants":[
+      "'P751'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Spring",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"Mesa Canyon",
+    "records":86,
+    "raw_variants":[
+      "'Mesa Canyon'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P604",
+    "records":32,
+    "raw_variants":[
+      "'P604'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"TDLLN",
+    "records":354,
+    "raw_variants":[
+      "'TDLLN'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"8980",
+    "records":416,
+    "raw_variants":[
+      "8980"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P001",
+    "records":42,
+    "raw_variants":[
+      "'P001'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P032",
+    "records":224,
+    "raw_variants":[
+      "'P032'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P106",
+    "records":64,
+    "raw_variants":[
+      "'P106'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2024-2025-4 Spring.xlsm",
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2024-2025 Spring",
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"P752",
+    "records":22,
+    "raw_variants":[
+      "'P752'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Summer"
+    ]
+  },
+  {
+    "facility":"P414",
+    "records":54,
+    "raw_variants":[
+      "'P414'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2025-2026-1 Summer.xlsm",
+      "QPASS 2025-2026-2 Fall.xlsm",
+      "QPASS 2025-2026-4 Spring.xlsm",
+      "QPASS 2026-2027-1 Summer.xlsm",
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall",
+      "2025-2026 Spring",
+      "2025-2026 Summer",
+      "2026-2027 Fall",
+      "2026-2027 Summer"
+    ]
+  },
+  {
+    "facility":"0",
+    "records":1,
+    "raw_variants":[
+      "0"
+    ],
+    "field_statuses":[
+      "unresolved"
+    ],
+    "files":[
+      "QPASS 2025-2026-2 Fall.xlsm"
+    ],
+    "quarters":[
+      "2025-2026 Fall"
+    ]
+  },
+  {
+    "facility":"P031",
+    "records":24,
+    "raw_variants":[
+      "'P031'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "facility":"P671",
+    "records":12,
+    "raw_variants":[
+      "'P671'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  },
+  {
+    "facility":"Triton",
+    "records":36,
+    "raw_variants":[
+      "'Triton'"
+    ],
+    "field_statuses":[
+      "unchanged"
+    ],
+    "files":[
+      "QPASS 2026-2027-2  Fall.xlsm"
+    ],
+    "quarters":[
+      "2026-2027 Fall"
+    ]
+  }
+]
