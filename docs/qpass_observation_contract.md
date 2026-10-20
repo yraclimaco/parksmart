@@ -85,8 +85,12 @@ classification; optional report_type is not part of the identity.
   All members require review, including any exact repeated subset.
 - `conflicting_observation`: an identity group has different count/capacity
   payloads and is not classified as an ambiguous Format C allocation group.
-  Equal-capacity Format C rows with differing counts still get this flag.
-- Exact repeats can coexist with either review flag. No flag deletes or combines rows.
+  Within an ambiguous group, rows sharing identity and capacity but differing
+  in open-count payload also get this flag; other capacity subsets do not
+  inherit that conflict. For example, capacity/open pairs (10, 3), (10, 7),
+  (20, 3) are all ambiguous, and only the two capacity-10 rows are conflicting.
+- Ambiguity and count-conflict flags can coexist, as can exact repeats with
+  either review flag. No flag deletes or combines rows.
 - `observation_group` groups identities for review within this run; it is not
   a stable identifier across runs. Source file, sheet and row remain available.
 

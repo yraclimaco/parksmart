@@ -264,7 +264,9 @@ python -m src.download_qpass
   separate flags. The loader preserves per-sheet optional-header presence as
   `sub_type_in_format` / `report_type_in_format`, and raw Order as `source_order`.
   Optional statuses distinguish absent headers from blank cells. Format C
-  differing-capacity groups use `ambiguous_allocation_requires_review`; no rows
+  differing-capacity groups use `ambiguous_allocation_requires_review`;
+  same-capacity subsets with different open counts also retain
+  `conflicting_observation`, including inside ambiguous groups. No rows
   are deleted or combined. Audited observations are integration-tested with
   `src.labels.prepare_label_records()` from main. All parsing uses the shared loader; see
   `docs/qpass_observation_contract.md` for the output contract.

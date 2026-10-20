@@ -103,7 +103,9 @@ def validate_observations(
         Exact repeats share identity and count/capacity payload. Conflicts share
         identity but contain different payloads. Format C capacity variants
         instead require ambiguous-allocation review; repeats can coexist with
-        either flag. Capacity alone never establishes a separate allocation.
+        either flag. Equal-capacity subsets with different counts retain the
+        conflict flag even inside ambiguous groups. Capacity alone never
+        establishes a separate allocation.
         Optional subtype/level blanks participate in identity as equal blanks;
         report_type is auxiliary metadata, not a required category. Identity
         groups and every source row are preserved. Empty input gives zero counts.
@@ -164,7 +166,13 @@ def validate_observations(
         & variants["capacity_payload"].gt(1) & complete
     )
     flags["ambiguous_allocation_requires_review"] = ambiguous
-    flags["conflicting_observation"] = differs & ~ambiguous
+    same_capacity = identity.groupby(
+        IDENTITY_COLUMNS + ["capacity_payload"], dropna=False, sort=False
+    )
+    count_conflict = same_capacity["open_payload"].transform("nunique").gt(1)
+    flags["conflicting_observation"] = (
+        (differs & ~ambiguous) | (count_conflict & complete)
+    )
     result["observation_group"] = (groups.ngroup() + 1).astype("Int64").mask(~complete)
     result["quality_flag"] = pd.Series(index=result.index, dtype="string")
     if not result.empty:

@@ -290,6 +290,35 @@ def test_optional_headers_absent_versus_blank_per_sheet(tmp_path, weekly, header
     assert out.attrs == loaded.attrs
 
 
+def test_mixed_capacity_ambiguity_retains_same_capacity_count_conflicts():
+    wide = pd.concat([
+        table(total_stall_count=10, open_8am=3, source_row=3),
+        table(total_stall_count=10, open_8am=7, source_row=4),
+        table(total_stall_count=20, open_8am=3, source_row=5),
+    ], ignore_index=True)
+    before = wide.copy(deep=True)
+    out, summary = audit(wide)
+    pd.testing.assert_frame_equal(wide, before)
+    assert len(out) == 12
+    assert out.quality_flag.str.contains("ambiguous_allocation_requires_review").all()
+    morning = out[out.observation_time.eq("08:00")]
+    assert morning.quality_flag.str.contains("conflicting_observation").tolist() == [
+        True, True, False,
+    ]
+    assert not out.loc[out.observation_time.ne("08:00"), "quality_flag"].str.contains(
+        "conflicting_observation"
+    ).any()
+    assert morning.observation_group.nunique() == 1
+    assert morning.source_row.tolist() == [3, 4, 5]
+    assert morning.raw_total_stall_count.tolist() == [10, 10, 20]
+    assert morning.raw_open_spaces.tolist() == [3, 7, 3]
+    assert morning.total_stall_count.tolist() == [10, 10, 20]
+    assert morning.open_spaces.tolist() == [3, 7, 3]
+    counts = summary.set_index("check")
+    assert counts.loc["conflicting_observation", "failed"] == 2
+    assert counts.loc["ambiguous_allocation_requires_review", "failed"] == 12
+
+
 def test_ambiguous_capacity_group_retains_repeats_counts_and_provenance():
     wide = pd.concat([table(), table(source_row=4),
                       table(total_stall_count=20, open_8am=8, source_row=5)],
