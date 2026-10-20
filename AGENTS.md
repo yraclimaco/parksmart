@@ -175,6 +175,68 @@ python -m src.download_qpass
 
 ## Running things
 
+### Inventory capacity selection — Issue #4
+
+From the repository root, after placing QPASS workbooks in `data/raw/QPASS/`:
+
+```bash
+python -m src.download_inventory
+python -m src.run_capacity_matching --rebuild-inventory
+python scripts/prepare_capacity_deliverables.py
+python -m pytest -q
+```
+
+The manifest is `results/capacity_matching/inventory_sources.csv`.
+`--rebuild-inventory` rereads every available original workbook without modifying it;
+without the flag, previously extracted groups are used. Missing Inventory quarters
+remain in results. Batch flags: `--manifest`, `--qpass-dir`, `--inventory-dir`, `--output-dir`.
+
+Individual supported cleaner commands:
+
+```bash
+python -m src.clean_inventory_legacy "data/raw/inventory/Inventory 2018-2019-2 October 1.xlsx" --academic-year 2018-2019 --quarter Fall
+python -m src.clean_inventory_modern "data/raw/inventory/Inventory 2025-2026-2 Fall.xlsm" --academic-year 2025-2026 --quarter Fall
+python -m src.compare_capacities --inventory "data/interim/inventory/Inventory 2025-2026-2 Fall_capacity_groups.csv" --qpass "data/raw/QPASS/QPASS 2025-2026-2 Fall.xlsm" --output-dir results/capacity_matching/fall_2025
+```
+
+Legacy tables are `5A By Lot` / `6A By Structure`; modern extraction detects
+`Pivot Table Data` headers and the appropriate quarter/Inventory By Location field.
+Never use all-category totals, sum overlapping lot/structure data, or force uncertain
+period/subtype groups. `src.clean_inventory` is deprecated and delegates to modern;
+its `capacity_status` helper remains shared.
+
+Intermediate groups/audits: `data/interim/inventory/`. Batch outputs:
+`results/capacity_matching/batch/`; combined reports live in its `combined/` folder.
+Validated delivery copies: `results/capacity_matching/deliverables/`. Preparation
+regenerates `docs/capacity_matching_summary.md` and flags validation failures.
+
+Capacity selection uses valid QPASS row/group totals first. Missing or demonstrably
+broken QPASS counts may fall back to one exact, positive, same-quarter Inventory
+group with compatible scope and consistent period metadata. Fallback is explicitly
+`assumed_same_quarter_capacity`, not verified daily capacity. Unknown zero alone
+is not proof of a formula error. Conflicting evidence leaves capacity unknown.
+The old snapshot-only/same-day acceptance rule is retired.
+
+Both sources use Issue #3 mappings through `src.capacity_labels`, retaining raw
+labels and restrictions. Whole-facility totals cannot fill a QPASS level, and broad
+category counts cannot fill a restricted subtype. Known Fall 2025 formula errors
+are source-data flags, not naming problems; their raw values remain unchanged.
+Missing/invalid readings do not create group conflicts. Missing/zero identifiers,
+including NaN, are excluded from eligible denominators and retained in reports.
+
+`selected_capacity` / compatibility alias `matched_capacity`, `capacity_source`,
+acceptance reason/basis and assumption describe selection. Summaries distinguish
+`total_observation_slots`, `eligible_observation_slots`, `excluded_observation_slots`,
+`accepted_qpass_capacities`, `accepted_inventory_capacities`, and
+`accepted_capacity_matches`. Rates always use eligible slots; overall rates use
+summed counts. `exact_key_candidate_rate` is Inventory key coverage, not acceptance.
+Unresolved types separate naming, source errors, missing Inventory, scope and period
+conflicts. See `docs/inventory_audit.md` for the full contract and assumptions.
+
+Run `python -m pytest tests/test_capacity_integration.py -q` for generated-workbook
+end-to-end checks, then full pytest. Real-workbook regeneration and the mentor's
+DS3 code-review skill remain required before requesting review.
+
 - Audit QPASS workbook structures:
 
   ```bash
@@ -407,3 +469,34 @@ User inputs
 → first choice and backup
 → interactive map and recommendation explanation
 ```
+
+## Period validation and rerun behavior
+
+Missing/invalid observation dates, nonconsecutive academic-year labels, unknown
+quarters, or calendar-year conflicts block both capacity sources and set
+`qpass_period_metadata_conflict`. Summer/Fall use the starting calendar year;
+Winter/Spring use the ending year. This is a metadata consistency check, not an
+exact quarter-boundary or survey/inventory date-equality rule. The raw date and
+period labels remain unchanged; unresolved cases use `period_metadata_conflict`.
+All-missing-Inventory batches write header-only Inventory datasets, replacing
+prior outputs. `src.audit_inventory` is a deprecated explicit-period wrapper for
+the modern cleaner; it no longer filters missing-identifier source rows.
+
+## Legacy summary scope and canonical filenames
+
+`legacy_summary_category_requires_review` is an unverified Inventory category
+scope. Such groups remain in audit outputs but cannot contradict QPASS capacity
+or provide fallback. The same restriction applies to legacy-schema records with
+a missing scope marker. An explicit exact-group scope decision requires both
+`scope_verified=True` and nonblank `scope_verification_evidence` on the extracted
+group; retain the original category_scope marker. Neither matching labels nor
+a positive count establish scope equivalence. No legacy scopes are automatically
+marked verified by the pipeline. Comparable verified-source disagreements remain
+unresolved. Modern layout scope checks remain in force.
+
+The downloader saves the filename linked by the archive, including spaces.
+The Fall 2025 source is `Inventory 2025-2026-2 Fall.xlsm`; generated group files
+use that same stem. The former local underscore alias is no longer consulted.
+Existing local copies are preserved, but rerun `python -m src.download_inventory`
+to generate a manifest using canonical downloaded filenames; no manual rename
+is needed. Quote paths containing spaces.

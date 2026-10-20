@@ -1,0 +1,22 @@
+{
+  "checks_passed": true,
+  "policy": "qpass_first_same_quarter_fallback",
+  "counts": {
+    "total_observation_slots": 93712,
+    "eligible_observation_slots": 88025,
+    "excluded_observation_slots": 5687,
+    "exact_key_candidates": 65115,
+    "accepted_qpass_capacities": 73190,
+    "accepted_inventory_capacities": 2932,
+    "accepted_capacity_matches": 76122
+  },
+  "report_counts": {
+    "capacity_comparison": 93712,
+    "matched_records": 76122,
+    "unresolved_cases": 17590,
+    "unmatched_records": 24500,
+    "conflicting_records": 4209
+  },
+  "inventory_workbooks": 14,
+  "qpass_quarters": 15
+}

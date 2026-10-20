@@ -1,71 +1,50 @@
-# DS3 Project Template
+# ParkSmart
 
-A clean starter template for data science and machine learning projects at UC San Diego's DS3.
+ParkSmart is a UC San Diego parking decision project. It cleans historical QPASS
+observations, standardizes parking labels, and attaches defensible parking
+capacities before availability analysis. Forecasting and the web interface are
+planned; the current implementation is the data pipeline.
 
-## What this template includes
+## Setup and capacity matching (Issue #4)
 
-- A sensible folder structure for notebooks, source code, data, and outputs
-- A Python environment file for quick setup
-- A .gitignore tailored for secrets, notebooks, and generated artifacts
-- A small starter package and test example
+Run from the repository root:
 
-## Suggested repository structure
-
-```text
-.
-├── README.md
-├── .env.example
-├── .gitignore
-├── requirements.txt
-├── notebooks/
-│   └── README.md
-├── src/
-│   ├── __init__.py
-│   └── example.py
-├── frontend/
-│   └── README.md
-├── infra/
-│   └── README.md
-├── data/
-│   ├── raw/
-│   └── processed/
-├── results/
-├── models/
-└── tests/
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m src.download_qpass
+python -m src.download_inventory
+python -m src.run_capacity_matching --rebuild-inventory
+python scripts/prepare_capacity_deliverables.py
+python -m pytest -q
 ```
 
-- `frontend/` is for UI/UX code and web app assets.
-- `infra/` is for deployment scripts, cloud config, and infrastructure as code for AWS/GCP.
+Downloads require access to the public UCSD archive. Original workbooks stay local
+in `data/raw/QPASS/` and `data/raw/inventory/` and are never modified. The Inventory
+source manifest is generated at `results/capacity_matching/inventory_sources.csv`.
+No API key is needed for this pipeline; `.env.example` is an optional template.
 
-## Quick start
+Capacity selection prefers valid QPASS totals for the exact parking group.
+Missing or demonstrably broken totals may use one compatible same-quarter
+Inventory candidate, explicitly labeled as an assumption. Uncertain scopes,
+conflicting capacities or period metadata remain flagged with unknown selected
+capacity. No cross-quarter carry or fuzzy facility matching is performed.
 
-1. Create a virtual environment:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   **.env files are generally not shared on GitHub; they are included here only as an example template.**
-4. Start working in notebooks or in the src package.
+## Outputs and documentation
 
-## Project docs
+- [Inventory schema, assumptions and run instructions](docs/inventory_audit.md).
+- [Capacity selection results and quarter-level rates](docs/capacity_matching_summary.md).
+- [Packaged datasets and unresolved cases](results/capacity_matching/deliverables/README.md).
+- [QPASS loader schema and source limitations](docs/qpass_schema_audit.md).
+- [Shared standardized-label decisions](docs/issue3_label_decisions.md).
+- [Development conventions](AGENTS.md).
 
-- [QPASS workbook schema audit](docs/qpass_schema_audit.md): QPASS file formats, how to load them with `src/qpass_loader.py`, and known data gaps.
-
-## Repository guidelines
-
-- Keep notebooks for exploration and visualization.
-- Put reusable logic in src so notebooks stay readable.
-- Do not commit secrets, API keys, or large data files.
-- Use clear filenames and short, documented functions.
-- Add tests for any core logic that will be reused.
+Reusable code lives in `src/`, tests in `tests/`, and exploration in `notebooks/`.
+Intermediate Inventory groups/audits are in `data/interim/inventory/`; batch
+reports are in `results/capacity_matching/batch/`. Delivery copies are compressed
+CSVs in `results/capacity_matching/deliverables/`; pandas reads `.csv.gz` directly.
+Frontend, infrastructure and model folders are placeholders for later work.
 
 ## Git and GitHub workflow for DS3 projects
 
