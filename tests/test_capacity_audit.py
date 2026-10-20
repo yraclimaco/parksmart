@@ -77,7 +77,9 @@ def test_audit_reports_preserve_raw_values_and_uncertainty(tmp_path, monkeypatch
     results = pd.read_csv(output / "capacity_comparison.csv", keep_default_na=False)
 
     assert len(results) == 24
-    assert results["matched_capacity"].eq("").all()
+    # The wrong-quarter Inventory cannot contradict that row's own QPASS total.
+    assert results.loc[results.quarter.eq("Fall"), "selected_capacity"].eq("25").all()
+    assert results.loc[results.quarter.eq("Summer"), "selected_capacity"].eq("").all()
     assert results["qpass_facility_raw"].eq("P1  ").all()
     assert results["facility"].eq("P1").all()
     assert results.loc[0, "qpass_category_raw"] == "A  "
@@ -88,7 +90,7 @@ def test_audit_reports_preserve_raw_values_and_uncertainty(tmp_path, monkeypatch
     assert zero["qpass_capacity_status"].eq("zero_review").all()
     assert zero["reported_capacity_comparison"].eq("not_comparable").all()
     wrong_quarter = results.loc[results["qpass_source_row"].eq(8)]
-    assert wrong_quarter["comparison_status"].eq("no_exact_inventory_key").all()
+    assert wrong_quarter["comparison_status"].eq("accepted_qpass").all()
     ambiguous = results.loc[results["qpass_source_row"].eq(9)]
     assert ambiguous["comparison_status"].eq("subtype_mapping_required").all()
     assert ambiguous["candidate_capacity"].eq("").all()
@@ -97,15 +99,17 @@ def test_audit_reports_preserve_raw_values_and_uncertainty(tmp_path, monkeypatch
 
     assert len(pd.read_csv(output / "unmatched_records.csv")) == 4
     conflicts = pd.read_csv(output / "conflicting_records.csv")
-    assert len(conflicts) == 4
-    assert conflicts["capacity_difference"].eq(5).all()
-    assert len(pd.read_csv(output / "unresolved_cases.csv")) == 24
+    assert len(conflicts) == 14  # Eligible slots affected by the group disagreement.
+    direct_conflicts = conflicts.loc[conflicts.reported_capacity_comparison.eq("conflict")]
+    assert len(direct_conflicts) == 4
+    assert direct_conflicts["capacity_difference"].eq(5).all()
+    assert len(pd.read_csv(output / "unresolved_cases.csv")) == 20
     overall = pd.read_csv(output / "overall_summary.csv").iloc[0]
     assert overall["eligible_observation_slots"] == 22
     assert overall["excluded_observation_slots"] == 2
     assert overall["exact_key_candidates"] == 18
-    assert overall["verified_capacity_matches"] == 0
+    assert overall["accepted_capacity_matches"] == 4
     assert overall["exact_key_candidate_rate"] == pytest.approx(18 / 22)
     quarters = pd.read_csv(output / "quarter_summary.csv")
     assert set(quarters["quarter"]) == {"Summer", "Fall"}
-    assert quarters["observation_slots"].sum() == 22
+    assert quarters["eligible_observation_slots"].sum() == 22

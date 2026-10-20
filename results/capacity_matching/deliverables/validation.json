@@ -1,15 +1,22 @@
 {
   "checks_passed": true,
-  "qpass_quarters": 15,
-  "inventory_workbooks": 14,
-  "inventory_source_groups": 17368,
-  "unique_inventory_keys": 16554,
+  "policy": "qpass_first_same_quarter_fallback",
+  "counts": {
+    "total_observation_slots": 93712,
+    "eligible_observation_slots": 88025,
+    "excluded_observation_slots": 5687,
+    "exact_key_candidates": 65115,
+    "accepted_qpass_capacities": 69577,
+    "accepted_inventory_capacities": 2932,
+    "accepted_capacity_matches": 72509
+  },
   "report_counts": {
     "capacity_comparison": 93712,
-    "matched_records": 604,
-    "unresolved_cases": 93108,
-    "unmatched_records": 27732,
-    "conflicting_records": 5392
+    "matched_records": 72509,
+    "unresolved_cases": 21203,
+    "unmatched_records": 24500,
+    "conflicting_records": 8024
   },
-  "accepted_capacity_policy": "same_day_legacy_inventory_and_qpass_agreement"
+  "inventory_workbooks": 14,
+  "qpass_quarters": 15
 }

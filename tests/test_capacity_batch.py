@@ -14,13 +14,21 @@ from src.run_capacity_matching import build_inventory_dataset, combine_rates, ru
 
 class TestCapacityBatch(unittest.TestCase):
     def test_weighted_rate_and_zero_denominator(self):
-        quarters = pd.DataFrame({"observation_slots": [10, 90],
-                                 "exact_key_candidates": [10, 0],
-                                 "verified_capacity_matches": [2, 0]})
+        quarters = pd.DataFrame({
+            "total_observation_slots": [12, 90],
+            "eligible_observation_slots": [10, 90],
+            "excluded_observation_slots": [2, 0],
+            "exact_key_candidates": [10, 0],
+            "accepted_qpass_capacities": [1, 0],
+            "accepted_inventory_capacities": [1, 0],
+            "accepted_capacity_matches": [2, 0],
+        })
         total = combine_rates(quarters)
         self.assertEqual(total["exact_key_candidate_rate"], 0.1)
-        self.assertEqual(total["verified_capacity_match_rate"], 0.02)
-        self.assertIsNone(combine_rates(quarters.iloc[:0])["verified_capacity_match_rate"])
+        self.assertEqual(total["accepted_capacity_match_rate"], 0.02)
+        self.assertEqual(total["total_observation_slots"], 102)
+        self.assertEqual(total["accepted_qpass_capacity_rate"], 0.01)
+        self.assertIsNone(combine_rates(quarters.iloc[:0])["accepted_capacity_match_rate"])
 
     def test_ambiguous_inventory_groups_not_summed_or_lost(self):
         rows = [dict(academic_year="2018-2019", quarter="Fall", facility_raw=" P011 ",
@@ -65,11 +73,12 @@ class TestCapacityBatch(unittest.TestCase):
                 )
             self.assertEqual(len(quarters), 1)
             self.assertEqual(total["eligible_observation_slots"], 4)
-            self.assertEqual(total["verified_capacity_matches"], 0)
+            self.assertEqual(total["accepted_qpass_capacities"], 4)
+            self.assertEqual(total["accepted_inventory_capacities"], 0)
             unresolved = pd.read_csv(root / "output/combined/unresolved_cases.csv")
-            self.assertEqual(len(unresolved), 4)
-            self.assertTrue(unresolved.comparison_status.eq("inventory_workbook_unavailable").all())
-            self.assertTrue(unresolved.matched_capacity.isna().all())
+            self.assertEqual(len(unresolved), 0)
+            matched = pd.read_csv(root / "output/combined/matched_records.csv")
+            self.assertTrue(matched.capacity_source.eq("qpass").all())
 
     def test_duplicate_manifest_quarter_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -1,193 +1,209 @@
-"""Validate generated ParkSmart outputs and prepare compact PR deliverables."""
+"""Validate current capacity-selection outputs and prepare compact PR artifacts."""
 
+import argparse
+from collections import Counter
 import csv
 import gzip
 import json
-import shutil
-from collections import Counter
 from pathlib import Path
+import shutil
 
 import pandas as pd
 
 
-root = Path.cwd()
-batch = root / "results/capacity_matching/batch"
-destination = root / "results/capacity_matching/deliverables"
-overall = pd.read_csv(batch / "overall_summary.csv").iloc[0]
-quarters = pd.read_csv(batch / "quarter_summary.csv")
-coverage = pd.read_csv(batch / "inventory_coverage.csv", keep_default_na=False)
-groups = pd.read_csv(batch / "inventory_capacity_groups.csv", dtype=str, keep_default_na=False)
-inventory = pd.read_csv(batch / "inventory_cleaned.csv", dtype=str, keep_default_na=False)
-keys = ["academic_year", "quarter", "facility", "category"]
-assert not inventory.duplicated(keys).any(), "Duplicate cleaned Inventory keys"
-assert not quarters.duplicated(["academic_year", "quarter"]).any(), "Duplicate quarter summaries"
-assert len(quarters) == len(coverage) == int(overall.qpass_quarters), "Quarter coverage count mismatch"
+REPORTS = ["capacity_comparison", "matched_records", "unresolved_cases",
+           "unmatched_records", "conflicting_records"]
 
-# Compare every raw source group, including fields differing between schemas.
-encode = lambda row: json.dumps(row, sort_keys=True, ensure_ascii=False)
-original_groups = Counter(encode(row) for row in groups.to_dict("records"))
-preserved_groups = Counter(
-    encode(row) for value in inventory.source_groups_json for row in json.loads(value)
-)
-assert original_groups == preserved_groups, "Raw source group preservation failed"
 
-fields = [*keys, "matched_capacity", "candidate_capacity", "qpass_capacity_raw",
-          "observation_date", "inventory_snapshot_date", "open_spaces_raw",
-          "qpass_level_raw", "qpass_subtype_raw", "exclusion_reason", "exact_key_found",
-          "capacity_acceptance_basis", "comparison_status", "unresolved_reason",
-          "recommended_next_step"]
-observations = pd.read_csv(batch / "combined/capacity_comparison.csv",
-                           usecols=fields, dtype=str, keep_default_na=False)
-accepted = observations.matched_capacity.ne("")
-eligible = observations.exclusion_reason.eq("")
-assert len(observations) == int(overall.observation_slots), "Inspected count mismatch"
-assert int(eligible.sum()) == int(overall.eligible_observation_slots), "Eligible count mismatch"
-assert int((~eligible).sum()) == int(overall.excluded_observation_slots), "Excluded count mismatch"
-assert int(accepted.sum()) == int(overall.verified_capacity_matches), "Accepted count mismatch"
-assert int((eligible & observations.exact_key_found.eq("True")).sum()) == int(overall.exact_key_candidates), "Candidate count mismatch"
-assert observations.loc[accepted, "exclusion_reason"].eq("").all(), "Excluded observation accepted"
-matched = observations.loc[accepted]
-capacity = pd.to_numeric(matched.matched_capacity)
-assert capacity.gt(0).all() and capacity.mod(1).eq(0).all(), "Invalid accepted capacity"
-assert capacity.eq(pd.to_numeric(matched.qpass_capacity_raw)).all(), "Reported totals disagree"
-assert capacity.eq(pd.to_numeric(matched.candidate_capacity)).all(), "Inventory totals disagree"
-opened = pd.to_numeric(matched.open_spaces_raw)
-assert opened.ge(0).all() and opened.le(capacity).all(), "Open counts exceed accepted capacity"
-assert pd.to_datetime(matched.observation_date).eq(pd.to_datetime(matched.inventory_snapshot_date)).all(), "Accepted outside snapshot date"
-assert matched.qpass_level_raw.str.strip().eq("").all(), "Unverified level accepted"
-assert matched.qpass_subtype_raw.str.strip().eq("").all(), "Unverified subtype accepted"
-assert matched.capacity_acceptance_basis.ne("").all(), "Acceptance evidence missing"
-unresolved = observations.loc[~accepted]
-assert unresolved.unresolved_reason.ne("").all(), "Unresolved reason missing"
-assert unresolved.recommended_next_step.ne("").all(), "Recommended next step missing"
+def prepare(root=Path(".")):
+    """Validate real generated results before copying deterministic deliverables.
 
-for _, quarter in quarters.iterrows():
-    selected = observations.academic_year.eq(quarter.academic_year) & observations.quarter.eq(quarter.quarter)
-    assert int((selected & eligible).sum()) == int(quarter.observation_slots), "Quarter denominator mismatch"
-    assert int((selected & accepted).sum()) == int(quarter.verified_capacity_matches), "Quarter accepted count mismatch"
+    This validates the documented selection policy, not independent source truth.
+    Raise on inconsistent counts, source selection, scope, or raw preservation.
+    """
+    root = Path(root)
+    batch = root / "results/capacity_matching/batch"
+    destination = root / "results/capacity_matching/deliverables"
+    overall = pd.read_csv(batch / "overall_summary.csv").iloc[0]
+    quarters = pd.read_csv(batch / "quarter_summary.csv")
+    coverage = pd.read_csv(batch / "inventory_coverage.csv", keep_default_na=False)
+    groups = pd.read_csv(batch / "inventory_capacity_groups.csv", dtype=str, keep_default_na=False)
+    inventory = pd.read_csv(batch / "inventory_cleaned.csv", dtype=str, keep_default_na=False)
+    observations = pd.read_csv(batch / "combined/capacity_comparison.csv", dtype=str,
+                               keep_default_na=False)
+    keys = ["academic_year", "quarter", "facility", "category"]
 
-report_names = ["capacity_comparison", "matched_records", "unresolved_cases", "unmatched_records", "conflicting_records"]
-report_counts = {}
-for name in report_names:
-    with (batch / "combined" / f"{name}.csv").open(newline="", encoding="utf-8") as handle:
-        reader = csv.reader(handle)
-        next(reader)
-        report_counts[name] = sum(1 for _ in reader)
-assert report_counts["matched_records"] == int(accepted.sum())
-assert report_counts["unresolved_cases"] == len(observations) - int(accepted.sum())
+    def check(condition, message):
+        if not condition:
+            raise ValueError(message)
 
-# Only create delivery copies after validation succeeds.
-destination.mkdir(parents=True, exist_ok=True)
-for name in ["overall_summary.csv", "quarter_summary.csv", "inventory_coverage.csv"]:
-    shutil.copyfile(batch / name, destination / name)
-for source in [batch / "inventory_cleaned.csv", batch / "inventory_capacity_groups.csv",
-               *[batch / "combined" / f"{name}.csv" for name in report_names]]:
-    with source.open("rb") as handle, (destination / f"{source.name}.gz").open("wb") as output:
-        with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0) as compressed:
-            shutil.copyfileobj(handle, compressed)
+    encode = lambda row: json.dumps(row, sort_keys=True, ensure_ascii=False)
+    check(not inventory.duplicated(keys).any(), "Duplicate cleaned Inventory keys")
+    check(not quarters.duplicated(keys[:2]).any(), "Duplicate quarter summaries")
+    check(len(quarters) == len(coverage) == int(overall.qpass_quarters), "Coverage mismatch")
+    check(Counter(encode(row) for row in groups.to_dict("records")) == Counter(
+        encode(row) for value in inventory.source_groups_json for row in json.loads(value)
+    ), "Raw Inventory group preservation failed")
+    eligible = observations.exclusion_reason.eq("")
+    accepted = observations.selected_capacity.ne("")
+    qpass = accepted & observations.capacity_source.eq("qpass")
+    fallback = accepted & observations.capacity_source.eq("inventory_same_quarter")
+    counted = {
+        "total_observation_slots": len(observations),
+        "eligible_observation_slots": int(eligible.sum()),
+        "excluded_observation_slots": int((~eligible).sum()),
+        "exact_key_candidates": int((eligible & observations.exact_key_found.eq("True")).sum()),
+        "accepted_qpass_capacities": int(qpass.sum()),
+        "accepted_inventory_capacities": int(fallback.sum()),
+        "accepted_capacity_matches": int(accepted.sum()),
+    }
+    for name, value in counted.items():
+        check(value == int(overall[name]) == int(quarters[name].sum()), f"Count mismatch: {name}")
+    check((qpass | fallback).eq(accepted).all(), "Unknown selected source")
+    check(not (accepted & ~eligible).any(), "Excluded observation accepted")
+    selected = pd.to_numeric(observations.loc[accepted, "selected_capacity"])
+    opened = pd.to_numeric(observations.loc[accepted, "open_spaces_raw"])
+    check((selected.gt(0) & selected.lt(float("inf")) & selected.mod(1).eq(0)).all(),
+          "Invalid selected capacity")
+    check((opened.ge(0) & opened.le(selected) & opened.mod(1).eq(0)).all(), "Invalid selected reading")
+    check(observations.loc[qpass, "selected_capacity"].astype(float).eq(
+        observations.loc[qpass, "qpass_capacity_raw"].astype(float)).all(), "QPASS source changed")
+    check(observations.loc[fallback, "selected_capacity"].astype(float).eq(
+        observations.loc[fallback, "candidate_capacity"].astype(float)).all(), "Fallback changed")
+    check(observations.loc[fallback, "inventory_scope_compatible"].eq("True").all(), "Unsafe fallback scope")
+    check(observations.loc[fallback, "inventory_group_count"].astype(float).eq(1).all(), "Ambiguous fallback")
+    check(observations.loc[fallback, "inventory_single_capacity_status"].eq(
+        "positive_unverified").all(), "Invalid Inventory accepted")
+    check(observations.loc[fallback, "qpass_level_raw"].str.strip().eq("").all(), "Broad total used for level")
+    check(observations.loc[fallback, "capacity_assumption"].ne("").all(), "Fallback assumption missing")
+    check(observations.loc[accepted, "capacity_acceptance_reason"].ne("").all(), "Acceptance reason missing")
+    check(observations.loc[~accepted, "unresolved_reason"].ne("").all(), "Unresolved reason missing")
+    check(observations.loc[~accepted, "recommended_next_step"].ne("").all(), "Next step missing")
+    for _, quarter in quarters.iterrows():
+        mask = observations.academic_year.eq(quarter.academic_year) & observations.quarter.eq(quarter.quarter)
+        check(int(mask.sum()) == int(quarter.total_observation_slots), "Quarter total mismatch")
+        check(int((mask & eligible).sum()) == int(quarter.eligible_observation_slots), "Quarter eligible mismatch")
+        check(int((mask & qpass).sum()) == int(quarter.accepted_qpass_capacities), "Quarter QPASS mismatch")
+        check(int((mask & fallback).sum()) == int(quarter.accepted_inventory_capacities), "Quarter fallback mismatch")
+        denominator = int(quarter.eligible_observation_slots)
+        for rate, count in [("accepted_capacity_match_rate", "accepted_capacity_matches"),
+                            ("accepted_qpass_capacity_rate", "accepted_qpass_capacities"),
+                            ("accepted_inventory_capacity_rate", "accepted_inventory_capacities"),
+                            ("exact_key_candidate_rate", "exact_key_candidates")]:
+            check((pd.isna(quarter[rate]) if denominator == 0 else
+                   abs(quarter[rate] - quarter[count] / denominator) < 1e-12), "Quarter rate mismatch")
+    report_counts = {}
+    for name in REPORTS:
+        with (batch / "combined" / f"{name}.csv").open(newline="", encoding="utf-8") as handle:
+            reader = csv.reader(handle)
+            next(reader)
+            report_counts[name] = sum(1 for _ in reader)
+    check(report_counts["matched_records"] == int(accepted.sum()), "Matched report mismatch")
+    check(report_counts["unresolved_cases"] == int((~accepted).sum()), "Unresolved report mismatch")
+    manifest = root / "results/capacity_matching/inventory_sources.csv"
+    with manifest.open(newline="", encoding="utf-8") as handle:
+        sources = list(csv.DictReader(handle))
+    audits = []
+    for source in sources:
+        if source["download_status"] not in {"downloaded", "already_present"}:
+            continue
+        stem = Path(source["inventory_path"]).stem
+        paths = [root / "data/interim/inventory" / f"{stem}_{kind}_audit.json"
+                 for kind in ("legacy", "modern")]
+        existing = [path for path in paths if path.exists()]
+        check(len(existing) == 1, f"Expected one regenerated workbook audit: {stem}")
+        audits.append(json.loads(existing[0].read_text()))
 
-for name in ["inventory_sources.csv", "inventory_schema_audit.json", "modern_inventory_audits.json"]:
-    source = root / "results/capacity_matching" / name
-    if source.exists():
-        shutil.copyfile(source, destination / name)
-with (root / "results/capacity_matching/inventory_sources.csv").open(newline="", encoding="utf-8") as handle:
-    sources = list(csv.DictReader(handle))
-audits = []
-for source in sources:
-    if source["download_status"] not in {"downloaded", "already_present"}:
-        continue
-    stem = Path(source["inventory_path"]).stem
-    candidates = [root / "data/interim/inventory" / f"{stem}_{kind}_audit.json" for kind in ("legacy", "modern")]
-    existing = [p for p in candidates if p.exists()]
-    if len(existing) != 1:
-        raise SystemExit(f"Expected one audit for {stem}; inspect data/interim/inventory")
-    audits.append(json.loads(existing[0].read_text()))
-(destination / "inventory_workbook_audits.json").write_text(json.dumps(audits, indent=2, default=str))
+    destination.mkdir(parents=True, exist_ok=True)
+    for name in ["overall_summary.csv", "quarter_summary.csv", "inventory_coverage.csv"]:
+        shutil.copyfile(batch / name, destination / name)
+    for source in [batch / "inventory_cleaned.csv", batch / "inventory_capacity_groups.csv",
+                   *[batch / "combined" / f"{name}.csv" for name in REPORTS]]:
+        with source.open("rb") as handle, (destination / f"{source.name}.gz").open("wb") as output:
+            with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0) as compressed:
+                shutil.copyfileobj(handle, compressed)
+    # Normalize record terminators so CSV output does not trigger Git CRLF warnings.
+    (destination / manifest.name).write_bytes(manifest.read_bytes().replace(b"\r\n", b"\n"))
+    (destination / "inventory_workbook_audits.json").write_text(json.dumps(audits, indent=2, default=str))
+    # Older aggregate audits are superseded by current per-workbook audits.
+    for name in ("inventory_schema_audit.json", "modern_inventory_audits.json"):
+        (destination / name).unlink(missing_ok=True)
+    validation = dict(checks_passed=True, policy="qpass_first_same_quarter_fallback",
+                      counts=counted, report_counts=report_counts,
+                      inventory_workbooks=len(audits), qpass_quarters=len(quarters))
+    (destination / "validation.json").write_text(json.dumps(validation, indent=2))
+    text = f"""# Capacity selection results
 
-validation = {
-    "checks_passed": True, "qpass_quarters": len(quarters),
-    "inventory_workbooks": len(audits), "inventory_source_groups": len(groups),
-    "unique_inventory_keys": len(inventory), "report_counts": report_counts,
-    "accepted_capacity_policy": "same_day_legacy_inventory_and_qpass_agreement",
-}
-(destination / "validation.json").write_text(json.dumps(validation, indent=2))
+Generated from the real source files supplied to the pipeline; validation passed.
+Inspected {len(observations):,} slots across {len(quarters)} QPASS quarters and
+reviewed {len(audits)} available Inventory workbooks. Eligible: {int(eligible.sum()):,};
+excluded: {int((~eligible).sum()):,}. Excluded records remain in reports.
 
-text = f"""# Inventory capacity matching summary
+- Exact standardized Inventory key candidates: {int(overall.exact_key_candidates):,} ({overall.exact_key_candidate_rate:.2%}).
+- Accepted QPASS capacities: {int(qpass.sum()):,} ({overall.accepted_qpass_capacity_rate:.2%}).
+- Assumed same-quarter Inventory fallbacks: {int(fallback.sum()):,} ({overall.accepted_inventory_capacity_rate:.2%}).
+- All accepted capacities: {int(accepted.sum()):,} ({overall.accepted_capacity_match_rate:.2%}).
+- Unresolved slots: {int((~accepted).sum()):,}. Conflicting slots: {report_counts['conflicting_records']:,}.
 
-The pipeline inspected {len(observations):,} observation slots across {len(quarters)} QPASS quarters.
-Inventory was available for {len(audits)} quarters. The cleaned dataset contains {len(inventory):,}
-unique academic-year/quarter/facility/category keys, preserving all {len(groups):,} source groups.
+Candidate rates describe Inventory key coverage, not accepted capacity coverage.
+All rates use eligible slots; overall rates divide summed counts.
 
-- Eligible observation slots: {int(eligible.sum()):,}.
-- Excluded observation slots: {int((~eligible).sum()):,}; these remain in detailed reports.
-- Exact-key candidates: {int(overall.exact_key_candidates):,} ({overall.exact_key_candidate_rate:.2%}).
-- Accepted capacities: {int(accepted.sum()):,} ({overall.verified_capacity_match_rate:.2%} of eligible slots).
-- Unresolved inspected slots: {len(unresolved):,}, including excluded slots.
-- Conflicting inspected slots: {report_counts['conflicting_records']:,}.
-
-Candidate rates count matching keys even when capacity is invalid or blocked. Accepted rates
-use the documented snapshot policy. Overall rates divide summed counts, not quarterly rates.
-
-| Academic year | Quarter | Eligible slots | Candidates | Accepted | Accepted rate |
-|---|---|---:|---:|---:|---:|
+| Academic year | Quarter | Total | Eligible | QPASS | Inventory fallback | Accepted rate |
+|---|---|---:|---:|---:|---:|---:|
 """
-for _, row in quarters.iterrows():
-    text += f"| {row.academic_year} | {row.quarter} | {int(row.observation_slots):,} | {int(row.exact_key_candidates):,} | {int(row.verified_capacity_matches):,} | {row.verified_capacity_match_rate:.2%} |\n"
-text += """
-## Acceptance and unresolved cases
+    for _, row in quarters.iterrows():
+        text += (f"| {row.academic_year} | {row.quarter} | {int(row.total_observation_slots)} "
+                 f"| {int(row.eligible_observation_slots)} | {int(row.accepted_qpass_capacities)} "
+                 f"| {int(row.accepted_inventory_capacities)} | {row.accepted_capacity_match_rate:.2%} |\n")
+    text += "\n## Remaining unresolved types\n\n"
+    for name, count in observations.loc[~accepted, "unresolved_type"].value_counts().items():
+        text += f"- {name}: {count:,}.\n"
+    text += """
 
-Acceptance currently supports audited legacy lot reports on their snapshot date only. The filename,
-table title, year and quarter must agree. A unique positive Inventory capacity must equal the QPASS
-total, with no level/subtype/time-limit qualification or conflicting key/date observations.
-The dated report is assumed to represent capacity on its snapshot day. No capacity is carried to
-another day, another quarter, or another facility/category. This is a conservative acceptance policy,
-not an independent certification of all source counts. Most observations remain unresolved.
+## Policy, assumptions and source limitations
 
-Modern observations need additional dated evidence before acceptance. Winter 2024-2025 has
-conflicting metadata: the cover says Winter, while the data selector says Spring 2025. Its
-627 groups remain blocked. Fall 2026-2027 Inventory was not listed in the archive at download
-time and its QPASS records remain unmatched. Teammate facility/category aliases have not
-been applied; current joins use exact raw labels with surrounding whitespace removed.
-Blank, zero, construction-closure, duplicate-group and invalid counts retain review flags.
-Lot and structure totals overlap and are never summed together.
+QPASS's own positive integer capacity is preferred for its exact source group.
+Known errors, ambiguous groups, and comparable contradictory evidence block it.
+Missing or demonstrably broken QPASS counts may use one positive, scope-compatible
+same-quarter Inventory group. This fallback is an assumption, not proof of capacity
+on each survey day. Unknown zeros alone do not justify fallback. Raw values, formulas'
+cached values, source rows, labels and Issue #3 restriction decisions are preserved.
+No fuzzy aliases, cross-quarter capacity carry, whole-structure-to-level substitution,
+or broad-category-to-subtype substitution is allowed. Time-limit mappings that are
+not explicitly established remain unresolved. Valid QPASS capacities do not require
+Inventory coverage; missing Inventory does not invalidate their own row-specific total.
 
-Each unresolved/conflicting row preserves QPASS source file, sheet, row, date/time, raw facility,
-category and reported capacity, Inventory candidates and source rows, reason and recommended action.
-Inspect these rows and obtain dated capacity or verified scope/name mappings before accepting more.
+Fall 2025–2026's documented zero-capacity formula error remains a source-data flag,
+even where Inventory fallback is accepted. Two known copied non-observations are
+excluded if their exact provenance matches the documented row. Winter 2024–2025
+Inventory period metadata conflicts block Inventory fallback, not an otherwise valid
+QPASS capacity. Missing Inventory quarters and still-unresolved label decisions remain
+separate from scope and count conflicts. Selected capacities are historical source-based
+values, not a guarantee of live availability or permit eligibility.
 
-## Reproduce the outputs
-
-From the repository root with the virtual environment activated and dependencies installed:
+Reproduce from the repository root:
 
 ```bash
 python -m src.download_inventory
+python -m src.run_capacity_matching --rebuild-inventory
+python scripts/prepare_capacity_deliverables.py
+python -m pytest -q
 ```
 
-This downloads Inventory files for locally available QPASS periods without replacing originals.
-For each available source, use its verified year and quarter from inventory_sources.csv:
-
-```bash
-python -m src.clean_inventory_legacy "data/raw/inventory/WORKBOOK.xlsx" --academic-year YYYY-YYYY --quarter QUARTER
-python -m src.clean_inventory_modern "data/raw/inventory/WORKBOOK.xlsm" --academic-year YYYY-YYYY --quarter QUARTER
-```
-
-Use the legacy cleaner for the 2018-2019/2019-2020 summary-table files and the modern cleaner
-for newer layouts. These commands produce group CSVs and workbook audits. Then run:
-
-```bash
-python -m src.run_capacity_matching
-python -m pytest
-```
-
-Batch outputs are in results/capacity_matching/batch. The latest full test run passed 186 tests.
-Delivery copies are in results/capacity_matching/deliverables. Compressed CSVs preserve all columns
-and records and can be opened with pandas.read_csv("FILE.csv.gz"). Original raw workbooks are not
-included in the deliverables. See docs/inventory_audit.md for schema notes and further assumptions.
+See docs/inventory_audit.md for setup and schema details. Deliverables are in
+results/capacity_matching/deliverables; pandas.read_csv supports .csv.gz directly.
+The real-workbook run and tests are separate validation steps; this report does not
+claim a test count. Raw workbooks are unchanged and are not included in Git.
 """
-(root / "docs/capacity_matching_summary.md").write_text(text, encoding="utf-8")
-(destination / "README.md").write_text(text, encoding="utf-8")
-print("Validation passed. Prepared delivery files:")
-for path in sorted(destination.iterdir()):
-    print(f"{path.name}: {path.stat().st_size / 1024 / 1024:.2f} MB")
-print("Saved docs/capacity_matching_summary.md")
-print("No files have been staged or committed.")
+    (root / "docs/capacity_matching_summary.md").write_text(text, encoding="utf-8")
+    (destination / "README.md").write_text(text, encoding="utf-8")
+    print("Validation passed. Prepared deliverables:")
+    for path in sorted(destination.iterdir()):
+        print(f"{path.name}: {path.stat().st_size / 1024**2:.2f} MB")
+    return validation
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path("."))
+    prepare(parser.parse_args().root)

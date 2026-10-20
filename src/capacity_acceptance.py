@@ -1,99 +1,125 @@
-"""Accept corroborated legacy lot capacities only on their audited snapshot date."""
-
-import re
+"""Select valid QPASS capacities first, then unambiguous same-quarter Inventory."""
 
 import pandas as pd
 
+from src.capacity_labels import invalid_identifier
+
 
 KEYS = ["academic_year", "quarter", "facility", "category"]
-QUARTERS = {"Summer": (1, "July", 7), "Fall": (2, "October", 10),
-            "Winter": (3, "January", 1), "Spring": (4, "April", 4)}
 
 
-def legacy_snapshot_date(row):
-    """Validate an audited legacy lot report's period and return its snapshot date.
+def _column(frame, name, default=""):
+    return frame.get(name, pd.Series(default, index=frame.index))
 
-    Accept only the known quarterly filenames and their matching table titles.
-    Modern workbooks and arbitrary filenames require separate dated evidence.
-    """
-    year = str(row["academic_year"])
-    years = re.fullmatch(r"(\d{4})-(\d{4})", year)
-    quarter = row["quarter"]
-    if not years or int(years[2]) != int(years[1]) + 1 or quarter not in QUARTERS:
-        return pd.NaT
-    number, month_name, month = QUARTERS[quarter]
-    calendar_year = int(years[1]) + (quarter in {"Winter", "Spring"})
-    expected_file = f"Inventory {year}-{number} {month_name} 1.xlsx"
-    if row["inventory_source_file"] != expected_file:
-        return pd.NaT
-    if row["inventory_source_sheet"] != "5A By Lot":
-        return pd.NaT
-    if row["inventory_facility_granularity"] != "lot":
-        return pd.NaT
-    if not re.search(rf"\b{quarter}\s*,?\s*{calendar_year}\b",
-                     str(row["inventory_report_title_raw"])):
-        return pd.NaT
-    return pd.Timestamp(calendar_year, month, 1)
+
+def _positive_integer(values):
+    values = pd.to_numeric(values, errors="coerce")
+    return values.gt(0) & values.lt(float("inf")) & values.mod(1).eq(0)
+
+
+def _truth(values):
+    return values.astype("string").str.casefold().isin(["true", "1", "yes"])
 
 
 def apply_capacity_acceptance(results):
-    """Return observations with supported snapshot matches and explicit reasons.
+    """Select capacity per eligible observation and retain evidence and assumptions.
 
-    Same-period, positive, unique Inventory counts must equal the reported QPASS
-    total. Both sources must have unqualified lot/category scope. Observations
-    must occur on the snapshot date, not before or after it. Any scope/count
-    conflict for that key and date blocks acceptance for the whole key/date.
-    This policy does not establish capacity on unsurveyed dates or modern files.
+    QPASS capacities are trusted for their source row's exact group unless known
+    errors, ambiguous group totals, comparable contradictory Inventory, or counts
+    above capacity make them unsafe. Missing/invalid readings never contribute
+    to group conflicts. Different levels and subtypes are separate groups.
+
+    Only missing or demonstrably broken QPASS capacities can fall back to a
+    positive, unique, scope-compatible, consistent-period Inventory candidate.
+    A zero alone is unverified, not proof of a formula error. Fallback explicitly
+    assumes capacity is applicable within that same academic year and quarter.
+    No same-day requirement or cross-quarter fill is used.
     """
     result = results.copy()
-    result["matched_capacity"] = pd.Series(pd.NA, index=result.index, dtype="Int64")
+    for name in ("selected_capacity", "matched_capacity"):
+        result[name] = pd.Series(pd.NA, index=result.index, dtype="Int64")
+    result["capacity_source"] = "unknown"
     result["capacity_acceptance_status"] = "unresolved"
-    result["capacity_acceptance_reason"] = "dated_inventory_evidence_required"
+    result["capacity_acceptance_reason"] = "capacity_evidence_required"
     result["capacity_acceptance_basis"] = ""
-    result["inventory_snapshot_date"] = pd.NaT
-    required = [*KEYS, "inventory_source_file", "inventory_source_sheet",
-                "inventory_facility_granularity", "inventory_report_title_raw",
-                "inventory_subtype_raw", "inventory_time_limit_raw",
-                "inventory_single_capacity_status", "candidate_capacity",
-                "inventory_group_count", "qpass_capacity_raw", "qpass_level_raw",
-                "qpass_subtype_raw", "observation_date", "open_spaces_raw",
-                "exclusion_reason", "_merge"]
-    if not all(name in result for name in required) or result.empty:
+    result["capacity_assumption"] = ""
+    result["group_capacity_conflict"] = False
+    if result.empty:
+        return result
+    required = [*KEYS, "qpass_capacity_raw", "open_spaces_raw",
+                "observation_date", "exclusion_reason"]
+    if not all(name in result for name in required):
         return result
 
-    snapshots = result.apply(legacy_snapshot_date, axis=1)
-    result["inventory_snapshot_date"] = pd.to_datetime(snapshots)
-    dates = pd.to_datetime(result["observation_date"], errors="coerce").dt.normalize()
-    valid_period = snapshots.notna()
-    same_day = valid_period & dates.eq(snapshots)
-    result.loc[valid_period & ~same_day, "capacity_acceptance_reason"] = "outside_inventory_snapshot_date"
+    eligible = result.exclusion_reason.eq("")
+    reported = pd.to_numeric(result.qpass_capacity_raw, errors="coerce")
+    capacity = pd.to_numeric(_column(result, "candidate_capacity"), errors="coerce")
+    opened = pd.to_numeric(result.open_spaces_raw, errors="coerce")
+    positive = _positive_integer(reported)
+    inventory_positive = _positive_integer(capacity)
+    formula_error = _truth(_column(result, "qpass_formula_error", False))
+    scope_issue = _truth(_column(result, "qpass_scope_issue", False))
+    label_issue = _truth(_column(result, "label_unresolved", False))
+    invalid_id = invalid_identifier(result.facility) | invalid_identifier(result.category)
+    eligible &= ~invalid_id
+    inventory_usable = (
+        _column(result, "inventory_group_count", 0).eq(1)
+        & _column(result, "inventory_scope_compatible", False).eq(True)
+        & _column(result, "inventory_single_capacity_status").eq("positive_unverified")
+        & inventory_positive & _column(result, "_merge").eq("both")
+        & ~_truth(_column(result, "inventory_period_metadata_conflict", False))
+        & ~_truth(_column(result, "inventory_label_unresolved", False))
+    )
+    # A broad facility total is never compared with a single level/subtype.
+    disagreement = inventory_usable & positive & reported.ne(capacity) & ~formula_error
+    own_count_conflict = positive & opened.gt(reported) & ~formula_error
+    inventory_count_conflict = inventory_usable & opened.gt(capacity)
 
-    capacity = pd.to_numeric(result["candidate_capacity"], errors="coerce")
-    reported = pd.to_numeric(result["qpass_capacity_raw"], errors="coerce")
-    opened = pd.to_numeric(result["open_spaces_raw"], errors="coerce")
-    blank = lambda name: result[name].fillna("").astype(str).str.strip().eq("")
-    unqualified = (blank("qpass_level_raw") & blank("qpass_subtype_raw")
-                   & blank("inventory_subtype_raw") & blank("inventory_time_limit_raw"))
-    good_count = (capacity.gt(0) & capacity.lt(float("inf")) & capacity.mod(1).eq(0)
-                  & reported.eq(capacity) & opened.ge(0) & opened.le(capacity)
-                  & opened.mod(1).eq(0))
-    good_source = (result["inventory_group_count"].eq(1)
-                   & result["inventory_single_capacity_status"].eq("positive_unverified")
-                   & result["_merge"].eq("both")
-                   & result["facility"].astype(str).str.fullmatch(r"P\d+[A-Za-z]?")
-                   & ~blank("category"))
-
-    # A conflict in another survey slot must not disappear in an agreeing slot.
-    group_frame = result[KEYS].copy()
-    group_frame["date"] = dates
-    group_frame["blocked"] = ~unqualified | ~good_count | ~good_source
-    group_blocked = group_frame.groupby(KEYS + ["date"], dropna=False)["blocked"].transform("any")
-    result.loc[same_day & group_blocked, "capacity_acceptance_reason"] = "scope_or_capacity_conflict"
-    eligible = result["exclusion_reason"].eq("")
-    result.loc[~eligible, "capacity_acceptance_reason"] = "excluded_observation"
-    accepted = same_day & good_source & good_count & unqualified & ~group_blocked & eligible
-    result.loc[accepted, "matched_capacity"] = capacity.loc[accepted].astype("Int64")
+    group = result[KEYS].copy()
+    for name in ("qpass_level_raw", "qpass_subtype"):
+        group[name] = _column(result, name).fillna("").astype("string").str.strip()
+    group["date"] = pd.to_datetime(result.observation_date, errors="coerce").dt.normalize()
+    group_keys = list(group.columns)
+    group["capacity"] = reported.where(eligible & positive & ~formula_error)
+    group["conflict"] = eligible & (
+        disagreement | own_count_conflict | inventory_count_conflict
+    )
+    grouped = group.groupby(group_keys, dropna=False)
+    blocked = grouped["conflict"].transform("any") | (
+        grouped["capacity"].transform("nunique").gt(1)
+    )
+    result["group_capacity_conflict"] = blocked & eligible
+    valid = eligible & ~scope_issue & ~label_issue & ~blocked
+    qpass_ok = valid & positive & ~formula_error
+    raw = result.qpass_capacity_raw.astype("string").str.strip()
+    missing = raw.isna() | raw.str.casefold().isin(["", "nan", "none", "na", "n/a"])
+    demonstrably_broken = formula_error | reported.lt(0) | (
+        reported.notna() & (~reported.lt(float("inf")) | reported.mod(1).ne(0))
+    ) | (reported.isna() & ~missing)
+    inventory_ok = valid & (missing | demonstrably_broken) & inventory_usable
+    accepted = qpass_ok | inventory_ok
+    result.loc[qpass_ok, "selected_capacity"] = reported[qpass_ok].astype("Int64")
+    result.loc[inventory_ok, "selected_capacity"] = capacity[inventory_ok].astype("Int64")
+    result["matched_capacity"] = result.selected_capacity.copy()
+    result.loc[qpass_ok, "capacity_source"] = "qpass"
+    result.loc[inventory_ok, "capacity_source"] = "inventory_same_quarter"
     result.loc[accepted, "capacity_acceptance_status"] = "accepted"
-    result.loc[accepted, "capacity_acceptance_reason"] = ""
-    result.loc[accepted, "capacity_acceptance_basis"] = "same_day_legacy_inventory_and_qpass_agreement"
+    result.loc[qpass_ok, "capacity_acceptance_reason"] = "valid_qpass_exact_group"
+    result.loc[inventory_ok, "capacity_acceptance_reason"] = "assumed_same_quarter_capacity"
+    result.loc[accepted, "capacity_acceptance_basis"] = result.loc[
+        accepted, "capacity_acceptance_reason"
+    ]
+    result.loc[inventory_ok, "capacity_assumption"] = (
+        "Assumed same-quarter capacity for the exact parking group; "
+        "Inventory does not establish capacity on every survey date."
+    )
+    # Reasons remain diagnostic for unaccepted rows; source errors are also kept
+    # independently, including when an Inventory fallback is selected.
+    unresolved = ~accepted
+    result.loc[unresolved & reported.eq(0), "capacity_acceptance_reason"] = "qpass_zero_requires_review"
+    result.loc[unresolved & (missing | demonstrably_broken), "capacity_acceptance_reason"] = "inventory_fallback_not_verified"
+    result.loc[unresolved & label_issue, "capacity_acceptance_reason"] = "label_mapping_unresolved"
+    result.loc[unresolved & scope_issue, "capacity_acceptance_reason"] = "qpass_scope_conflict"
+    result.loc[unresolved & blocked, "capacity_acceptance_reason"] = "source_capacity_conflict"
+    result.loc[~eligible, "capacity_acceptance_reason"] = "excluded_observation"
     return result

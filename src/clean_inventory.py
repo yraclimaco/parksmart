@@ -32,87 +32,24 @@ def capacity_status(values):
 
 
 def clean_inventory(path, academic_year, quarter):
-    data = pd.read_excel(
-        path,
-        sheet_name="Pivot Table Data",
-        header=3,
-        engine="openpyxl",
-    )
+    """Deprecated compatibility entry point; delegate to the supported modern cleaner.
 
-    data["source_row"] = data.index + 5
+    Legacy summary workbooks must use src.clean_inventory_legacy explicitly.
+    Returns the generated capacity-group CSV path.
+    """
+    import warnings
+    from src.clean_inventory_modern import clean_modern_inventory
 
-    data = data.loc[
-        data["Lot #"].notna() & data["Space Type"].notna()
-    ].copy()
-
-    group_columns = [
-        "Lot  / Structure",
-        "Space Type",
-        "Space Subtype",
-        "Time Limit [minutes]",
-    ]
-
-    output_rows = []
-
-    for keys, group in data.groupby(
-        group_columns,
-        dropna=False,
-        sort=False,
-    ):
-        facility, category, subtype, time_limit = keys
-
-        capacity, status = capacity_status(
-            group["Inventory By Location"]
-        )
-
-        output_rows.append({
-            "academic_year": academic_year,
-            "quarter": quarter,
-            "facility_raw": facility,
-            "category_raw": category,
-            "subtype_raw": subtype,
-            "time_limit_raw": time_limit,
-            "capacity": capacity,
-            "capacity_status": status,
-            "capacity_raw_values": repr(
-                group["Inventory By Location"].tolist()
-            ),
-            "source_file": path.name,
-            "source_sheet": "Pivot Table Data",
-            "source_rows": ";".join(
-                group["source_row"].astype(str)
-            ),
-        })
-
-    cleaned = pd.DataFrame(output_rows)
-    cleaned["capacity"] = cleaned["capacity"].astype("Int64")
-
-    output_dir = Path("data/interim/inventory")
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    output_path = output_dir / f"{path.stem}_capacity_groups.csv"
-    cleaned.to_csv(output_path, index=False)
-
-    print(f"Source records: {len(data)}")
-    print(f"Capacity groups: {len(cleaned)}")
-    print("\nCapacity statuses:")
-    print(cleaned["capacity_status"].value_counts().to_string())
-    print(f"\nSaved to: {output_path}")
+    warnings.warn("Use src.clean_inventory_modern for newer layouts or "
+                  "src.clean_inventory_legacy for legacy summary tables.",
+                  FutureWarning, stacklevel=2)
+    return clean_modern_inventory(path, academic_year, quarter)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Deprecated: use src.clean_inventory_modern")
     parser.add_argument("workbook", type=Path)
     parser.add_argument("--academic-year", required=True)
-    parser.add_argument(
-        "--quarter",
-        required=True,
-        choices=["Fall", "Winter", "Spring", "Summer"],
-    )
+    parser.add_argument("--quarter", required=True)
     args = parser.parse_args()
-
-    clean_inventory(
-        args.workbook,
-        args.academic_year,
-        args.quarter,
-    )
+    clean_inventory(args.workbook, args.academic_year, args.quarter)

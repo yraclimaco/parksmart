@@ -1,107 +1,121 @@
-"""Evidence and rejection tests for historical snapshot capacity matching."""
-
-import unittest
+"""Regressions for the reviewed QPASS-first and same-quarter fallback policy."""
 
 import pandas as pd
+import pytest
 
 from src.capacity_acceptance import apply_capacity_acceptance
 
 
-class TestCapacityAcceptance(unittest.TestCase):
-    def row(self, **changes):
-        row = {
-            "academic_year": "2018-2019", "quarter": "Fall", "facility": "P011",
-            "category": "B", "inventory_source_file": "Inventory 2018-2019-2 October 1.xlsx",
-            "inventory_source_sheet": "5A By Lot", "inventory_facility_granularity": "lot",
-            "inventory_report_title_raw": "Parking Space Inventory, Fall, 2018",
-            "inventory_subtype_raw": "", "inventory_time_limit_raw": "",
-            "inventory_single_capacity_status": "positive_unverified",
-            "candidate_capacity": 28, "inventory_group_count": 1,
-            "qpass_capacity_raw": 28, "qpass_level_raw": "", "qpass_subtype_raw": "",
-            "observation_date": "2018-10-01", "open_spaces_raw": 12,
-            "exclusion_reason": "", "_merge": "both",
-        }
-        row.update(changes)
-        return row
+def row(**changes):
+    record = dict(academic_year="2025-2026", quarter="Fall", facility="P100",
+                  category="B", qpass_subtype="", qpass_level_raw="",
+                  qpass_capacity_raw=28, open_spaces_raw=12,
+                  observation_date="2025-09-29", exclusion_reason="",
+                  candidate_capacity=28, inventory_group_count=1,
+                  inventory_single_capacity_status="positive_unverified",
+                  inventory_scope_compatible=True, _merge="both")
+    return {**record, **changes}
 
-    def test_supported_snapshot_is_accepted_with_basis(self):
-        source = pd.DataFrame([self.row()])
-        result = apply_capacity_acceptance(source)
-        self.assertEqual(result.iloc[0].matched_capacity, 28)
-        self.assertEqual(result.iloc[0].capacity_acceptance_status, "accepted")
-        self.assertEqual(result.iloc[0].capacity_acceptance_basis,
-                         "same_day_legacy_inventory_and_qpass_agreement")
-        self.assertEqual(result.iloc[0].inventory_snapshot_date, pd.Timestamp("2018-10-01"))
-        self.assertNotIn("matched_capacity", source)
 
-    def test_no_backward_or_forward_capacity_fill(self):
-        for date in ("2018-09-30", "2018-10-02", "", "not a date"):
-            with self.subTest(date=date):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(observation_date=date)]))
-                self.assertTrue(pd.isna(result.iloc[0].matched_capacity))
-                self.assertEqual(result.iloc[0].capacity_acceptance_reason, "outside_inventory_snapshot_date")
+def select(*rows):
+    return apply_capacity_acceptance(pd.DataFrame(rows))
 
-    def test_wrong_period_or_title_is_not_accepted(self):
-        for changes in ({"academic_year": "2019-2020"}, {"quarter": "Spring"},
-                        {"inventory_report_title_raw": "Inventory Spring 2019"},
-                        {"inventory_report_title_raw": ""}):
-            with self.subTest(changes=changes):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(**changes)]))
-                self.assertTrue(pd.isna(result.iloc[0].matched_capacity))
 
-    def test_unknown_and_modern_sources_need_dated_evidence(self):
-        for changes in ({"inventory_source_file": "other.xlsx"},
-                        {"inventory_source_file": "Inventory 2025-2026-2 Fall.xlsm"},
-                        {"inventory_source_sheet": "Pivot Table Data"},
-                        {"inventory_facility_granularity": "structure"}):
-            with self.subTest(changes=changes):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(**changes)]))
-                self.assertTrue(pd.isna(result.iloc[0].matched_capacity))
+def test_valid_qpass_has_priority_without_same_day_requirement():
+    result = select(row(observation_date="2025-10-10"))
+    assert result.iloc[0].selected_capacity == 28
+    assert result.iloc[0].capacity_source == "qpass"
+    assert result.iloc[0].capacity_assumption == ""
 
-    def test_qualified_scopes_are_not_accepted(self):
-        for changes in ({"qpass_level_raw": "Level 1"}, {"qpass_subtype_raw": "SIO"},
-                        {"inventory_subtype_raw": "Reserved"},
-                        {"inventory_time_limit_raw": "120"}, {"facility": "Hopkins"}):
-            with self.subTest(changes=changes):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(**changes)]))
-                self.assertTrue(pd.isna(result.iloc[0].matched_capacity))
 
-    def test_bad_totals_and_observations_are_not_accepted(self):
-        for changes in ({"candidate_capacity": 0}, {"candidate_capacity": -1},
-                        {"candidate_capacity": float("inf")}, {"candidate_capacity": 2.5},
-                        {"qpass_capacity_raw": ""}, {"qpass_capacity_raw": 27},
-                        {"open_spaces_raw": 29}, {"open_spaces_raw": -1},
-                        {"open_spaces_raw": 1.5}, {"open_spaces_raw": "bad"}):
-            with self.subTest(changes=changes):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(**changes)]))
-                self.assertTrue(pd.isna(result.iloc[0].matched_capacity))
+def test_valid_qpass_does_not_require_inventory():
+    result = select(row(_merge="left_only", inventory_group_count=0,
+                        inventory_scope_compatible=False, candidate_capacity=None))
+    assert result.iloc[0].selected_capacity == 28
 
-    def test_conflict_in_another_slot_blocks_key_date(self):
-        for changes in ({"qpass_capacity_raw": 30}, {"open_spaces_raw": 40},
-                        {"qpass_subtype_raw": "Special"}):
-            with self.subTest(changes=changes):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(), self.row(**changes)]))
-                self.assertTrue(result.matched_capacity.isna().all())
 
-    def test_duplicate_sources_and_review_flags_block_acceptance(self):
-        for changes in ({"inventory_group_count": 2}, {"_merge": "left_only"},
-                        {"inventory_single_capacity_status": "closure_review"},
-                        {"inventory_single_capacity_status": "period_metadata_review"},
-                        {"exclusion_reason": "invalid_open_spaces"}):
-            with self.subTest(changes=changes):
-                result = apply_capacity_acceptance(pd.DataFrame([self.row(**changes)]))
-                self.assertTrue(pd.isna(result.iloc[0].matched_capacity))
+@pytest.mark.parametrize("value", [None, "", "bad", -1, 2.5, float("inf")])
+def test_missing_or_demonstrably_invalid_capacity_can_use_inventory(value):
+    result = select(row(qpass_capacity_raw=value))
+    assert result.iloc[0].selected_capacity == 28
+    assert result.iloc[0].capacity_source == "inventory_same_quarter"
+    assert result.iloc[0].capacity_acceptance_reason == "assumed_same_quarter_capacity"
+    assert result.iloc[0].capacity_assumption
+    assert result.iloc[0].qpass_capacity_raw == value or pd.isna(value)
 
-    def test_unrelated_key_or_date_conflict_does_not_block(self):
-        result = apply_capacity_acceptance(pd.DataFrame([
-            self.row(), self.row(facility="P012", qpass_capacity_raw=30),
-            self.row(observation_date="2018-10-02", qpass_capacity_raw=30),
-        ]))
-        self.assertEqual(result.iloc[0].matched_capacity, 28)
-        self.assertTrue(result.iloc[1:].matched_capacity.isna().all())
 
-    def test_missing_evidence_and_empty_input_do_not_force_matches(self):
-        source = pd.DataFrame([self.row()]).drop(columns="inventory_report_title_raw")
-        result = apply_capacity_acceptance(source)
-        self.assertTrue(result.matched_capacity.isna().all())
-        self.assertTrue(apply_capacity_acceptance(pd.DataFrame()).empty)
+def test_zero_is_not_proof_of_a_formula_error():
+    assert select(row(qpass_capacity_raw=0)).selected_capacity.isna().all()
+    fixed = select(row(qpass_capacity_raw=0, qpass_formula_error=True))
+    assert fixed.iloc[0].selected_capacity == 28
+    assert fixed.iloc[0].qpass_capacity_raw == 0
+
+
+@pytest.mark.parametrize("changes", [
+    dict(inventory_group_count=2), dict(candidate_capacity=0),
+    dict(candidate_capacity=-1), dict(candidate_capacity=2.5),
+    dict(inventory_scope_compatible=False), dict(_merge="left_only"),
+    dict(inventory_single_capacity_status="period_metadata_review"),
+    dict(inventory_single_capacity_status="closure_review"),
+    dict(inventory_single_capacity_status="multiple_totals_review"),
+])
+def test_unsafe_inventory_never_fills_missing_qpass(changes):
+    assert select(row(qpass_capacity_raw=None, **changes)).selected_capacity.isna().all()
+
+
+def test_sources_disagree_and_qpass_is_not_overwritten():
+    result = select(row(qpass_capacity_raw=30))
+    assert result.selected_capacity.isna().all()
+    assert result.iloc[0].qpass_capacity_raw == 30
+    assert result.iloc[0].candidate_capacity == 28
+
+
+def test_whole_structure_total_is_not_evidence_against_valid_level_capacity():
+    result = select(row(qpass_level_raw="Level 1", candidate_capacity=100,
+                        inventory_scope_compatible=False))
+    assert result.iloc[0].selected_capacity == 28
+    assert result.iloc[0].capacity_source == "qpass"
+    assert select(row(qpass_level_raw="Level 1", qpass_capacity_raw=None,
+                      inventory_scope_compatible=False)).selected_capacity.isna().all()
+
+
+def test_missing_morning_reading_does_not_block_later_valid_slots():
+    result = select(row(open_spaces_raw=None, exclusion_reason="missing_open_spaces"), row())
+    assert pd.isna(result.iloc[0].selected_capacity)
+    assert result.iloc[1].selected_capacity == 28
+    assert not result.group_capacity_conflict.any()
+
+
+def test_invalid_reading_is_excluded_from_conflict_calculation():
+    result = select(row(open_spaces_raw=-1, qpass_capacity_raw=40,
+                        exclusion_reason="invalid_open_spaces"), row())
+    assert result.iloc[1].selected_capacity == 28
+
+
+def test_real_capacity_disagreement_blocks_other_valid_slots():
+    assert select(row(), row(qpass_capacity_raw=30)).selected_capacity.isna().all()
+
+
+def test_conflicts_do_not_cross_date_level_or_subtype():
+    result = select(row(), row(qpass_capacity_raw=30, observation_date="2025-09-30"),
+                    row(qpass_capacity_raw=30, qpass_level_raw="Level 2"),
+                    row(qpass_capacity_raw=30, qpass_subtype="Restricted"))
+    assert result.iloc[0].selected_capacity == 28
+
+
+@pytest.mark.parametrize("field", ["facility", "category"])
+@pytest.mark.parametrize("value", [None, float("nan"), "nan", "", "  ", "0", "0.0"])
+def test_missing_identifiers_never_accepted(field, value):
+    assert select(row(**{field: value})).selected_capacity.isna().all()
+
+
+def test_source_scope_and_unresolved_labels_block_qpass():
+    for changes in (dict(qpass_scope_issue=True), dict(label_unresolved=True),
+                    dict(qpass_formula_error=True, inventory_scope_compatible=False)):
+        assert select(row(**changes)).selected_capacity.isna().all()
+
+
+def test_empty_input_returns_auditable_schema():
+    result = apply_capacity_acceptance(pd.DataFrame())
+    assert result.empty
+    assert {"selected_capacity", "capacity_source", "capacity_assumption"} <= set(result)

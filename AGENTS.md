@@ -175,60 +175,67 @@ python -m src.download_qpass
 
 ## Running things
 
-Download Inventory workbooks corresponding to local QPASS quarters:
+### Inventory capacity selection — Issue #4
+
+From the repository root, after placing QPASS workbooks in `data/raw/QPASS/`:
+
+```bash
 python -m src.download_inventory
-
-Existing workbooks are retained. Source URLs and unavailable quarters
-are recorded in results/capacity_matching/inventory_sources.csv.
-Downloading does not mark a workbook as audited or capacity verified.
-
-Legacy Inventory workbooks with the audited “5A By Lot” and
-“6A By Structure” layout use src.clean_inventory_legacy.
-
-The loader preserves missing cells, zeros, closure text, and source
-coordinates. It excludes all-category totals and motorcycle sections.
-Do not sum lot records together with structure records: some overlap.
-
-Capacity matching accepts --output-dir to keep quarter runs separate.
-Reports include capacity_comparison.csv, quarter_summary.csv,
-overall_summary.csv, unresolved_cases.csv, unmatched_records.csv,
-conflicting_records.csv, and qpass_loader_audit.json.
-
-Overall rates cover only the files supplied in that invocation.
-Missing or invalid observations are retained and flagged but excluded
-from rate denominators. Zero capacities require review. Agreement
-between reported totals does not establish historical verification.
-
-### Inventory capacity work — Issue #4
-
-Extract capacity groups from an Inventory workbook:
-
-```bash
-python -m src.clean_inventory data/raw/inventory/Inventory_2025-2026_Fall.xlsm --academic-year 2025-2026 --quarter Fall
+python -m src.run_capacity_matching --rebuild-inventory
+python scripts/prepare_capacity_deliverables.py
+python -m pytest -q
 ```
 
-Compare the extracted capacities with a QPASS workbook:
+The manifest is `results/capacity_matching/inventory_sources.csv`.
+`--rebuild-inventory` rereads every available original workbook without modifying it;
+without the flag, previously extracted groups are used. Missing Inventory quarters
+remain in results. Batch flags: `--manifest`, `--qpass-dir`, `--inventory-dir`, `--output-dir`.
+
+Individual supported cleaner commands:
 
 ```bash
-python -m src.compare_capacities --inventory "data/interim/inventory/Inventory_2025-2026_Fall_capacity_groups.csv" --qpass "data/raw/qpass/QPASS 2025-2026-2 Fall.xlsm"
+python -m src.clean_inventory_legacy "data/raw/inventory/Inventory 2018-2019-2 October 1.xlsx" --academic-year 2018-2019 --quarter Fall
+python -m src.clean_inventory_modern "data/raw/inventory/Inventory_2025-2026_Fall.xlsm" --academic-year 2025-2026 --quarter Fall
+python -m src.compare_capacities --inventory "data/interim/inventory/Inventory_2025-2026_Fall_capacity_groups.csv" --qpass "data/raw/QPASS/QPASS 2025-2026-2 Fall.xlsm" --output-dir results/capacity_matching/fall_2025
 ```
 
-Run these commands from the repository root.
-Extraction currently supports the reviewed Inventory layout:
-`Pivot Table Data`, with headers on Excel row 4.
+Legacy tables are `5A By Lot` / `6A By Structure`; modern extraction detects
+`Pivot Table Data` headers and the appropriate quarter/Inventory By Location field.
+Never use all-category totals, sum overlapping lot/structure data, or force uncertain
+period/subtype groups. `src.clean_inventory` is deprecated and delegates to modern;
+its `capacity_status` helper remains shared.
 
-Intermediate Inventory CSVs go into `data/interim/inventory/`.
-Comparison reports go into `results/capacity_matching/`.
-Each comparison run replaces the previous comparison reports.
+Intermediate groups/audits: `data/interim/inventory/`. Batch outputs:
+`results/capacity_matching/batch/`; combined reports live in its `combined/` folder.
+Validated delivery copies: `results/capacity_matching/deliverables/`. Preparation
+regenerates `docs/capacity_matching_summary.md` and flags validation failures.
 
-Candidate coverage is not verified capacity matching.
-Historical applicability and ambiguous category groups remain unresolved.
+Capacity selection uses valid QPASS row/group totals first. Missing or demonstrably
+broken QPASS counts may fall back to one exact, positive, same-quarter Inventory
+group with compatible scope and consistent period metadata. Fallback is explicitly
+`assumed_same_quarter_capacity`, not verified daily capacity. Unknown zero alone
+is not proof of a formula error. Conflicting evidence leaves capacity unknown.
+The old snapshot-only/same-day acceptance rule is retired.
 
-Capacity validation tests:
+Both sources use Issue #3 mappings through `src.capacity_labels`, retaining raw
+labels and restrictions. Whole-facility totals cannot fill a QPASS level, and broad
+category counts cannot fill a restricted subtype. Known Fall 2025 formula errors
+are source-data flags, not naming problems; their raw values remain unchanged.
+Missing/invalid readings do not create group conflicts. Missing/zero identifiers,
+including NaN, are excluded from eligible denominators and retained in reports.
 
-```bash
-python -m pytest tests/test_inventory_capacity.py -q
-```
+`selected_capacity` / compatibility alias `matched_capacity`, `capacity_source`,
+acceptance reason/basis and assumption describe selection. Summaries distinguish
+`total_observation_slots`, `eligible_observation_slots`, `excluded_observation_slots`,
+`accepted_qpass_capacities`, `accepted_inventory_capacities`, and
+`accepted_capacity_matches`. Rates always use eligible slots; overall rates use
+summed counts. `exact_key_candidate_rate` is Inventory key coverage, not acceptance.
+Unresolved types separate naming, source errors, missing Inventory, scope and period
+conflicts. See `docs/inventory_audit.md` for the full contract and assumptions.
+
+Run `python -m pytest tests/test_capacity_integration.py -q` for generated-workbook
+end-to-end checks, then full pytest. Real-workbook regeneration and the mentor's
+DS3 code-review skill remain required before requesting review.
 
 - Audit QPASS workbook structures:
 
@@ -442,41 +449,3 @@ User inputs
 → first choice and backup
 → interactive map and recommendation explanation
 ```
-
-## Newer Inventory extraction (Issue 4)
-
-Use `python -m src.clean_inventory_modern WORKBOOK --academic-year YYYY-YYYY --quarter QUARTER`
-for newer Inventory layouts. The API is `clean_modern_inventory(path, academic_year, quarter, output_dir)`.
-Outputs are capacity-group CSVs and per-workbook modern_audit.json files in data/interim/inventory.
-Run `python -m pytest tests/test_inventory_modern.py -v` for layout tests.
-The original clean_inventory.capacity_status helper remains shared with both cleaners.
-The new extractor detects headers, preserves populated rows and raw values, selects the
-requested quarter column for the 2024 layout, and flags repeated rows and column conflicts.
-It uses Inventory By Location for grouped layouts, never the all-category Combined Inventory by Lot.
-Period metadata conflicts block capacity candidates. Extraction never verifies historical capacity.
-
-
-## Capacity snapshot acceptance (Issue 4)
-
-compare_capacities now calls capacity_acceptance.apply_capacity_acceptance after observation exclusions.
-Acceptance is limited to audited legacy lot tables on the snapshot date, with a unique positive
-Inventory count equal to the QPASS total and no level/subtype/time-limit or key/date count conflict.
-No capacity is carried backward or forward in time. Modern files need separate dated evidence.
-Outputs now include matched_records.csv plus acceptance status, reason, basis and snapshot date.
-Run python -m pytest tests/test_capacity_acceptance.py -v, and full pytest before the PR.
-Existing verified_capacity_match_rate means the fraction accepted under this documented policy;
-it is not an independently certified accuracy measure or guaranteed parking availability.
-
-
-## Batch capacity matching (Issue 4)
-
-Run python -m src.run_capacity_matching from the repository root after cleaning Inventory.
-It reads results/capacity_matching/inventory_sources.csv and data/raw/QPASS by default.
-The --manifest, --qpass-dir, --inventory-dir, and --output-dir flags override locations.
-The default output directory is results/capacity_matching/batch.
-It includes unavailable-Inventory quarters, weighted overall/quarter rates, coverage,
-combined comparison/matched/unresolved/unmatched/conflict reports and inventory_cleaned.csv.
-The latter has one row per academic_year/quarter/facility/category with lossless source_groups_json.
-Ambiguous groups are not summed; source labels are trimmed, without unverified alias mappings.
-Tests: python -m pytest tests/test_capacity_batch.py -v.
-The comparator supports header-only Inventory input for explicitly missing source quarters.

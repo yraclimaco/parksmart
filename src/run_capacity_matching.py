@@ -9,6 +9,9 @@ from pathlib import Path
 import pandas as pd
 
 from src.compare_capacities import compare_capacities
+from src.capacity_labels import label_inventory
+from src.clean_inventory_legacy import clean_legacy_inventory
+from src.clean_inventory_modern import clean_modern_inventory
 
 
 KEYS = ["academic_year", "quarter", "facility", "category"]
@@ -21,14 +24,12 @@ def build_inventory_dataset(groups):
     """Produce one row per period/facility/category without summing ambiguous groups.
 
     Preserve every contributing source row and raw value in source_groups_json.
-    Join labels are exact source labels with surrounding whitespace removed;
-    teammate identifier mappings have not been applied.
+    Join labels use Issue #3 decisions; every input group remains in source_groups_json.
     """
     groups = groups.copy()
     groups["_source_record_json"] = [json.dumps(row, default=str)
                                       for row in groups.to_dict("records")]
-    groups["facility"] = groups["facility_raw"].astype(str).str.strip()
-    groups["category"] = groups["category_raw"].astype(str).str.strip()
+    groups = label_inventory(groups)
     output = []
     for key, group in groups.groupby(KEYS, dropna=False, sort=False):
         row = dict(zip(KEYS, key))
@@ -47,23 +48,29 @@ def build_inventory_dataset(groups):
 
 
 def combine_rates(quarters):
-    """Calculate weighted overall rates using counts rather than averaging rates."""
-    eligible = int(quarters["observation_slots"].sum())
-    exact = int(quarters["exact_key_candidates"].sum())
-    accepted = int(quarters["verified_capacity_matches"].sum())
-    return {
-        "qpass_quarters": len(quarters), "eligible_observation_slots": eligible,
-        "exact_key_candidates": exact,
-        "exact_key_candidate_rate": exact / eligible if eligible else None,
-        "verified_capacity_matches": accepted,
-        "verified_capacity_match_rate": accepted / eligible if eligible else None,
-    }
+    """Sum quarter counts and calculate rates using eligible observations."""
+    count_columns = ["total_observation_slots", "eligible_observation_slots",
+                     "excluded_observation_slots", "exact_key_candidates",
+                     "accepted_qpass_capacities", "accepted_inventory_capacities",
+                     "accepted_capacity_matches"]
+    total = {name: int(quarters[name].sum()) for name in count_columns}
+    total["qpass_quarters"] = len(quarters)
+    denominator = total["eligible_observation_slots"]
+    for rate, count in {
+        "exact_key_candidate_rate": "exact_key_candidates",
+        "accepted_qpass_capacity_rate": "accepted_qpass_capacities",
+        "accepted_inventory_capacity_rate": "accepted_inventory_capacities",
+        "accepted_capacity_match_rate": "accepted_capacity_matches",
+    }.items():
+        total[rate] = total[count] / denominator if denominator else None
+    return total
 
 
 def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sources.csv"),
                           qpass_dir=Path("data/raw/QPASS"),
                           inventory_dir=Path("data/interim/inventory"),
-                          output_dir=Path("results/capacity_matching/batch")):
+                          output_dir=Path("results/capacity_matching/batch"),
+                          rebuild_inventory=False):
     """Run every manifest quarter and write combined evidence-preserving reports.
 
     Source workbooks and cleaned group inputs are not modified. Quarter folders
@@ -92,8 +99,9 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
             raise FileNotFoundError(qpass)
         if record["download_status"] in AVAILABLE:
             inventory = inventory_dir / (Path(record["inventory_path"]).stem + "_capacity_groups.csv")
-            if not inventory.is_file():
-                raise FileNotFoundError(inventory)
+            required = Path(record["inventory_path"]) if rebuild_inventory else inventory
+            if not required.is_file():
+                raise FileNotFoundError(required)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     empty_inventory = output_dir / "empty_inventory.csv"
@@ -104,25 +112,21 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
     combined_dir.mkdir(exist_ok=True)
     for report in REPORTS:
         (combined_dir / f"{report}.csv").unlink(missing_ok=True)
-    quarter_summaries, overall_counts, inventory_groups, coverage = [], [], [], []
+    quarter_summaries, inventory_groups, coverage = [], [], []
     for record in records:
         year, quarter = record["academic_year"], record["quarter"]
         available = record["download_status"] in AVAILABLE
         inventory = inventory_dir / (Path(record["inventory_path"]).stem + "_capacity_groups.csv") if available else empty_inventory
+        if available and rebuild_inventory:
+            cleaner = (clean_legacy_inventory if int(year[:4]) < 2024
+                       else clean_modern_inventory)
+            inventory = cleaner(Path(record["inventory_path"]), year, quarter, inventory_dir)
         quarter_dir = output_dir / f"{year}_{quarter.lower()}"
         print(f"\n=== {year} {quarter} ===", flush=True)
         compare_capacities(inventory, qpass_dir / record["qpass_file"], quarter_dir)
         quarter_summary = pd.read_csv(quarter_dir / "quarter_summary.csv")
-        if quarter_summary.empty:
-            quarter_summary = pd.DataFrame([{
-                "academic_year": year, "quarter": quarter, "observation_slots": 0,
-                "exact_key_candidates": 0, "verified_capacity_matches": 0,
-                "exact_key_candidate_rate": float("nan"),
-                "verified_capacity_match_rate": float("nan"),
-            }])
         quarter_summary["inventory_coverage_status"] = record["download_status"]
         quarter_summaries.append(quarter_summary)
-        overall_counts.append(pd.read_csv(quarter_dir / "overall_summary.csv"))
         coverage.append({"academic_year": year, "quarter": quarter,
                          "qpass_file": record["qpass_file"],
                          "inventory_coverage_status": record["download_status"],
@@ -134,13 +138,15 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
             frame = pd.read_csv(path, dtype=str, keep_default_na=False)
             frame["inventory_coverage_status"] = record["download_status"]
             if not available and not frame.empty:
-                frame["comparison_status"] = "inventory_workbook_unavailable"
-                frame["unresolved_reason"] = (
-                    "inventory_workbook_unavailable; " + record["download_status"]
-                    + "; " + frame["capacity_acceptance_reason"]
+                unresolved = frame["selected_capacity"].eq("")
+                # Missing Inventory never invalidates an accepted QPASS capacity.
+                missing = unresolved & frame["unresolved_type"].isin(
+                    ["inventory_key_unmatched", "inventory_capacity_review"]
                 )
-                frame["recommended_next_step"] = (
-                    "Locate and verify this quarter's Inventory workbook; do not substitute another quarter."
+                frame.loc[missing, "unresolved_type"] = "missing_inventory"
+                frame.loc[missing, "unresolved_reason"] += "; inventory_workbook_unavailable"
+                frame.loc[missing, "recommended_next_step"] = (
+                    "Locate this quarter's Inventory; do not substitute another period."
                 )
             destination = combined_dir / f"{report}.csv"
             frame.to_csv(destination, mode="a", header=not destination.exists(), index=False)
@@ -149,9 +155,6 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
     quarters.to_csv(output_dir / "quarter_summary.csv", index=False)
     pd.DataFrame(coverage).to_csv(output_dir / "inventory_coverage.csv", index=False)
     total = combine_rates(quarters)
-    counts = pd.concat(overall_counts, ignore_index=True)
-    total["observation_slots"] = int(counts["observation_slots"].sum())
-    total["excluded_observation_slots"] = int(counts["excluded_observation_slots"].sum())
     pd.DataFrame([total]).to_csv(output_dir / "overall_summary.csv", index=False)
     if inventory_groups:
         groups = pd.concat(inventory_groups, ignore_index=True).fillna("")
@@ -165,9 +168,12 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--rebuild-inventory", action="store_true",
+                        help="Re-extract every available original workbook before matching")
     parser.add_argument("--manifest", type=Path, default=Path("results/capacity_matching/inventory_sources.csv"))
     parser.add_argument("--qpass-dir", type=Path, default=Path("data/raw/QPASS"))
     parser.add_argument("--inventory-dir", type=Path, default=Path("data/interim/inventory"))
     parser.add_argument("--output-dir", type=Path, default=Path("results/capacity_matching/batch"))
     args = parser.parse_args()
-    run_capacity_matching(args.manifest, args.qpass_dir, args.inventory_dir, args.output_dir)
+    run_capacity_matching(args.manifest, args.qpass_dir, args.inventory_dir,
+                          args.output_dir, args.rebuild_inventory)
