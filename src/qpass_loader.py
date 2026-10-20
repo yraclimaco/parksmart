@@ -99,6 +99,7 @@ LONG_FORMAT_COLUMNS = {
     "Day": "day",
     "Week #": "week",
     "Zone": "zone",
+    "Order": "source_order",
     "Report Area": "report_area",
     "Neighborhood": "neighborhood",
     "Lot / Structure": "lot_or_structure",
@@ -143,8 +144,9 @@ OUTPUT_COLUMNS = [
     "academic_year", "quarter", "quarter_number",
     "date", "day", "week",
     "location", "lot_or_structure", "level",
-    "zone", "report_area", "neighborhood",
+    "zone", "source_order", "report_area", "neighborhood",
     "type", "sub_type", "report_type",
+    "sub_type_in_format", "report_type_in_format",
     "total_stall_count", *OPEN_COLUMNS,
     "raw_structure", "raw_lot",
 ]
@@ -181,7 +183,8 @@ def load_qpass(path: str | Path) -> pd.DataFrame:
         path: Path to a QPASS .xlsx or .xlsm workbook.
 
     Returns:
-        DataFrame with columns OUTPUT_COLUMNS.
+        DataFrame with columns OUTPUT_COLUMNS. Optional *_in_format booleans
+        record actual per-sheet header presence; source_order retains Order.
 
     Raises:
         FileNotFoundError: If the file does not exist.
@@ -242,6 +245,9 @@ def load_qpass(path: str | Path) -> pd.DataFrame:
                 logger.log(level, "%s: dropped %d rows in sheet %r: %s",
                            path.name, count, sheet_name, drop_reason)
         parsed["sheet_name"] = sheet_name
+        # Record header presence before reindex fills absent columns with NaN.
+        for column in ("sub_type", "report_type"):
+            parsed[f"{column}_in_format"] = column in parsed.columns
         frames.append(parsed)
 
     if not frames:
