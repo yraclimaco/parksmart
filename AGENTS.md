@@ -251,6 +251,26 @@ python -m src.download_qpass
 
 - Launch notebooks:
 
+  Issue #2 walkthrough: `notebooks/reshape-qpass-observations.ipynb` imports
+  the loader adapter and validation functions from
+  `src/qpass_observations.py`. Focused tests:
+  `python -m pytest tests/test_qpass_observations.py -q`.
+  The notebook uses `load_all_qpass()` from task #1, then
+  `reshape_loaded_observations()` and `validate_observations()` from task #2.
+  Reports cover all local workbooks and retain loader audit metadata.
+  Shared loader names are retained: `type` is category and `sub_type` is
+  subtype. Optional format-absent fields are informational. Blank and text
+  counts have separate flags; exact repeats and conflicting identities have
+  separate flags. The loader preserves per-sheet optional-header presence as
+  `sub_type_in_format` / `report_type_in_format`, and raw Order as `source_order`.
+  Optional statuses distinguish absent headers from blank cells. Format C
+  differing-capacity groups use `ambiguous_allocation_requires_review`;
+  same-capacity subsets with different open counts also retain
+  `conflicting_observation`, including inside ambiguous groups. No rows
+  are deleted or combined. Audited observations are integration-tested with
+  `src.labels.prepare_label_records()` from main. All parsing uses the shared loader; see
+  `docs/qpass_observation_contract.md` for the output contract.
+
   ```bash
   jupyter lab notebooks/
   ```
