@@ -265,3 +265,66 @@ def test_mapping_restriction_and_period_issue_stay_distinct(tmp_path, monkeypatc
     assert restricted.qpass_category_status.eq("keep_separate").all()
     assert restricted.qpass_category_raw.eq("2 Person Carpool").all()
     assert restricted.selected_capacity.eq(10).all()
+
+
+@pytest.mark.parametrize("reported", [None, 10])
+def test_wrong_year_real_excel_cannot_select_capacity(tmp_path, reported):
+    qpass = tmp_path / "QPASS 2024-2025-2 Fall.xlsx"
+    write_qpass(qpass, [("P386", "Visitor", reported, [1, 2, 3, 4])],
+                date=dt.datetime(1900, 1, 1))
+    inventory = tmp_path / "Inventory 2024-2025-2 Fall.xlsx"
+    write_inventory(inventory)
+    groups = clean_modern_inventory(inventory, "2024-2025", "Fall", tmp_path / "clean")
+    result = compare_capacities(groups, qpass, tmp_path / "out")
+    assert len(result) == 4
+    assert result.selected_capacity.isna().all()
+    assert result.unresolved_type.eq("period_metadata_conflict").all()
+    assert result.qpass_period_metadata_conflict.all()
+    assert pd.to_datetime(result.observation_date).eq(pd.Timestamp("1900-01-01")).all()
+    assert len(pd.read_csv(tmp_path / "out/unresolved_cases.csv")) == 4
+
+
+@pytest.mark.parametrize("reuse", [False, True])
+def test_all_missing_inventory_outputs_are_empty_not_stale(tmp_path, reuse):
+    qpass_dir = tmp_path / "QPASS"
+    qpass_dir.mkdir()
+    qpass = qpass_dir / "QPASS 2024-2025-2 Fall.xlsx"
+    write_qpass(qpass, [("P386", "Visitor", 10, [1, 2, 3, 4])])
+    manifest = tmp_path / "manifest.csv"
+    pd.DataFrame([dict(academic_year="2024-2025", quarter="Fall",
+                       qpass_file=qpass.name, inventory_path="",
+                       download_status="not_listed_in_archive", reason="Missing")]
+                 ).to_csv(manifest, index=False)
+    output = tmp_path / "out"
+    output.mkdir()
+    if reuse:
+        for name in ("inventory_cleaned.csv", "inventory_capacity_groups.csv"):
+            (output / name).write_text("stale,value\nold,999\n")
+    run_capacity_matching(manifest, qpass_dir, tmp_path / "clean", output)
+    for name in ("inventory_cleaned.csv", "inventory_capacity_groups.csv"):
+        groups = pd.read_csv(output / name)
+        assert groups.empty
+        assert {"academic_year", "quarter", "facility_raw", "capacity"} <= set(groups)
+    assert len(pd.read_csv(output / "combined/matched_records.csv")) == 4
+
+
+def test_deprecated_audit_requires_period_and_keeps_invalid_identifiers(tmp_path, monkeypatch):
+    from openpyxl import load_workbook
+    from src.audit_inventory import audit_inventory
+
+    inventory = tmp_path / "Inventory 2024-2025-2 Fall.xlsx"
+    write_inventory(inventory)
+    workbook = load_workbook(inventory)
+    workbook["Pivot Table Data"].append([None, "B", None, None, 10, 10])
+    workbook.save(inventory)
+    workbook.close()
+    before = inventory.read_bytes()
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ValueError, match="academic-year"):
+        audit_inventory(inventory)
+    with pytest.warns(FutureWarning, match="deprecated"):
+        path = audit_inventory(inventory, "2024-2025", "Fall")
+    groups = pd.read_csv(path)
+    assert len(groups) == 2
+    assert groups.capacity_status.eq("invalid_identifier_review").sum() == 1
+    assert inventory.read_bytes() == before

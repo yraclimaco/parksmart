@@ -10,7 +10,14 @@ FIELDS = ("facility", "category", "subtype")
 
 
 def label_qpass(qpass):
-    """Return loader rows with Issue #3 labels, restrictions, and raw values."""
+    """Return loader rows with Issue #3 labels, restrictions, and raw values.
+
+    Args:
+        qpass: Shared QPASS loader DataFrame including raw labels and provenance.
+
+    Returns:
+        Labeled DataFrame copy; no files are written.
+    """
     return standardize_labels(prepare_label_records(qpass))
 
 
@@ -20,6 +27,13 @@ def label_inventory(groups):
     Legacy category headers can span two rows (UC + Vehicle). Their extractor's
     reconstructed category is used for decisions; the original header and all
     source cells remain unchanged. No restricted category or subtype is collapsed.
+
+    Args:
+        groups: Extracted Inventory DataFrame with raw facility/category,
+        capacity, reconstructed category if available, and source_file.
+
+    Returns:
+        Labeled copy preserving input evidence; no files are written.
     """
     result = groups.copy()
     adapter = groups.copy()

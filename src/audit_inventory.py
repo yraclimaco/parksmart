@@ -1,88 +1,41 @@
-"""Inspect an Inventory workbook and save its source records."""
+"""Deprecated exploratory audit; use the supported layout-aware cleaner."""
 
 import argparse
 from pathlib import Path
+import warnings
 
-import pandas as pd
 
+def audit_inventory(path, academic_year=None, quarter=None):
+    """Delegate an explicitly labeled modern workbook to its supported cleaner.
 
-def audit_inventory(path):
-    with pd.ExcelFile(path, engine="openpyxl") as workbook:
-        print(f"Source: {path.name}")
-        print(f"Sheets: {workbook.sheet_names}")
+    Args:
+        path: Original modern Inventory workbook path; never modified.
+        academic_year: Required consecutive YYYY-YYYY academic year.
+        quarter: Required Summer, Fall, Winter or Spring label.
 
-        data = pd.read_excel(
-            workbook,
-            sheet_name="Pivot Table Data",
-            header=3,
-        )
+    Returns:
+        Path to the supported capacity-group CSV; writes that CSV and its audit
+        under data/interim/inventory. No missing-identifier rows are filtered.
 
-    data = data.dropna(how="all")
+    Raises:
+        ValueError: If period arguments are missing. For legacy summary tables,
+            use src.clean_inventory_legacy instead.
+    """
+    if academic_year is None or quarter is None:
+        raise ValueError("Use src.clean_inventory_modern with --academic-year and "
+                         "--quarter, or src.clean_inventory_legacy for old tables")
+    warnings.warn("audit_inventory is deprecated; use src.clean_inventory_modern "
+                  "or src.clean_inventory_legacy", FutureWarning, stacklevel=2)
+    from src.clean_inventory_modern import clean_modern_inventory
 
-    columns = [
-        "Lot  / Structure",
-        "Lot #",
-        "Garage Level",
-        "Space Type",
-        "Space Subtype",
-        "Time Limit [minutes]",
-        "For Inventory Survey?",
-        "For Qpass Survey?",
-        "Inventory By Locaton & Level",
-        "Inventory By Location",
-    ]
-
-    missing = set(columns) - set(data.columns)
-    if missing:
-        raise ValueError(f"Missing expected columns: {sorted(missing)}")
-
-    records = data.loc[
-        data["Lot #"].notna() & data["Space Type"].notna(),
-        columns,
-    ]
-
-    print(f"\nPopulated records: {len(records)}")
-    print("\nCategories:")
-    print(records["Space Type"].value_counts().to_string())
-
-    print("\nFirst 10 records:")
-    for row_number, row in records.head(10).iterrows():
-        print(f"\nExcel row {row_number + 5}:")
-        for column, value in row.items():
-            print(f"  {column}: {value!r}")
-
-    print("\nFacility-total cell audit:")
-    raw = records["Inventory By Location"]
-    numeric = pd.to_numeric(raw, errors="coerce")
-
-    print(f"Blank cells: {raw.isna().sum()} (may be intentional)")
-    print(f"Zero values: {numeric.eq(0).sum()} (require review)")
-    print(f"Negative values: {numeric.lt(0).sum()}")
-    print(
-        "Non-numeric populated values:",
-        (raw.notna() & numeric.isna()).sum(),
-    )
-
-    # Keep all source columns and record where each row came from.
-    staging = data.loc[
-        data["Lot #"].notna() & data["Space Type"].notna()
-    ].copy()
-
-    staging.insert(0, "source_row", staging.index + 5)
-    staging.insert(0, "source_sheet", "Pivot Table Data")
-    staging.insert(0, "source_file", path.name)
-
-    # Create the output folder and save a separate CSV.
-    output_dir = Path("data/interim/inventory")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{path.stem}_staging.csv"
-
-    staging.to_csv(output_path, index=False)
-    print(f"\nSaved {len(staging)} source records to: {output_path}")
+    return clean_modern_inventory(Path(path), academic_year, quarter)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("workbook", type=Path)
+    parser.add_argument("--academic-year", required=True)
+    parser.add_argument("--quarter", required=True,
+                        choices=["Summer", "Fall", "Winter", "Spring"])
     args = parser.parse_args()
-    audit_inventory(args.workbook)
+    audit_inventory(args.workbook, args.academic_year, args.quarter)

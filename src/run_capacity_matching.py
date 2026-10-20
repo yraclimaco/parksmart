@@ -18,13 +18,27 @@ KEYS = ["academic_year", "quarter", "facility", "category"]
 AVAILABLE = {"downloaded", "already_present"}
 REPORTS = ["capacity_comparison", "matched_records", "unresolved_cases",
            "unmatched_records", "conflicting_records"]
+EMPTY_GROUP_COLUMNS = [*KEYS, "facility_raw", "category_raw", "capacity",
+                       "capacity_status", "source_file", "source_rows"]
+CLEANED_COLUMNS = [*KEYS, "facility_raw", "category_raw", "capacity",
+                   "capacity_status", "source_file", "inventory_group_count",
+                   "source_groups_json"]
 
 
 def build_inventory_dataset(groups):
     """Produce one row per period/facility/category without summing ambiguous groups.
 
     Preserve every contributing source row and raw value in source_groups_json.
-    Join labels use Issue #3 decisions; every input group remains in source_groups_json.
+    Join labels use Issue #3 decisions; every input group remains in
+    source_groups_json.
+
+    Args:
+        groups: Extracted Inventory group DataFrame with period, raw labels,
+        capacity/status and source_file.
+
+    Returns:
+        Cleaned DataFrame with unique KEYS and lossless source_groups_json; empty
+        input retains the output schema.
     """
     groups = groups.copy()
     groups["_source_record_json"] = [json.dumps(row, default=str)
@@ -44,11 +58,20 @@ def build_inventory_dataset(groups):
             "source_groups_json": "[" + ",".join(group["_source_record_json"]) + "]",
         })
         output.append(row)
-    return pd.DataFrame(output)
+    return pd.DataFrame(output, columns=CLEANED_COLUMNS)
 
 
 def combine_rates(quarters):
-    """Sum quarter counts and calculate rates using eligible observations."""
+    """Sum quarter counts and calculate rates using eligible observations.
+
+    Args:
+        quarters: Quarter-summary DataFrame containing observation and source-
+        specific accepted counts.
+
+    Returns:
+        Dictionary of summed counts and weighted rates; zero denominator gives
+        None.
+    """
     count_columns = ["total_observation_slots", "eligible_observation_slots",
                      "excluded_observation_slots", "exact_key_candidates",
                      "accepted_qpass_capacities", "accepted_inventory_capacities",
@@ -76,6 +99,16 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
     Source workbooks and cleaned group inputs are not modified. Quarter folders
     inside output_dir and combined outputs are regenerated. Empty Inventory is
     represented by a header-only CSV, so missing quarters remain in denominators.
+
+    Args:
+        manifest: Source manifest CSV path. qpass_dir: Original QPASS folder.
+        inventory_dir: Extracted groups folder. output_dir: Regenerated reports
+        folder. rebuild_inventory: Whether to reread original workbooks.
+
+    Returns:
+        Tuple of quarter DataFrame and overall count/rate dictionary. Writes
+        reports, groups and audits; originals remain unchanged. Raises for invalid
+        manifest or unavailable required inputs.
     """
     manifest, qpass_dir, inventory_dir, output_dir = map(
         Path, (manifest, qpass_dir, inventory_dir, output_dir)
@@ -158,8 +191,11 @@ def run_capacity_matching(manifest=Path("results/capacity_matching/inventory_sou
     pd.DataFrame([total]).to_csv(output_dir / "overall_summary.csv", index=False)
     if inventory_groups:
         groups = pd.concat(inventory_groups, ignore_index=True).fillna("")
-        groups.to_csv(output_dir / "inventory_capacity_groups.csv", index=False)
-        build_inventory_dataset(groups).to_csv(output_dir / "inventory_cleaned.csv", index=False)
+    else:
+        # Replace prior-run files even when this manifest has no Inventory.
+        groups = pd.DataFrame(columns=EMPTY_GROUP_COLUMNS)
+    groups.to_csv(output_dir / "inventory_capacity_groups.csv", index=False)
+    build_inventory_dataset(groups).to_csv(output_dir / "inventory_cleaned.csv", index=False)
     print("\nBatch overall summary:")
     print(pd.DataFrame([total]).to_string(index=False))
     print(f"\nCombined reports saved in {output_dir}")

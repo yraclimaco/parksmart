@@ -1,6 +1,7 @@
 """Compare representative QPASS records with Inventory candidates."""
 
 import argparse
+import json
 import math
 from pathlib import Path
 
@@ -8,7 +9,6 @@ import pandas as pd
 from src.qpass_loader import load_qpass
 from src.capacity_acceptance import apply_capacity_acceptance
 from src.capacity_labels import label_inventory, label_qpass, invalid_identifier
-import json
 
 
 KEYS = ["academic_year", "quarter", "facility", "category"]
@@ -71,7 +71,16 @@ def audit_reported_capacities(results):
 
 
 def build_candidates(inventory):
-    """Group standardized keys without summing ambiguous capacities or raw labels."""
+    """Group standardized keys without summing ambiguous capacities or raw labels.
+
+    Args:
+        inventory: Extracted group DataFrame with academic_year, quarter,
+        facility_raw, category_raw, capacity, source_file and source_rows.
+
+    Returns:
+        One-row-per-key candidate DataFrame with scope/status/provenance evidence;
+        writes no files.
+    """
     inventory = label_inventory(inventory)
     columns = [*KEYS, "inventory_group_count", "inventory_source_file",
                "inventory_source_rows", "inventory_facility_raw_values",
@@ -115,7 +124,16 @@ def build_candidates(inventory):
 
 
 def summarize_results(results):
-    """Return quarter and overall summaries with identical count/rate meanings."""
+    """Return quarter and overall summaries with identical count/rate meanings.
+
+    Args:
+        results: Selected observation DataFrame including period,
+        exclusion_reason, selected_capacity, capacity_source and exact_key_found.
+
+    Returns:
+        Tuple of quarter-summary and overall-summary DataFrames; rates use
+        eligible slots.
+    """
     def counts(frame):
         eligible = frame.exclusion_reason.eq("")
         selected = frame.selected_capacity.notna() & eligible
@@ -153,6 +171,14 @@ def compare_capacities(inventory_path, qpass_path,
     Return the complete observation DataFrame and write detailed/summary CSVs.
     Inventory joins use academic year, quarter, standardized facility/category;
     a separate scope check prevents whole-facility or broad-subtype fallback.
+
+    Args:
+        inventory_path: Group CSV path. qpass_path: Original workbook path.
+        output_dir: Directory for comparison, subset and summary CSV reports.
+
+    Returns:
+        Complete joined/selected observation DataFrame; writes reports and loader
+        audit. Raises on unsupported workbooks or missing required columns.
     """
     inventory = pd.read_csv(inventory_path, dtype={"facility_raw": "string",
                                                   "category_raw": "string"},
@@ -270,13 +296,15 @@ def compare_capacities(inventory_path, qpass_path,
     results.loc[results.qpass_source_issue.ne(""), "unresolved_type"] = "source_data_problem"
     results.loc[results.group_capacity_conflict & ~results.qpass_scope_issue,
                 "unresolved_type"] = "capacity_conflict"
+    results.loc[results.qpass_period_metadata_conflict,
+                "unresolved_type"] = "period_metadata_conflict"
     results.loc[results.exclusion_reason.ne(""), "unresolved_type"] = "invalid_observation"
     results.loc[invalid_id, "unresolved_type"] = "invalid_identifier"
     results.loc[accepted, "unresolved_type"] = ""
     actions = {
         "inventory_key_unmatched": "Review the same-quarter Inventory group; do not guess aliases.",
         "inventory_capacity_review": "Review original Inventory counts, duplicates and formula caches.",
-        "period_metadata_conflict": "Resolve the Inventory cover/selector period disagreement.",
+        "period_metadata_conflict": "Resolve QPASS date/year/quarter or Inventory cover/selector disagreement using source evidence.",
         "scope_conflict": "Verify exact level, subtype and restrictions; do not substitute broad totals.",
         "mapping_review": "Review remaining Issue #3 label decisions and source evidence.",
         "source_data_problem": "Inspect QPASS source formulas; preserve the original value and verify fallback scope.",

@@ -53,6 +53,9 @@ Missing or demonstrably broken QPASS counts may use one positive, scope-compatib
 same-quarter Inventory group. This fallback is an assumption, not proof of capacity
 on each survey day. Unknown zeros alone do not justify fallback. Raw values, formulas'
 cached values, source rows, labels and Issue #3 restriction decisions are preserved.
+Invalid dates or calendar-year/quarter metadata conflicts block selection and remain
+flagged. Summer/Fall use the academic starting year; Winter/Spring use its ending year.
+Exact quarter date boundaries and equality with an Inventory date are not inferred.
 No fuzzy aliases, cross-quarter capacity carry, whole-structure-to-level substitution,
 or broad-category-to-subtype substitution is allowed. Time-limit mappings that are
 not explicitly established remain unresolved. Valid QPASS capacities do not require

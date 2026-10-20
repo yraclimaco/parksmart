@@ -11,6 +11,7 @@ import shutil
 import pandas as pd
 
 
+
 REPORTS = ["capacity_comparison", "matched_records", "unresolved_cases",
            "unmatched_records", "conflicting_records"]
 
@@ -61,6 +62,14 @@ def prepare(root=Path(".")):
         check(value == int(overall[name]) == int(quarters[name].sum()), f"Count mismatch: {name}")
     check((qpass | fallback).eq(accepted).all(), "Unknown selected source")
     check(not (accepted & ~eligible).any(), "Excluded observation accepted")
+    check(observations.loc[accepted, "qpass_period_metadata_conflict"].eq("False").all(),
+          "Conflicting QPASS period accepted")
+    accepted_rows = observations.loc[accepted]
+    expected_year = accepted_rows.academic_year.str[:4].astype(int) + (
+        accepted_rows.quarter.isin(["Winter", "Spring"])
+    )
+    check(pd.to_datetime(accepted_rows.observation_date).dt.year.eq(expected_year).all(),
+          "Selected observation date contradicts quarter calendar year")
     selected = pd.to_numeric(observations.loc[accepted, "selected_capacity"])
     opened = pd.to_numeric(observations.loc[accepted, "open_spaces_raw"])
     check((selected.gt(0) & selected.lt(float("inf")) & selected.mod(1).eq(0)).all(),
@@ -168,6 +177,9 @@ Missing or demonstrably broken QPASS counts may use one positive, scope-compatib
 same-quarter Inventory group. This fallback is an assumption, not proof of capacity
 on each survey day. Unknown zeros alone do not justify fallback. Raw values, formulas'
 cached values, source rows, labels and Issue #3 restriction decisions are preserved.
+Invalid dates or calendar-year/quarter metadata conflicts block selection and remain
+flagged. Summer/Fall use the academic starting year; Winter/Spring use its ending year.
+Exact quarter date boundaries and equality with an Inventory date are not inferred.
 No fuzzy aliases, cross-quarter capacity carry, whole-structure-to-level substitution,
 or broad-category-to-subtype substitution is allowed. Time-limit mappings that are
 not explicitly established remain unresolved. Valid QPASS capacities do not require

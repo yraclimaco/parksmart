@@ -119,3 +119,32 @@ def test_empty_input_returns_auditable_schema():
     result = apply_capacity_acceptance(pd.DataFrame())
     assert result.empty
     assert {"selected_capacity", "capacity_source", "capacity_assumption"} <= set(result)
+
+
+@pytest.mark.parametrize("date", ["1900-01-01", "2024-10-01", "bad", None])
+@pytest.mark.parametrize("reported", [None, 28])
+def test_period_conflicts_block_both_sources(date, reported):
+    result = select(row(observation_date=date, qpass_capacity_raw=reported))
+    assert result.selected_capacity.isna().all()
+    assert result.qpass_period_metadata_conflict.all()
+    assert result.iloc[0].capacity_acceptance_reason == "qpass_period_metadata_conflict"
+
+
+@pytest.mark.parametrize("quarter,date", [
+    ("Summer", "2025-07-01"), ("Fall", "2025-10-01"),
+    ("Winter", "2026-01-01"), ("Spring", "2026-04-01"),
+])
+def test_quarter_calendar_years_without_exact_inventory_date(quarter, date):
+    result = select(row(quarter=quarter, observation_date=date, qpass_capacity_raw=None))
+    assert result.iloc[0].capacity_source == "inventory_same_quarter"
+    assert not result.qpass_period_metadata_conflict.any()
+
+
+@pytest.mark.parametrize("changes", [
+    dict(academic_year="2025-2027"), dict(academic_year="bad"),
+    dict(quarter="Unknown"), dict(quarter="Winter", observation_date="2025-01-01"),
+])
+def test_invalid_period_labels_are_flagged(changes):
+    result = select(row(**changes))
+    assert result.qpass_period_metadata_conflict.all()
+    assert result.selected_capacity.isna().all()

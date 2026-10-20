@@ -165,7 +165,17 @@ def extract_modern_inventory(raw, source_file, academic_year, quarter,
 
 def clean_modern_inventory(path, academic_year, quarter,
                            output_dir=Path("data/interim/inventory")):
-    """Read a newer workbook without modifying it and write CSV plus audit JSON."""
+    """Read a newer workbook without modifying it and write CSV plus audit JSON.
+
+    Args:
+        path: Read-only modern workbook path. academic_year: Consecutive YYYY-YYYY
+        label. quarter: Summer/Fall/Winter/Spring. output_dir: Generated CSV/audit
+        directory.
+
+    Returns:
+        Generated CSV Path. Writes CSV and JSON audit; raises ValueError for
+        unsupported or inconsistent schema/periods.
+    """
     path, output_dir = Path(path), Path(output_dir)
     sheets = pd.read_excel(path, sheet_name=[SHEET, "Title"], header=None,
                            keep_default_na=False, engine="openpyxl")

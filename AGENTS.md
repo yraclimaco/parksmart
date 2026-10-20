@@ -449,3 +449,15 @@ User inputs
 → first choice and backup
 → interactive map and recommendation explanation
 ```
+
+## Period validation and rerun behavior
+
+Missing/invalid observation dates, nonconsecutive academic-year labels, unknown
+quarters, or calendar-year conflicts block both capacity sources and set
+`qpass_period_metadata_conflict`. Summer/Fall use the starting calendar year;
+Winter/Spring use the ending year. This is a metadata consistency check, not an
+exact quarter-boundary or survey/inventory date-equality rule. The raw date and
+period labels remain unchanged; unresolved cases use `period_metadata_conflict`.
+All-missing-Inventory batches write header-only Inventory datasets, replacing
+prior outputs. `src.audit_inventory` is a deprecated explicit-period wrapper for
+the modern cleaner; it no longer filters missing-identifier source rows.
