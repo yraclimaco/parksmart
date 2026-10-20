@@ -29,6 +29,8 @@ root or `notebooks/` after `python -m src.download_qpass`.
 | `type` | Category from the loader's Type column, unchanged |
 | `sub_type` | Separate optional subtype, unchanged; never populated from type |
 | `report_type` | Auxiliary optional report grouping, never substituted for type |
+| `source_order` | Original Order column when available; not a verified allocation ID |
+| `sub_type_in_format`, `report_type_in_format` | Per-row booleans from actual sheet headers, before schema filling |
 | `level`, `raw_structure`, `raw_lot` | Preserved for allocation scope and source review |
 | `source_file`, `sheet_name`, `source_row` | Original workbook/sheet/Excel row provenance |
 | `format_version`, `academic_year`, `quarter`, `quarter_number` | Preserved loader metadata |
@@ -49,9 +51,14 @@ No `facility_name`, `parking_category`, `parking_subtype`, `capacity`, or
 Optional report_type/sub_type status columns are informational:
 
 - `present`: a nonblank value exists.
-- `not_in_format`: blank field in Format A, whose layout did not have it.
-- `blank_or_unavailable`: blank in another format; the shared loader does not
-  currently expose whether an optional header existed in that individual sheet.
+- `not_in_format`: the shared loader verified that the source sheet lacked the
+  header (including Format A, older Format B and some Format C sheets).
+- `blank`: the header existed but the source cell was blank.
+- `blank_or_unavailable`: header presence is unknown, for example an externally
+  constructed loader-shaped table with no presence evidence. No absence is guessed.
+
+The per-row presence booleans survive mixed sheets, `load_all_qpass()`, reshaping,
+and validation. They describe source layout, not whether values are required.
 
 Missing optional metadata does not fail an observation. Missing `type`,
 `location`, or datetime does. Category reconciliation remains task #3's job.
@@ -72,22 +79,53 @@ classification; optional report_type is not part of the identity.
 - `exact_repeated_record`: at least two rows share identity and the parsed
   capacity/open-count payload. Numeric strings compare by parsed numeric value.
   Invalid text tokens remain distinct from blanks and from other text tokens.
-- `conflicting_observation`: an identity group has different count or capacity
-  payloads. All members get the conflict flag, even a repeated subset.
-- Both flags can apply. Neither causes deletion or aggregation.
+- `ambiguous_allocation_requires_review`: a Format C identity group has different
+  capacity payloads. These could be separate unnamed allocations; capacity is not
+  added to identity and no distinct allocation is inferred from capacity alone.
+  All members require review, including any exact repeated subset.
+- `conflicting_observation`: an identity group has different count/capacity
+  payloads and is not classified as an ambiguous Format C allocation group.
+  Equal-capacity Format C rows with differing counts still get this flag.
+- Exact repeats can coexist with either review flag. No flag deletes or combines rows.
 - `observation_group` groups identities for review within this run; it is not
   a stable identifier across runs. Source file, sheet and row remain available.
 
 `quality_flag` joins failures with '|'; `quality_pass` means only that implemented
 checks passed. Per-check counts overlap; `any_check` counts unique failed rows.
 
+## Format C source review (2026-10-20)
+
+Inspected the local Spring 2025?2026, Summer 2026?2027 and Fall 2026?2027
+`Data Entry` headers and ambiguous source rows. Spring Athena Visitor rows
+12?15 have capacities 30, 9, 10 and 210 on 2026-03-30. Their Zone, Order
+and Report Area values are all 0; Neighborhood and Lot / Structure also match.
+Report Type is Visitor throughout; Sub Type is absent in Spring and Summer.
+The repeated right-hand Structure / Lot, Space Type and Total Spaces columns
+are helper copies, with count/time summaries rather than a verified allocation
+identifier. These examples do not establish separate allocation identities.
+
+The loader now preserves `Order` as `source_order`, alongside the existing
+spatial/report metadata and original Excel row. Its meaning is unverified, so
+it is not used as an identity key. Existing subtype and level distinctions
+remain identity keys. Unresolved differing-capacity groups get the ambiguity
+flag above. Do not delete, sum, or select one capacity automatically.
+
 ## Downstream coordination
 
-Remote implementations inspected on 2026-10-18:
+Daira's label-standardization work is now on `main` (merged before the
+2026-10-20 revision). `src/labels.py::prepare_label_records()` accepts audited
+observations directly:
 
-- Daira's `src/labels.py` on `origin/Daira-Merino-branch` uses `location`,
-  `type`, `sub_type` and provenance in `prepare_label_records()`. These names
-  remain available here; no replacement label mapping is implemented in task #2.
+```python
+from src.labels import prepare_label_records
+label_records = prepare_label_records(audited)
+```
+
+Regression tests exercise shared loader ? reshape ? validate ? label adapter for
+all three formats. Labels, timed rows, quality flags, raw values, presence
+booleans, provenance and audit attributes survive without modifying the input.
+Label formatting/reconciliation remains task #3's responsibility.
+
 - Hanrong's `src/compare_capacities.py` on
   `origin/issue-4-inventory-capacity` reads `location`, `type`, `sub_type`,
   `level`, `date` and `total_stall_count`. These names remain available.
@@ -96,9 +134,8 @@ Remote implementations inspected on 2026-10-18:
   timed output rather than reshaping a second time. Capacity matching must not
   sum subtype/level allocations without an explicit mapping decision.
 
-The output contract was checked against those source files, not confirmed in a
-conversation. Daira and Hanrong should confirm their intended entry points on
-PR review. No messages were sent and their branches were not modified.
+The label adapter is verified by integration tests against the merged code.
+Hanrong's separate capacity entry point still requires the adaptation noted above.
 
 ## Outputs
 

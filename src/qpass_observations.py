@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from src.qpass_loader import FORMAT_A, OPEN_COLUMNS, OUTPUT_COLUMNS
+from src.qpass_loader import FORMAT_A, FORMAT_C, OPEN_COLUMNS, OUTPUT_COLUMNS
 
 TIME_COLUMNS = dict(zip(OPEN_COLUMNS, ["08:00", "10:00", "12:00", "14:00"]))
 REQUIRED = ["observation_datetime", "location", "type",
@@ -77,9 +77,13 @@ def reshape_loaded_observations(table: pd.DataFrame) -> pd.DataFrame:
             np.where(_blank(result[column]), "blank_or_unavailable", "present"),
             index=result.index, dtype="string",
         )
-        # Format A's raw layout has neither Report Type nor Sub Type.
+        # Format A is known; other layouts use per-sheet header evidence.
         absent = result["format_version"].eq(FORMAT_A) & _blank(result[column])
+        presence = result[f"{column}_in_format"].astype("boolean")
+        absent |= presence.eq(False).fillna(False) & _blank(result[column])
         result.loc[absent, f"{column}_status"] = "not_in_format"
+        blank_cell = presence.eq(True).fillna(False) & _blank(result[column])
+        result.loc[blank_cell, f"{column}_status"] = "blank"
     result.attrs = table.attrs.copy()
     return result
 
@@ -97,7 +101,9 @@ def validate_observations(
     Returns:
         Audited table and per-check failed/passed counts (including any_check).
         Exact repeats share identity and count/capacity payload. Conflicts share
-        identity but contain different payloads; both flags can apply to a row.
+        identity but contain different payloads. Format C capacity variants
+        instead require ambiguous-allocation review; repeats can coexist with
+        either flag. Capacity alone never establishes a separate allocation.
         Optional subtype/level blanks participate in identity as equal blanks;
         report_type is auxiliary metadata, not a required category. Identity
         groups and every source row are preserved. Empty input gives zero counts.
@@ -150,7 +156,15 @@ def validate_observations(
     ) & complete
     groups = identity.groupby(IDENTITY_COLUMNS, dropna=False, sort=False)
     variants = groups[payload_columns].transform("nunique")
-    flags["conflicting_observation"] = variants.gt(1).any(axis=1) & complete
+    differs = variants.gt(1).any(axis=1) & complete
+    # Different capacities in Format C may be unnamed allocations. Capacity
+    # itself cannot establish allocation identity, so keep the group for review.
+    ambiguous = (
+        result["format_version"].eq(FORMAT_C)
+        & variants["capacity_payload"].gt(1) & complete
+    )
+    flags["ambiguous_allocation_requires_review"] = ambiguous
+    flags["conflicting_observation"] = differs & ~ambiguous
     result["observation_group"] = (groups.ngroup() + 1).astype("Int64").mask(~complete)
     result["quality_flag"] = pd.Series(index=result.index, dtype="string")
     if not result.empty:

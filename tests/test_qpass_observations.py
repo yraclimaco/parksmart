@@ -134,7 +134,11 @@ def test_conflicting_counts_and_capacity_are_not_exact_repeats(column):
     second = table(**{column: 9, "source_row": 4})
     out, _ = audit(pd.concat([first, second], ignore_index=True))
     expected = 8 if column == "total_stall_count" else 2
-    assert out.quality_flag.str.contains("conflicting_observation").sum() == expected
+    flag = ("ambiguous_allocation_requires_review"
+            if column == "total_stall_count" else "conflicting_observation")
+    assert out.quality_flag.str.contains(flag).sum() == expected
+    if column == "total_stall_count":
+        assert not out.quality_flag.str.contains("conflicting_observation").any()
     assert out.quality_flag.str.contains("exact_repeated_record").sum() == 8 - expected
     assert set(out.source_row) == {3, 4}
 
@@ -251,3 +255,93 @@ def test_combined_loader_preserves_per_file_metadata(tmp_path):
     assert set(out.academic_year) == {"2018-2019", "2026-2027"}
     assert out.attrs == loaded.attrs
     assert set(out.source_file) == set(loaded.source_file)
+
+
+@pytest.mark.parametrize("weekly", [True, False])
+@pytest.mark.parametrize("header,column", [
+    ("Sub Type", "sub_type"), ("Report Type", "report_type"),
+])
+def test_optional_headers_absent_versus_blank_per_sheet(tmp_path, weekly, header, column):
+    """Header absence survives mixed sheets and combined-file loading."""
+    from openpyxl import load_workbook
+
+    path = make_workbook(tmp_path, weekly=weekly)
+    book = load_workbook(path)
+    sheet = book.active
+    position = next(cell.column for cell in sheet[2] if cell.value == header)
+    sheet.cell(3, position).value = None
+    if weekly:
+        absent = book.copy_worksheet(sheet)
+        absent.title = "QPASS Data Entry (Week 2)"
+        absent.delete_cols(position)
+    else:
+        sheet.delete_cols(position)
+    book.save(path)
+    loaded = load_all_qpass(tmp_path)
+    out, _ = audit(loaded)
+    absent_rows = out if not weekly else out[out.sheet_name.str.endswith("(Week 2)")]
+    assert absent_rows[f"{column}_status"].eq("not_in_format").all()
+    assert absent_rows[f"{column}_in_format"].eq(False).all()
+    if weekly:
+        blank_rows = out[out.sheet_name.str.endswith("(Week 1)")]
+        assert blank_rows[f"{column}_status"].eq("blank").all()
+        assert blank_rows[f"{column}_in_format"].eq(True).all()
+    assert not out.quality_flag.str.contains(f"missing_{column}").any()
+    assert out.attrs == loaded.attrs
+
+
+def test_ambiguous_capacity_group_retains_repeats_counts_and_provenance():
+    wide = pd.concat([table(), table(source_row=4),
+                      table(total_stall_count=20, open_8am=8, source_row=5)],
+                     ignore_index=True)
+    out, summary = audit(wide)
+    assert len(out) == 12
+    assert out.quality_flag.str.contains("ambiguous_allocation_requires_review").all()
+    assert not out.quality_flag.str.contains("conflicting_observation").any()
+    assert out.quality_flag.str.contains("exact_repeated_record").sum() == 8
+    assert out.observation_group.nunique() == 4
+    assert set(out.source_row) == {3, 4, 5}
+    assert set(out.total_stall_count) == {10, 20}
+    assert summary.set_index("check").loc[
+        "ambiguous_allocation_requires_review", "failed"
+    ] == 12
+
+
+@pytest.mark.parametrize("format_version", [FORMAT_A, FORMAT_B])
+def test_other_format_capacity_variants_remain_conflicts(format_version):
+    out, _ = audit(pd.concat([
+        table(format_version=format_version),
+        table(format_version=format_version, total_stall_count=20),
+    ], ignore_index=True))
+    assert out.quality_flag.str.contains("conflicting_observation").all()
+    assert not out.quality_flag.str.contains("ambiguous_allocation_requires_review").any()
+
+
+@pytest.mark.parametrize("older,weekly", [(True, False), (False, True), (False, False)])
+def test_audited_observations_integrate_with_main_label_adapter(tmp_path, older, weekly):
+    from src.labels import prepare_label_records
+
+    loaded = load_qpass(make_workbook(tmp_path, older=older, weekly=weekly))
+    audited, _ = audit(loaded)
+    before = audited.copy(deep=True)
+    labels = prepare_label_records(audited)
+    pd.testing.assert_frame_equal(audited, before)
+    pd.testing.assert_frame_equal(labels[audited.columns], audited)
+    for field, source in [("facility_raw", "location"), ("category_raw", "type"),
+                          ("subtype_raw", "sub_type"), ("source_sheet", "sheet_name")]:
+        pd.testing.assert_series_equal(labels[field], audited[source], check_names=False)
+    assert labels.attrs == audited.attrs
+
+
+def test_source_order_preserved_without_assuming_allocation_identity(tmp_path):
+    from openpyxl import load_workbook
+
+    path = make_workbook(tmp_path)
+    book = load_workbook(path)
+    sheet = book.active
+    sheet.cell(2, 11, "Order")
+    sheet.cell(3, 11, 7)
+    book.save(path)
+    loaded = load_qpass(path)
+    out, _ = audit(loaded)
+    assert out.source_order.eq(7).all()
