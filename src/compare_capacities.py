@@ -88,11 +88,27 @@ def build_candidates(inventory):
                "inventory_capacity_statuses", "inventory_source_groups_json",
                "inventory_subtype", "inventory_time_limit_raw",
                "inventory_single_capacity_status", "inventory_period_metadata_conflict",
-               "inventory_label_unresolved", "candidate_capacity"]
+               "inventory_label_unresolved", "inventory_category_scope_values",
+               "inventory_summary_scope_unverified",
+               "inventory_scope_verification_evidence", "candidate_capacity"]
     rows = []
     for key, group in inventory.groupby(KEYS, dropna=False, sort=False):
         row = dict(zip(KEYS, key))
         single = len(group) == 1
+        category_scope = group.get("category_scope", pd.Series("", index=group.index))
+        schema = group.get("schema_version", pd.Series("", index=group.index))
+        requires_review = category_scope.eq("legacy_summary_category_requires_review") | (
+            schema.eq("legacy_summary_tables_v1")
+        )
+        # A category label or positive count does not verify legacy summary scope.
+        # Preserve the extractor's review status; an explicit decision also needs
+        # evidence establishing the exact parking group, not just a boolean.
+        evidence = group.get(
+            "scope_verification_evidence", pd.Series("", index=group.index)
+        ).fillna("").astype("string").str.strip()
+        verified = group.get(
+            "scope_verified", pd.Series(False, index=group.index)
+        ).astype("string").str.casefold().isin(["true", "1", "yes"]) & evidence.ne("")
         row.update({
             "inventory_group_count": len(group),
             "inventory_source_file": ";".join(group.source_file.astype(str).unique()),
@@ -117,6 +133,9 @@ def build_candidates(inventory):
                 "capacity_status", pd.Series("", index=group.index)
             ).eq("period_metadata_review").any(),
             "inventory_label_unresolved": group.label_status.eq("unresolved").any(),
+            "inventory_category_scope_values": category_scope.tolist(),
+            "inventory_summary_scope_unverified": (requires_review & ~verified).any(),
+            "inventory_scope_verification_evidence": ";".join(evidence[evidence.ne("")]),
             "candidate_capacity": group.capacity.iloc[0] if single else pd.NA,
         })
         rows.append(row)
@@ -231,6 +250,7 @@ def compare_capacities(inventory_path, qpass_path,
         & results.qpass_subtype.fillna("").eq(results.inventory_subtype.fillna(""))
         & _blank(results.inventory_time_limit_raw)
         & ~results.inventory_label_unresolved.eq(True)
+        & ~results.inventory_summary_scope_unverified.eq(True)
     )
     results = audit_reported_capacities(results)
     results["reported_capacity_difference_raw"] = results.capacity_difference
@@ -239,6 +259,8 @@ def compare_capacities(inventory_path, qpass_path,
     results.loc[scope_mismatch, "capacity_difference"] = float("nan")
     results["capacity_scope_status"] = "exact_group"
     results.loc[scope_mismatch, "capacity_scope_status"] = "inventory_scope_review"
+    results.loc[results.inventory_summary_scope_unverified.eq(True),
+                "capacity_scope_status"] = "legacy_summary_scope_review"
 
     opened = pd.to_numeric(results.open_spaces_raw, errors="coerce")
     invalid_id = invalid_identifier(results.facility) | invalid_identifier(results.category)
@@ -269,7 +291,8 @@ def compare_capacities(inventory_path, qpass_path,
     ) | results.category.eq("Closure").fillna(False)
     # QPASS with no subtype cannot resolve multiple Inventory subtype groups.
     ambiguous = (results.inventory_group_count.gt(1) & _blank(results.qpass_level_raw)
-                 & _blank(results.qpass_subtype_raw))
+                 & _blank(results.qpass_subtype_raw)
+                 & ~results.inventory_summary_scope_unverified.eq(True))
     results["qpass_scope_issue"] = (
         results.qpass_scope_issue.astype("string").str.lower().isin(["true", "1", "yes"])
         | closure | ambiguous

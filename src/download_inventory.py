@@ -18,9 +18,6 @@ ARCHIVE_URL = (
 QUARTERS = {1: "Summer", 2: "Fall", 3: "Winter", 4: "Spring"}
 EXCEL_SUFFIXES = {".xls", ".xlsx", ".xlsm"}
 TIMEOUT_SECONDS = 30
-LOCAL_ALIASES = {
-    ("2025-2026", "Fall"): "Inventory_2025-2026_Fall.xlsm",
-}
 
 
 class _ArchiveParser(HTMLParser):
@@ -159,9 +156,6 @@ def download_inventory(qpass_dir=Path("data/raw/QPASS"),
                 url = urls[0]
                 filename = Path(unquote(urlsplit(url).path)).name
                 local = output_dir / filename
-                alias = LOCAL_ALIASES.get((year, quarter))
-                if alias and (output_dir / alias).is_file():
-                    local = output_dir / alias
                 record.update(inventory_url=url, archive_filename=filename,
                               inventory_path=str(local))
                 if local.exists():

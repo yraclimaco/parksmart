@@ -148,3 +148,15 @@ def test_invalid_period_labels_are_flagged(changes):
     result = select(row(**changes))
     assert result.qpass_period_metadata_conflict.all()
     assert result.selected_capacity.isna().all()
+
+
+@pytest.mark.parametrize("reported,expected", [(30, 30), (None, None), (0, None)])
+def test_unverified_summary_guard_cannot_be_bypassed_by_scope_compatible(reported, expected):
+    result = select(row(qpass_capacity_raw=reported, candidate_capacity=25,
+                        inventory_scope_compatible=True,
+                        inventory_summary_scope_unverified=True))
+    assert not result.group_capacity_conflict.any()
+    if expected is None:
+        assert result.selected_capacity.isna().all()
+    else:
+        assert result.selected_capacity.eq(expected).all()

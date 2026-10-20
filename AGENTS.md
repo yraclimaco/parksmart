@@ -195,8 +195,8 @@ Individual supported cleaner commands:
 
 ```bash
 python -m src.clean_inventory_legacy "data/raw/inventory/Inventory 2018-2019-2 October 1.xlsx" --academic-year 2018-2019 --quarter Fall
-python -m src.clean_inventory_modern "data/raw/inventory/Inventory_2025-2026_Fall.xlsm" --academic-year 2025-2026 --quarter Fall
-python -m src.compare_capacities --inventory "data/interim/inventory/Inventory_2025-2026_Fall_capacity_groups.csv" --qpass "data/raw/QPASS/QPASS 2025-2026-2 Fall.xlsm" --output-dir results/capacity_matching/fall_2025
+python -m src.clean_inventory_modern "data/raw/inventory/Inventory 2025-2026-2 Fall.xlsm" --academic-year 2025-2026 --quarter Fall
+python -m src.compare_capacities --inventory "data/interim/inventory/Inventory 2025-2026-2 Fall_capacity_groups.csv" --qpass "data/raw/QPASS/QPASS 2025-2026-2 Fall.xlsm" --output-dir results/capacity_matching/fall_2025
 ```
 
 Legacy tables are `5A By Lot` / `6A By Structure`; modern extraction detects
@@ -461,3 +461,22 @@ period labels remain unchanged; unresolved cases use `period_metadata_conflict`.
 All-missing-Inventory batches write header-only Inventory datasets, replacing
 prior outputs. `src.audit_inventory` is a deprecated explicit-period wrapper for
 the modern cleaner; it no longer filters missing-identifier source rows.
+
+## Legacy summary scope and canonical filenames
+
+`legacy_summary_category_requires_review` is an unverified Inventory category
+scope. Such groups remain in audit outputs but cannot contradict QPASS capacity
+or provide fallback. The same restriction applies to legacy-schema records with
+a missing scope marker. An explicit exact-group scope decision requires both
+`scope_verified=True` and nonblank `scope_verification_evidence` on the extracted
+group; retain the original category_scope marker. Neither matching labels nor
+a positive count establish scope equivalence. No legacy scopes are automatically
+marked verified by the pipeline. Comparable verified-source disagreements remain
+unresolved. Modern layout scope checks remain in force.
+
+The downloader saves the filename linked by the archive, including spaces.
+The Fall 2025 source is `Inventory 2025-2026-2 Fall.xlsm`; generated group files
+use that same stem. The former local underscore alias is no longer consulted.
+Existing local copies are preserved, but rerun `python -m src.download_inventory`
+to generate a manifest using canonical downloaded filenames; no manual rename
+is needed. Quote paths containing spaces.

@@ -1,2 +1,2 @@
 total_observation_slots,eligible_observation_slots,excluded_observation_slots,exact_key_candidates,accepted_qpass_capacities,accepted_inventory_capacities,accepted_capacity_matches,qpass_quarters,exact_key_candidate_rate,accepted_qpass_capacity_rate,accepted_inventory_capacity_rate,accepted_capacity_match_rate
-93712,88025,5687,65115,69577,2932,72509,15,0.739733030389094,0.7904231752343084,0.0333087191138881,0.8237318943481965
+93712,88025,5687,65115,73190,2932,76122,15,0.739733030389094,0.831468332859983,0.0333087191138881,0.8647770519738711

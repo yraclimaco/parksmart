@@ -106,6 +106,7 @@ def apply_capacity_acceptance(results):
         & inventory_positive & _column(result, "_merge").eq("both")
         & ~_truth(_column(result, "inventory_period_metadata_conflict", False))
         & ~_truth(_column(result, "inventory_label_unresolved", False))
+        & ~_truth(_column(result, "inventory_summary_scope_unverified", False))
     )
     # A broad facility total is never compared with a single level/subtype.
     disagreement = inventory_usable & positive & reported.ne(capacity) & ~formula_error

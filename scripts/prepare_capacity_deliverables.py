@@ -80,6 +80,8 @@ def prepare(root=Path(".")):
     check(observations.loc[fallback, "selected_capacity"].astype(float).eq(
         observations.loc[fallback, "candidate_capacity"].astype(float)).all(), "Fallback changed")
     check(observations.loc[fallback, "inventory_scope_compatible"].eq("True").all(), "Unsafe fallback scope")
+    check(observations.loc[fallback, "inventory_summary_scope_unverified"].eq("False").all(),
+          "Unverified legacy summary used as fallback")
     check(observations.loc[fallback, "inventory_group_count"].astype(float).eq(1).all(), "Ambiguous fallback")
     check(observations.loc[fallback, "inventory_single_capacity_status"].eq(
         "positive_unverified").all(), "Invalid Inventory accepted")
@@ -180,6 +182,9 @@ cached values, source rows, labels and Issue #3 restriction decisions are preser
 Invalid dates or calendar-year/quarter metadata conflicts block selection and remain
 flagged. Summer/Fall use the academic starting year; Winter/Spring use its ending year.
 Exact quarter date boundaries and equality with an Inventory date are not inferred.
+Unverified legacy Inventory summary scopes cannot reject valid QPASS capacities
+or provide fallback. Their values and review markers remain in audit reports.
+Only explicit scope verification with evidence can lift that restriction.
 No fuzzy aliases, cross-quarter capacity carry, whole-structure-to-level substitution,
 or broad-category-to-subtype substitution is allowed. Time-limit mappings that are
 not explicitly established remain unresolved. Valid QPASS capacities do not require

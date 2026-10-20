@@ -91,3 +91,28 @@ class TestDownloadInventory(unittest.TestCase):
                 self.assertEqual(records[0]["download_status"],
                                  "downloaded" if valid else "needs_review")
                 self.assertEqual((root / "inventory" / "Inventory Summer.xlsm").exists(), valid)
+
+
+
+def test_canonical_fall_download_ignores_old_local_alias(tmp_path):
+    """A fresh canonical download is not shadowed by a machine-specific alias."""
+    qpass = tmp_path / "QPASS"
+    output = tmp_path / "inventory"
+    qpass.mkdir()
+    output.mkdir()
+    (qpass / "QPASS 2025-2026-2 Fall.xlsm").write_bytes(b"qpass fixture")
+    alias = output / "Inventory_2025-2026_Fall.xlsm"
+    alias.write_bytes(b"unrelated local copy")
+    page = HTML.replace("Inventory%20Fall.xlsm", "Inventory%202025-2026-2%20Fall.xlsm")
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w") as workbook:
+        workbook.writestr("xl/workbook.xml", "fixture")
+    with patch.object(downloader, "urlopen", side_effect=[
+        io.BytesIO(page.encode()), io.BytesIO(payload.getvalue()),
+    ]):
+        records = downloader.download_inventory(qpass, output, tmp_path / "manifest.csv")
+    canonical = output / "Inventory 2025-2026-2 Fall.xlsm"
+    assert canonical.read_bytes() == payload.getvalue()
+    assert alias.read_bytes() == b"unrelated local copy"
+    assert records[0]["inventory_path"] == str(canonical)
+    assert records[0]["download_status"] == "downloaded"

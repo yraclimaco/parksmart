@@ -6,22 +6,22 @@ reviewed 14 available Inventory workbooks. Eligible: 88,025;
 excluded: 5,687. Excluded records remain in reports.
 
 - Exact standardized Inventory key candidates: 65,115 (73.97%).
-- Accepted QPASS capacities: 69,577 (79.04%).
+- Accepted QPASS capacities: 73,190 (83.15%).
 - Assumed same-quarter Inventory fallbacks: 2,932 (3.33%).
-- All accepted capacities: 72,509 (82.37%).
-- Unresolved slots: 21,203. Conflicting slots: 8,024.
+- All accepted capacities: 76,122 (86.48%).
+- Unresolved slots: 17,590. Conflicting slots: 4,209.
 
 Candidate rates describe Inventory key coverage, not accepted capacity coverage.
 All rates use eligible slots; overall rates divide summed counts.
 
 | Academic year | Quarter | Total | Eligible | QPASS | Inventory fallback | Accepted rate |
 |---|---|---:|---:|---:|---:|---:|
-| 2018-2019 | Summer | 10620 | 9670 | 8466 | 0 | 87.55% |
-| 2018-2019 | Fall | 10784 | 10117 | 9550 | 0 | 94.40% |
-| 2018-2019 | Winter | 5760 | 5584 | 5251 | 0 | 94.04% |
-| 2018-2019 | Spring | 4240 | 4087 | 3351 | 0 | 81.99% |
-| 2019-2020 | Summer | 4480 | 3719 | 3303 | 0 | 88.81% |
-| 2019-2020 | Fall | 4720 | 4643 | 3716 | 0 | 80.03% |
+| 2018-2019 | Summer | 10620 | 9670 | 9504 | 0 | 98.28% |
+| 2018-2019 | Fall | 10784 | 10117 | 9928 | 0 | 98.13% |
+| 2018-2019 | Winter | 5760 | 5584 | 5512 | 0 | 98.71% |
+| 2018-2019 | Spring | 4240 | 4087 | 4071 | 0 | 99.61% |
+| 2019-2020 | Summer | 4480 | 3719 | 3719 | 0 | 100.00% |
+| 2019-2020 | Fall | 4720 | 4643 | 4516 | 0 | 97.26% |
 | 2024-2025 | Summer | 4360 | 3912 | 3460 | 0 | 88.45% |
 | 2024-2025 | Fall | 5376 | 5276 | 4568 | 0 | 86.58% |
 | 2024-2025 | Winter | 4360 | 4301 | 3948 | 0 | 91.79% |
@@ -36,8 +36,8 @@ All rates use eligible slots; overall rates divide summed counts.
 
 - scope_conflict: 6,063.
 - invalid_observation: 5,411.
-- capacity_conflict: 5,153.
 - source_data_problem: 3,312.
+- capacity_conflict: 1,540.
 - mapping_review: 464.
 - inventory_capacity_review: 424.
 - invalid_identifier: 276.
@@ -56,6 +56,9 @@ cached values, source rows, labels and Issue #3 restriction decisions are preser
 Invalid dates or calendar-year/quarter metadata conflicts block selection and remain
 flagged. Summer/Fall use the academic starting year; Winter/Spring use its ending year.
 Exact quarter date boundaries and equality with an Inventory date are not inferred.
+Unverified legacy Inventory summary scopes cannot reject valid QPASS capacities
+or provide fallback. Their values and review markers remain in audit reports.
+Only explicit scope verification with evidence can lift that restriction.
 No fuzzy aliases, cross-quarter capacity carry, whole-structure-to-level substitution,
 or broad-category-to-subtype substitution is allowed. Time-limit mappings that are
 not explicitly established remain unresolved. Valid QPASS capacities do not require

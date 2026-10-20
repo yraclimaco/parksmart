@@ -185,7 +185,7 @@ def test_two_quarter_rebuild_and_deliverable_validation(tmp_path, monkeypatch):
     assert validation["checks_passed"]
     assert validation["qpass_quarters"] == 2
     assert validation["inventory_workbooks"] == 2
-    assert validation["counts"]["accepted_inventory_capacities"] == 7
+    assert validation["counts"]["accepted_inventory_capacities"] == 3
     assert validation["counts"]["accepted_qpass_capacities"] == 4
     for path, original in before.items():
         assert path.read_bytes() == original
@@ -328,3 +328,118 @@ def test_deprecated_audit_requires_period_and_keeps_invalid_identifiers(tmp_path
     assert len(groups) == 2
     assert groups.capacity_status.eq("invalid_identifier_review").sum() == 1
     assert inventory.read_bytes() == before
+
+
+@pytest.mark.parametrize("reported,verified,evidence,expected", [
+    (30, False, "", 30),
+    (None, False, "", None),
+    (0, False, "", None),
+    (None, True, "", None),
+    (30, True, "Reviewed exact group in source cells", None),
+    (None, True, "Reviewed exact group in source cells", 25),
+])
+def test_legacy_summary_requires_explicit_scope_verification(
+    tmp_path, reported, verified, evidence, expected
+):
+    """Unverified summaries neither contradict nor fill; verified conflicts remain."""
+    inventory = tmp_path / "legacy.csv"
+    pd.DataFrame([dict(
+        academic_year="2018-2019", quarter="Fall", facility_raw="P100",
+        category_raw="A", category="A", capacity=25,
+        capacity_status="positive_unverified", source_file="Inventory legacy.xlsx",
+        source_rows="8", schema_version="legacy_summary_tables_v1",
+        category_scope="legacy_summary_category_requires_review",
+        scope_verified=verified, scope_verification_evidence=evidence,
+    )]).to_csv(inventory, index=False)
+    qpass = tmp_path / "QPASS 2018-2019-2 Fall.xlsx"
+    write_qpass(qpass, [("P100", "A", reported, [5, 4, 3, 2])],
+                date=dt.datetime(2018, 10, 4))
+    result = compare_capacities(inventory, qpass, tmp_path / "out")
+    assert len(result) == 4
+    if expected is None:
+        assert result.selected_capacity.isna().all()
+    else:
+        assert result.selected_capacity.eq(expected).all()
+    assert result.candidate_capacity.eq(25).all()
+    assert result.inventory_source_groups_json.str.contains(
+        "legacy_summary_category_requires_review"
+    ).all()
+    if not verified or not evidence:
+        assert result.inventory_summary_scope_unverified.all()
+        assert not result.inventory_scope_compatible.any()
+        assert not result.group_capacity_conflict.any()
+        assert result.capacity_difference.isna().all()
+        assert result.reported_capacity_comparison.eq("scope_review_required").all()
+    elif reported == 30:
+        assert result.group_capacity_conflict.all()
+        assert result.reported_capacity_comparison.eq("conflict").all()
+
+
+def test_legacy_schema_without_scope_marker_is_not_implicitly_verified(tmp_path):
+    inventory = tmp_path / "legacy.csv"
+    pd.DataFrame([dict(academic_year="2018-2019", quarter="Fall", facility_raw="P100",
+                       category_raw="A", capacity=25, capacity_status="positive_unverified",
+                       source_file="legacy.xlsx", source_rows="8",
+                       schema_version="legacy_summary_tables_v1")]).to_csv(inventory, index=False)
+    qpass = tmp_path / "QPASS 2018-2019-2 Fall.xlsx"
+    write_qpass(qpass, [("P100", "A", 30, [5, 4, 3, 2])], date=dt.datetime(2018, 10, 4))
+    result = compare_capacities(inventory, qpass, tmp_path / "out")
+    assert result.selected_capacity.eq(30).all()
+    assert result.inventory_summary_scope_unverified.all()
+
+
+def test_documented_commands_use_fresh_downloader_filename(tmp_path, monkeypatch):
+    """Execute both docs' commands against a newly downloaded canonical file."""
+    import io
+    import os
+    from pathlib import Path
+    import shlex
+    import subprocess
+    import sys
+    from unittest.mock import patch
+    from src import download_inventory as downloader
+
+    project = Path(__file__).resolve().parents[1]
+    qpass_dir = tmp_path / "data/raw/QPASS"
+    qpass_dir.mkdir(parents=True)
+    write_qpass(qpass_dir / "QPASS 2025-2026-2 Fall.xlsm",
+                [("P386", "Visitor", None, [1, 2, 3, 4])],
+                date=dt.datetime(2025, 9, 29))
+    workbook = Workbook()
+    workbook.active.title = "Title"
+    workbook.active.append(["Parking Space Inventory Fall 2025"])
+    sheet = workbook.create_sheet("Pivot Table Data")
+    sheet.append(["Lot  / Structure", "Space Type", "Space Subtype",
+                  "Time Limit [minutes]", "Inventory By Location"])
+    sheet.append(["P386", "Visitor", None, None, 10])
+    payload = io.BytesIO()
+    workbook.save(payload)
+    workbook.close()
+    html = ('<table><tr><td>2025/2026</td><td></td><td><a href="'
+            'Inventory%202025-2026-2%20Fall.xlsm">Excel</a></td>'
+            '<td></td><td></td></tr></table>')
+    monkeypatch.chdir(tmp_path)
+    with patch.object(downloader, "urlopen", side_effect=[
+        io.BytesIO(html.encode()), io.BytesIO(payload.getvalue()),
+    ]):
+        records = downloader.download_inventory()
+    assert records[0]["download_status"] == "downloaded"
+    source = tmp_path / "data/raw/inventory/Inventory 2025-2026-2 Fall.xlsm"
+    before = source.read_bytes()
+    env = {**os.environ, "PYTHONPATH": str(project)}
+    for doc in ("AGENTS.md", "docs/inventory_audit.md"):
+        commands = [line for line in (project / doc).read_text().splitlines()
+                    if line.startswith("python -m src.clean_inventory_modern ")
+                    or line.startswith("python -m src.compare_capacities ")]
+        assert len(commands) == 2
+        for command in commands:
+            assert "Inventory_2025-2026_Fall" not in command
+            subprocess.run([sys.executable, *shlex.split(command)[1:]],
+                           cwd=tmp_path, env=env, capture_output=True, text=True,
+                           check=True)
+    groups = tmp_path / "data/interim/inventory/Inventory 2025-2026-2 Fall_capacity_groups.csv"
+    assert groups.is_file()
+    results = pd.read_csv(tmp_path / "results/capacity_matching/fall_2025/capacity_comparison.csv")
+    assert len(results) == 4
+    assert results.selected_capacity.eq(10).all()
+    assert source.read_bytes() == before
