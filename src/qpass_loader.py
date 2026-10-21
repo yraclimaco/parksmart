@@ -20,6 +20,7 @@ import datetime as dt
 import logging
 import numbers
 import re
+from collections.abc import Iterable
 from pathlib import Path
 
 import pandas as pd
@@ -286,7 +287,13 @@ def _count_non_numeric_values(data: pd.DataFrame, filename: str) -> dict[str, in
     return counts
 
 
-def load_all_qpass(folder: str | Path = RAW_QPASS_DIR) -> pd.DataFrame:
+def _collapse_spaces(name: str) -> str:
+    """Return a file name with runs of whitespace collapsed to one space."""
+    return " ".join(name.split())
+
+
+def load_all_qpass(folder: str | Path = RAW_QPASS_DIR,
+                   exclude: Iterable[str] = ()) -> pd.DataFrame:
     """Load every QPASS workbook in a folder into one combined DataFrame.
 
     This is the starting point for later steps (cleaning, name
@@ -297,24 +304,34 @@ def load_all_qpass(folder: str | Path = RAW_QPASS_DIR) -> pd.DataFrame:
     are kept here, keyed by file name:
 
     - ``attrs["files"]``: names of the workbooks loaded, in order.
+    - ``attrs["excluded_files"]``: workbooks present but not loaded because
+      they are listed in ``exclude``.
     - ``attrs["skipped_sheets"]``: {file: [(sheet, reason), ...]}.
     - ``attrs["dropped_rows"]``: {file: {sheet: {reason: count}}}.
     - ``attrs["non_numeric_values"]``: {file: {column: count}}.
 
     Args:
         folder: Folder holding the workbooks. Defaults to data/raw/QPASS.
+        exclude: Workbook file names to leave out (for example a workbook
+            excluded by team decision). Names match with repeated spaces
+            collapsed, so "QPASS 2024-2025-1  Summer.xlsm" matches either form.
 
     Returns:
         DataFrame with columns OUTPUT_COLUMNS; source_file, sheet_name and
         source_row say where each row came from.
 
     Raises:
-        FileNotFoundError: If the folder has no QPASS workbooks.
+        FileNotFoundError: If the folder has no QPASS workbooks to load.
         UnsupportedQPASSFormatError: If any workbook cannot be loaded. The
             error names the file; no file is skipped silently.
     """
     folder = Path(folder)
+    excluded_names = {_collapse_spaces(name) for name in exclude}
     paths = sorted(folder.glob(QPASS_FILE_GLOB))
+    excluded = [p.name for p in paths if _collapse_spaces(p.name) in excluded_names]
+    paths = [p for p in paths if p.name not in excluded]
+    for name in excluded:
+        logger.info("%s: not loaded (excluded)", name)
     if not paths:
         raise FileNotFoundError(
             f"No files matching {QPASS_FILE_GLOB!r} in {folder}. "
@@ -323,7 +340,7 @@ def load_all_qpass(folder: str | Path = RAW_QPASS_DIR) -> pd.DataFrame:
 
     frames = {path.name: load_qpass(path) for path in paths}
     combined = pd.concat(frames.values(), ignore_index=True)
-    combined.attrs = {"files": list(frames)}
+    combined.attrs = {"files": list(frames), "excluded_files": excluded}
     for key in ("skipped_sheets", "dropped_rows", "non_numeric_values"):
         combined.attrs[key] = {name: frame.attrs[key] for name, frame in frames.items()}
     logger.info("loaded %d QPASS workbooks, %d rows", len(paths), len(combined))

@@ -190,8 +190,15 @@ files to `data/processed/pipeline/` (gitignored); capacity batch reports go to
 re-extraction. Inclusion rules, deduplication, and column definitions are in
 `docs/pipeline.md`; the quality-flag policy is `QUALITY_FLAG_BLOCKS` in
 `src/build_dataset.py`. Join observations to capacity by source key, never by
-labels. Tests: `python -m pytest tests/test_build_dataset.py -q`; the real-data
-check runs only when the pipeline outputs exist.
+labels. The team-excluded Winter 2025-2026 workbook (`EXCLUDED_FILES` in
+`src/download_qpass.py`) is left out of both the load and the capacity
+manifest even if it is on disk; pass the same list to `load_all_qpass(...,
+exclude=...)` elsewhere. Readings without a survey date are audited as
+`capacity:missing_survey_date`, not fatal. Every build re-reads its outputs
+with `validate_outputs` and fails on lost, multiplied, or invalid rows.
+Tests: `python -m pytest tests/test_build_dataset.py -q`. The real-data check
+runs when workbooks and outputs exist; point it at another output folder with
+`PARKSMART_PIPELINE_DIR=<dir> python -m pytest tests/test_build_dataset.py -k real -q`.
 
 ### Inventory capacity selection — Issue #4
 

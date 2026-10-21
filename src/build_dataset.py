@@ -22,11 +22,14 @@ import json
 import logging
 import time
 import warnings
+from collections.abc import Iterable
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
+from src.download_qpass import EXCLUDED_FILES
 from src.qpass_loader import RAW_QPASS_DIR, load_all_qpass
 from src.qpass_observations import reshape_loaded_observations, validate_observations
 from src.run_capacity_matching import run_capacity_matching
@@ -43,6 +46,11 @@ CAPACITY_TIME_TO_COLUMN = {"8am": "open_8am", "10am": "open_10am",
                            "12pm": "open_12pm", "2pm": "open_2pm"}
 SOURCE_KEY = ["source_file", "sheet_name", "source_row", "date",
               "source_time_column"]
+# One workbook cell group: the source key without the survey date.
+CELL_KEY = ["source_file", "sheet_name", "source_row", "source_time_column"]
+MISSING_DATE_ID = "no-date"
+# gzip stores a timestamp; a fixed value keeps audit.csv.gz identical on reruns.
+AUDIT_COMPRESSION = {"method": "gzip", "mtime": 0}
 # Columns in both tables that must agree after the join.
 SHARED_COLUMNS = ["academic_year", "quarter"]
 
@@ -119,19 +127,25 @@ def _key_frame(frame: pd.DataFrame) -> pd.DataFrame:
 def join_capacity(audited: pd.DataFrame, capacity: pd.DataFrame) -> pd.DataFrame:
     """Attach capacity selection to every audited observation, one-to-one.
 
+    Rows are matched on SOURCE_KEY. Observations without a parseable survey
+    date cannot be matched reliably; they are kept with capacity_match
+    "missing_survey_date", and any capacity rows for the same source cell
+    (file, sheet, row, time slot) are accounted for rather than attached.
+
     Args:
         audited: Output of validate_observations() on all workbooks.
         capacity: Combined capacity_comparison report from the capacity batch,
             read as strings (one row per QPASS source row and time slot).
 
     Returns:
-        audited with capacity columns added. Observations with no capacity
-        row (a workbook outside the capacity manifest) are kept with
-        capacity_row_found False.
+        audited, in its original order, with capacity columns added and
+        capacity_match set to "matched", "not_in_capacity_manifest" (workbook
+        outside the capacity manifest) or "missing_survey_date".
 
     Raises:
-        ValueError: A key is duplicated on either side, a capacity row has no
-            matching observation, or academic year/quarter disagree.
+        ValueError: A file/sheet/row/time identifier is missing, a dated key is
+            duplicated on either side, a capacity row matches no observation,
+            academic year/quarter disagree, or the row count changes.
     """
     capacity = capacity.rename(columns={
         "qpass_source_file": "source_file", "qpass_source_sheet": "sheet_name",
@@ -142,22 +156,42 @@ def join_capacity(audited: pd.DataFrame, capacity: pd.DataFrame) -> pd.DataFrame
     )
     left, right = _key_frame(audited), _key_frame(capacity)
     for name, key in [("observation", left), ("capacity", right)]:
-        if key.isna().any(axis=None):
-            raise ValueError(f"{name} rows have incomplete source keys")
-        if key.duplicated().any():
+        if key[CELL_KEY].isna().any(axis=None):
+            raise ValueError(f"{name} rows have incomplete source identifiers")
+        if key.dropna(subset=["date"]).duplicated().any():
             raise ValueError(f"{name} source keys are not unique")
+    base = pd.concat([audited.drop(columns=SOURCE_KEY), left], axis=1)
+    base["_order"] = range(len(base))
     extra = pd.concat([capacity.drop(columns=SOURCE_KEY).add_prefix("cap__"), right],
                       axis=1)
-    joined = pd.concat([audited.drop(columns=SOURCE_KEY), left], axis=1).merge(
-        extra, on=SOURCE_KEY, how="outer", validate="one_to_one", indicator=True,
+    dated = base["date"].notna()
+    joined = base.loc[dated].merge(
+        extra.loc[right["date"].notna()], on=SOURCE_KEY, how="outer",
+        validate="one_to_one", indicator=True,
     )
-    orphans = joined["_merge"].eq("right_only")
-    if orphans.any():
-        raise ValueError(f"{int(orphans.sum())} capacity rows match no observation")
-    joined["capacity_row_found"] = joined.pop("_merge").eq("both")
-    found = joined["capacity_row_found"]
+    # Capacity rows left over must belong to undated observations of the same
+    # source cell; anything else is a capacity row with no observation.
+    leftover = pd.concat([
+        joined.loc[joined["_merge"].eq("right_only"), CELL_KEY],
+        right.loc[right["date"].isna(), CELL_KEY],
+    ])
+    undated = base.loc[~dated, CELL_KEY]
+    leftover_counts = leftover.value_counts()
+    undated_counts = undated.value_counts().reindex(leftover_counts.index)
+    if leftover_counts.ne(undated_counts).any():
+        unmatched = int(leftover_counts[leftover_counts.ne(undated_counts)].sum())
+        raise ValueError(f"{unmatched} capacity rows match no observation")
+    joined = joined.loc[joined["_merge"].ne("right_only")]
+    joined["capacity_match"] = joined.pop("_merge").map(
+        {"both": "matched", "left_only": "not_in_capacity_manifest"}
+    ).astype("string")
+    if not dated.all():
+        missing_date = base.loc[~dated].assign(capacity_match="missing_survey_date")
+        joined = pd.concat([joined, missing_date], ignore_index=True)
+    joined = joined.sort_values("_order").drop(columns="_order").reset_index(drop=True)
+    matched = joined["capacity_match"].eq("matched")
     for column in SHARED_COLUMNS:
-        mismatch = found & joined[column].astype("string").ne(
+        mismatch = matched & joined[column].astype("string").ne(
             joined.pop(f"cap__{column}").astype("string")
         ).fillna(True)
         if mismatch.any():
@@ -179,49 +213,83 @@ def _quality_reasons(quality_flag: pd.Series) -> pd.Series:
                                   if QUALITY_FLAG_BLOCKS.get(f, False)])
 
 
+def _record_ids(result: pd.DataFrame) -> pd.Series:
+    """Build readable unique ids from the source key, numbering any collisions."""
+    ids = (
+        result["source_file"] + "|" + result["sheet_name"] + "|"
+        + result["source_row"].astype("string") + "|"
+        + result["date"].dt.strftime("%Y-%m-%d").fillna(MISSING_DATE_ID)
+        + "|" + result["source_time_column"]
+    ).astype("string")
+    # Only undated rows can collide (several dates on one Excel row).
+    repeat = ids.groupby(ids).cumcount() + 1
+    collides = ids.duplicated(keep=False)
+    return ids.mask(collides, ids + "#" + repeat.astype("string"))
+
+
+def _valid_capacity(values: pd.Series) -> pd.Series:
+    """True for finite, positive, whole-number capacities."""
+    numbers = pd.to_numeric(values, errors="coerce").to_numpy(
+        dtype=float, na_value=np.nan
+    )
+    with np.errstate(invalid="ignore"):
+        valid = np.isfinite(numbers) & (numbers > 0) & (np.mod(numbers, 1) == 0)
+    return pd.Series(valid, index=values.index)
+
+
 def decide_inclusion(joined: pd.DataFrame) -> pd.DataFrame:
     """Decide analysis use per observation and deduplicate exact repeats.
 
-    A row is included only when capacity selection accepted a capacity, the
-    capacity step did not exclude it, no blocking quality flag is set, and
-    open_spaces does not exceed the selected capacity. Values are never
-    clipped or filled. Among included rows sharing one identity group, the
-    copy with the smallest source key is kept; the others are excluded with
-    duplicate_of pointing to it. Copies with different selected capacities are
-    all excluded for review.
+    A row is included only when it was matched to a capacity row, capacity
+    selection accepted a capacity and did not exclude the row, the selected
+    capacity is a finite positive whole number, no blocking quality flag is
+    set, open_spaces does not exceed the capacity, and the resulting fraction
+    is finite and between 0 and 1. Values are never clipped or filled. Among
+    included rows sharing one identity group, the copy with the smallest
+    source key is kept; the others are excluded with duplicate_of pointing to
+    it. Copies with different selected capacities are all excluded for review.
 
     Args:
         joined: Output of join_capacity().
 
     Returns:
-        Copy with record_id, included, exclusion_reasons ('|'-joined),
-        duplicate_of, duplicate_copies, and fraction_available.
+        Copy with record_id, selected_capacity_raw (as received),
+        selected_capacity (valid values only), included, exclusion_reasons
+        ('|'-joined), duplicate_of, duplicate_copies, and fraction_available.
     """
     result = joined.copy()
-    result["record_id"] = (
-        result["source_file"] + "|" + result["sheet_name"] + "|"
-        + result["source_row"].astype("string") + "|"
-        + result["date"].dt.strftime("%Y-%m-%d") + "|" + result["source_time_column"]
-    )
-    result["selected_capacity"] = pd.to_numeric(
-        result["selected_capacity"], errors="coerce"
+    result["record_id"] = _record_ids(result)
+    raw = result["selected_capacity"].astype("string")
+    result["selected_capacity_raw"] = raw
+    blank = raw.isna() | raw.str.strip().eq("")
+    valid = _valid_capacity(raw)
+    result["selected_capacity"] = pd.to_numeric(raw, errors="coerce").where(
+        valid
     ).astype("Int64")
     reasons = _quality_reasons(result["quality_flag"])
-    found = result["capacity_row_found"]
-    capacity_excluded = result["exclusion_reason"].fillna("").ne("")
-    for index in result.index[~found]:
-        reasons[index].append("capacity:not_in_capacity_manifest")
-    for index in result.index[found & capacity_excluded]:
+    match = result["capacity_match"]
+    matched = match.eq("matched")
+    capacity_excluded = matched & result["exclusion_reason"].fillna("").ne("")
+    for index in result.index[~matched]:
+        reasons[index].append(f"capacity:{match[index]}")
+    for index in result.index[capacity_excluded]:
         reason = result.at[index, "exclusion_reason"]
         reasons[index].append(f"capacity_excluded:{reason}")
-    unaccepted = found & ~capacity_excluded & result["selected_capacity"].isna()
-    for index in result.index[unaccepted]:
+    usable = matched & ~capacity_excluded
+    for index in result.index[usable & blank]:
         reasons[index].append(
             f"capacity_unresolved:{result.at[index, 'capacity_acceptance_reason']}"
         )
+    for index in result.index[usable & ~blank & ~valid]:
+        reasons[index].append("invalid_selected_capacity")
     exceeds = result["open_spaces"].gt(result["selected_capacity"]).fillna(False)
     for index in result.index[exceeds]:
         reasons[index].append("open_exceeds_selected_capacity")
+    fraction = (result["open_spaces"] / result["selected_capacity"]).astype("Float64")
+    in_range = fraction.ge(0) & fraction.le(1)
+    bad_fraction = reasons.map(len).eq(0) & ~in_range.fillna(False)
+    for index in result.index[bad_fraction]:
+        reasons[index].append("invalid_fraction_available")
 
     eligible = reasons.map(len).eq(0)
     result["duplicate_of"] = pd.Series(pd.NA, index=result.index, dtype="string")
@@ -244,9 +312,7 @@ def decide_inclusion(joined: pd.DataFrame) -> pd.DataFrame:
 
     result["exclusion_reasons"] = reasons.map("|".join).astype("string")
     result["included"] = result["exclusion_reasons"].eq("")
-    result["fraction_available"] = (
-        result["open_spaces"] / result["selected_capacity"]
-    ).astype("Float64").where(result["included"])
+    result["fraction_available"] = fraction.where(result["included"])
     return result
 
 
@@ -265,6 +331,128 @@ def build_analysis_dataset(audit: pd.DataFrame) -> pd.DataFrame:
     return analysis.sort_values(
         ["observation_datetime", "facility", "category", "record_id"]
     ).reset_index(drop=True)
+
+
+def validate_outputs(output_dir: Path, expected_total: int | None = None,
+                     excluded_files: Iterable[str] = EXCLUDED_FILES) -> dict:
+    """Check exported pipeline outputs for lost, multiplied, or invalid rows.
+
+    Reads analysis_dataset.csv and audit.csv.gz from output_dir, so it works on
+    the default folder, a temporary test folder, or any --output-dir.
+
+    Args:
+        output_dir: Folder written by run_pipeline().
+        expected_total: Number of reshaped source observations the audit must
+            contain (loader rows x four time slots, after excluded workbooks).
+            Skipped when None.
+        excluded_files: Workbook names that must not appear in the audit.
+
+    Returns:
+        Dict with total, included, and excluded counts.
+
+    Raises:
+        ValueError: Listing every failed check.
+    """
+    output_dir = Path(output_dir)
+    audit = pd.read_csv(output_dir / "audit.csv.gz", dtype=str, keep_default_na=False,
+                        low_memory=False)
+    analysis = pd.read_csv(output_dir / "analysis_dataset.csv", dtype=str,
+                           keep_default_na=False)
+    problems = []
+    if not audit["record_id"].is_unique:
+        problems.append("audit record_id values are not unique")
+    if expected_total is not None and len(audit) != expected_total:
+        problems.append(f"audit has {len(audit)} rows; source has {expected_total}")
+    if not audit["included"].isin(["True", "False"]).all():
+        problems.append("audit included column has values other than True/False")
+    included = audit.loc[audit["included"].eq("True")]
+    excluded = audit.loc[audit["included"].eq("False")]
+    if len(included) + len(excluded) != len(audit):
+        problems.append("included plus excluded does not equal the audit total")
+    if len(analysis) != len(included) or set(analysis["record_id"]) != set(
+        included["record_id"]
+    ):
+        problems.append("analysis rows do not match the audit's included rows")
+    if included["exclusion_reasons"].ne("").any():
+        problems.append("included rows have exclusion reasons")
+    if excluded["exclusion_reasons"].eq("").any():
+        problems.append("excluded rows have no exclusion reason")
+    blocking = {flag for flag, blocks in QUALITY_FLAG_BLOCKS.items() if blocks}
+    flagged = included["quality_flag"].str.split("|").map(
+        lambda flags: bool(blocking.intersection(flags))
+    )
+    if flagged.any():
+        problems.append(f"{int(flagged.sum())} included rows have blocking flags")
+    if not _valid_capacity(analysis["selected_capacity"]).all():
+        problems.append("analysis rows have an invalid selected capacity")
+    fraction = pd.to_numeric(analysis["fraction_available"], errors="coerce")
+    expected = (pd.to_numeric(analysis["open_spaces"], errors="coerce")
+                / pd.to_numeric(analysis["selected_capacity"], errors="coerce"))
+    if not (fraction.between(0, 1) & np.isclose(fraction, expected)).all():
+        problems.append("analysis fraction_available is missing, out of range, "
+                        "or not open_spaces / selected_capacity")
+    copies = audit.loc[audit["duplicate_of"].ne("")]
+    kept = audit.drop_duplicates("record_id").set_index("record_id")
+    targets = copies["duplicate_of"]
+    known = targets.isin(kept.index)
+    if not known.all():
+        problems.append("duplicate_of points to unknown records")
+    target_rows = kept.loc[targets[known]]
+    if not (target_rows["included"].eq("True").all()
+            and pd.to_numeric(target_rows["duplicate_copies"]).ge(2).all()
+            and (target_rows["observation_group"].to_numpy()
+                 == copies.loc[known, "observation_group"].to_numpy()).all()):
+        problems.append("duplicate_of does not point to a retained copy "
+                        "of the same observation")
+    names = {_collapse_spaces(name) for name in excluded_files}
+    if audit["source_file"].map(_collapse_spaces).isin(names).any():
+        problems.append("excluded workbooks appear in the audit")
+    if problems:
+        raise ValueError("Pipeline output check failed: " + "; ".join(problems))
+    return {"total": len(audit), "included": len(included),
+            "excluded": len(excluded)}
+
+
+def _collapse_spaces(name: str) -> str:
+    """Return a file name with runs of whitespace collapsed to one space."""
+    return " ".join(str(name).split())
+
+
+def load_observations(qpass_dir: Path = RAW_QPASS_DIR,
+                      excluded_files: Iterable[str] = EXCLUDED_FILES
+                      ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load, reshape, and quality-check every included QPASS workbook.
+
+    Args:
+        qpass_dir: Folder with the original QPASS workbooks.
+        excluded_files: Workbook names left out by team decision.
+
+    Returns:
+        Tuple of (loader table with attrs, audited timed observations).
+    """
+    loaded = load_all_qpass(qpass_dir, exclude=excluded_files)
+    audited, _ = validate_observations(reshape_loaded_observations(loaded))
+    return loaded, audited
+
+
+def filter_manifest(manifest: Path, destination: Path,
+                    excluded_files: Iterable[str] = EXCLUDED_FILES) -> list[str]:
+    """Copy the Inventory manifest without rows for excluded QPASS workbooks.
+
+    Args:
+        manifest: Manifest written by src.download_inventory.
+        destination: Path for the filtered copy used by the capacity batch.
+        excluded_files: Workbook names left out by team decision.
+
+    Returns:
+        Names of the manifest's QPASS files that were left out.
+    """
+    rows = pd.read_csv(manifest, dtype=str, keep_default_na=False)
+    names = {_collapse_spaces(name) for name in excluded_files}
+    skip = rows["qpass_file"].map(_collapse_spaces).isin(names)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    rows.loc[~skip].to_csv(destination, index=False)
+    return rows.loc[skip, "qpass_file"].tolist()
 
 
 # Plain-language labels for exclusion reason codes, used in reports only.
@@ -295,6 +483,11 @@ REASON_LABELS = {
     "capacity_unresolved:qpass_period_metadata_conflict":
         "survey date does not match its quarter",
     "capacity:not_in_capacity_manifest": "workbook not in the capacity manifest",
+    "capacity:missing_survey_date": "survey date missing or unreadable",
+    "invalid_selected_capacity":
+        "selected capacity is zero, negative, fractional or not a number",
+    "invalid_fraction_available":
+        "open spaces and capacity do not give a fraction between 0 and 1",
     "quality:conflicting_observation":
         "two different readings for the same spot and time",
     "quality:ambiguous_allocation_requires_review":
@@ -313,15 +506,17 @@ REASON_GROUPS = [
         "capacity_excluded:known_copied_non_observation",
         "quality:missing_open_spaces", "quality:unexpected_text_open_spaces",
         "quality:negative_open_spaces", "quality:nonfinite_open_spaces",
-        "quality:fractional_open_spaces",
+        "quality:fractional_open_spaces", "invalid_fraction_available",
     )),
     ("Facility, category or date missing", (
         "capacity_excluded:invalid_facility_or_category",
         "quality:missing_location", "quality:missing_type",
-        "quality:missing_observation_datetime",
+        "quality:missing_observation_datetime", "capacity:missing_survey_date",
         "capacity_unresolved:label_mapping_unresolved",
     )),
-    ("No trustworthy capacity", ("capacity_unresolved:", "capacity:")),
+    ("No trustworthy capacity", (
+        "capacity_unresolved:", "capacity:", "invalid_selected_capacity",
+    )),
     ("Conflicting readings for the same spot and time", (
         "quality:conflicting_observation",
         "quality:ambiguous_allocation_requires_review",
@@ -397,6 +592,7 @@ def summarize(audit: pd.DataFrame, loader_attrs: dict) -> dict:
         "years": " to ".join(dict.fromkeys([years[0], years[-1]])) if years
         else "none",
         "files": loader_attrs.get("files", []),
+        "excluded_files": loader_attrs.get("excluded_files", []),
         "skipped_sheets": loader_attrs.get("skipped_sheets", {}),
         "dropped_rows": loader_attrs.get("dropped_rows", {}),
         "removed": _removal_breakdown(audit),
@@ -427,6 +623,8 @@ def _result_lines(summary: dict) -> list[str]:
         "  fraction_available = open_spaces / capacity (0 = full, 1 = empty).",
         f"  Covers {summary['facilities']} facilities over {summary['quarters']} "
         f"quarter(s), academic years {summary['years']}.",
+        *([f"  Not loaded (team decision): {', '.join(summary['excluded_files'])}."]
+          if summary["excluded_files"] else []),
         "",
         f"  How we got there, starting from {total:,} readings in the workbooks:",
     ]
@@ -550,7 +748,9 @@ def run_pipeline(qpass_dir: Path = RAW_QPASS_DIR,
                  inventory_dir: Path = DEFAULT_INVENTORY_DIR,
                  capacity_dir: Path = DEFAULT_CAPACITY_DIR,
                  output_dir: Path = DEFAULT_OUTPUT_DIR,
-                 rebuild_inventory: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
+                 rebuild_inventory: bool = True,
+                 excluded_files: Iterable[str] = EXCLUDED_FILES,
+                 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run the full workflow and write the analysis dataset, audit, and summary.
 
     Progress goes to this module's logger. The capacity batch's printed
@@ -565,23 +765,34 @@ def run_pipeline(qpass_dir: Path = RAW_QPASS_DIR,
             summary.md, exclusion_reasons.csv, coverage_by_facility_quarter.csv
             and loader_audit.json.
         rebuild_inventory: Re-extract Inventory groups from the workbooks.
+        excluded_files: QPASS workbooks left out of both the observation load
+            and the capacity manifest (team decision); listed in summary.md
+            and loader_audit.json.
 
     Returns:
         Tuple of (analysis dataset, audit table). Source workbooks are not
         modified.
+
+    Raises:
+        ValueError: A join problem, or validate_outputs() finds lost,
+            multiplied, or invalid rows in the written outputs.
     """
     started = time.perf_counter()
     qpass_dir, manifest, capacity_dir, output_dir = map(
         Path, (qpass_dir, manifest, capacity_dir, output_dir)
     )
     LOGGER.info("[1/4] Loading QPASS workbooks and checking observations...")
-    loaded = load_all_qpass(qpass_dir)
-    audited, _ = validate_observations(reshape_loaded_observations(loaded))
+    excluded_files = list(excluded_files)
+    loaded, audited = load_observations(qpass_dir, excluded_files)
     LOGGER.info("[2/4] Standardizing labels and selecting capacities...")
-    capacity_dir.mkdir(parents=True, exist_ok=True)
+    used_manifest = capacity_dir / "inventory_sources_used.csv"
+    skipped = filter_manifest(manifest, used_manifest, excluded_files)
+    loaded.attrs["excluded_files"] = sorted(
+        set(loaded.attrs["excluded_files"]) | set(skipped)
+    )
     batch_log = capacity_dir / "capacity_batch.log"
     with batch_log.open("w", encoding="utf-8") as handle, redirect_stdout(handle):
-        run_capacity_matching(manifest, qpass_dir, inventory_dir, capacity_dir,
+        run_capacity_matching(used_manifest, qpass_dir, inventory_dir, capacity_dir,
                               rebuild_inventory)
     capacity = pd.read_csv(capacity_dir / "combined" / "capacity_comparison.csv",
                            dtype=str, keep_default_na=False)
@@ -593,7 +804,8 @@ def run_pipeline(qpass_dir: Path = RAW_QPASS_DIR,
     LOGGER.info("[4/4] Writing outputs...")
     output_dir.mkdir(parents=True, exist_ok=True)
     analysis.to_csv(output_dir / "analysis_dataset.csv", index=False)
-    audit.to_csv(output_dir / "audit.csv.gz", index=False)
+    audit.to_csv(output_dir / "audit.csv.gz", index=False,
+                 compression=AUDIT_COMPRESSION)
     summary["exclusion_reasons"].to_csv(
         output_dir / "exclusion_reasons.csv", index=False
     )
@@ -604,6 +816,8 @@ def run_pipeline(qpass_dir: Path = RAW_QPASS_DIR,
         json.dumps(loaded.attrs, indent=2, default=str), encoding="utf-8"
     )
     (output_dir / "summary.md").write_text(_summary_markdown(summary), encoding="utf-8")
+    validate_outputs(output_dir, expected_total=len(audited),
+                     excluded_files=excluded_files)
     LOGGER.info(_console_summary(summary, output_dir, time.perf_counter() - started))
     return analysis, audit
 
