@@ -620,6 +620,16 @@ def test_load_all_qpass_combines_files_and_keeps_records_per_file(tmp_path):
     assert data.attrs["dropped_rows"] == {files[0]: {}, files[1]: {}}
 
 
+def test_load_all_qpass_skips_and_records_excluded_files(tmp_path):
+    _make_format_b(tmp_path)
+    _make_format_c(tmp_path)
+    # Single space in the exclusion still matches the double-spaced file name.
+    data = load_all_qpass(tmp_path, exclude=["QPASS 2026-2027-2 Fall.xlsx"])
+    assert data.attrs["files"] == ["QPASS 2024-2025-2 Fall.xlsx"]
+    assert data.attrs["excluded_files"] == ["QPASS 2026-2027-2  Fall.xlsx"]
+    assert data["source_file"].eq("QPASS 2024-2025-2 Fall.xlsx").all()
+
+
 def test_load_all_qpass_empty_folder_raises(tmp_path):
     with pytest.raises(FileNotFoundError, match="No files matching"):
         load_all_qpass(tmp_path)
