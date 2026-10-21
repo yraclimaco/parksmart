@@ -175,6 +175,24 @@ python -m src.download_qpass
 
 ## Running things
 
+### Integrated pipeline — Issue #10
+
+From the repository root, after `python -m src.download_qpass` and
+`python -m src.download_inventory`:
+
+```bash
+python -m src.build_dataset
+```
+
+Writes `analysis_dataset.csv`, `audit.csv.gz`, `summary.md` and supporting
+files to `data/processed/pipeline/` (gitignored); capacity batch reports go to
+`data/interim/pipeline/capacity/`. `--reuse-inventory` skips Inventory
+re-extraction. Inclusion rules, deduplication, and column definitions are in
+`docs/pipeline.md`; the quality-flag policy is `QUALITY_FLAG_BLOCKS` in
+`src/build_dataset.py`. Join observations to capacity by source key, never by
+labels. Tests: `python -m pytest tests/test_build_dataset.py -q`; the real-data
+check runs only when the pipeline outputs exist.
+
 ### Inventory capacity selection — Issue #4
 
 From the repository root, after placing QPASS workbooks in `data/raw/QPASS/`:
