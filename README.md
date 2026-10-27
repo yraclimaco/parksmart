@@ -2,9 +2,31 @@
 
 ParkSmart is a UC San Diego parking decision project. It cleans historical QPASS
 observations, standardizes parking labels, and attaches defensible parking
-capacities before availability analysis. Forecasting and the web interface are
-planned; the current implementation includes the data pipeline and historical
-availability benchmarks.
+capacities before availability analysis. Forecasting deployment and the web
+interface are planned; the current implementation includes the data pipeline,
+historical availability benchmarks, and a local FastAPI backend scaffold.
+
+## Local backend (Issue #12)
+
+After installing `requirements.txt` in your virtual environment, run from the
+repository root:
+
+```bash
+python -m uvicorn src.api.main:app --reload
+```
+
+Open <http://127.0.0.1:8000/docs> and try `GET /health` and `GET /locations`.
+Locations are explicitly fictional samples with unknown coordinates; no dataset
+or API key is required. Recommendation models and JSON examples are proposals
+only; no recommendation endpoint or logic is implemented.
+
+See [backend setup, learning walkthrough, and interface contract](docs/backend.md)
+for examples and [the short Dylan/Hanrong proposal](docs/api_proposal.md).
+Run backend tests:
+
+```bash
+python -m pytest tests/test_api.py tests/test_api_schemas.py -q
+```
 
 ## Setup and capacity matching (Issue #4)
 
