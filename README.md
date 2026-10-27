@@ -2,11 +2,11 @@
 
 ParkSmart is a UC San Diego parking decision project. It cleans historical QPASS
 observations, standardizes parking labels, and attaches defensible parking
-capacities before availability analysis. Forecasting and the web interface are
-planned; the current implementation includes the data pipeline and a local
-FastAPI backend scaffold.
+capacities before availability analysis. Forecasting deployment and the web
+interface are planned; the current implementation includes the data pipeline,
+historical availability benchmarks, and a local FastAPI backend scaffold.
 
-## Local backend
+## Local backend (Issue #12)
 
 After installing `requirements.txt` in your virtual environment, run from the
 repository root:
@@ -55,6 +55,20 @@ conflicting capacities or period metadata remain flagged with unknown selected
 capacity. No cross-quarter carry or fuzzy facility matching is performed.
 
 ## Outputs and documentation
+
+### Parking analysis (Issue #11)
+
+After `python -m src.build_dataset`, run `python -m src.parking_analysis`.
+Open `notebooks/11_parking_patterns.ipynb` in VS Code using the `.venv` kernel,
+or execute it with `python scripts/execute_parking_notebook.py`.
+The notebook compares training-only historical averages and linear regression
+using the same later survey dates, with overall and near-full errors.
+Local reports, charts and predictions go to `results/issue11/`.
+See [findings and limitations](docs/issue11_findings.md) for the verified snapshot.
+Notebook execution needs the `ipykernel` and `nbclient` dependencies in
+`requirements.txt`; JupyterLab is optional when using VS Code.
+If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead of
+`python` in these commands.
 
 - [Inventory schema, assumptions and run instructions](docs/inventory_audit.md).
 - [Capacity selection results and quarter-level rates](docs/capacity_matching_summary.md).
