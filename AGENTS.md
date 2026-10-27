@@ -133,7 +133,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 ├── pytest.ini
 ├── docs/              # data audits, assumptions, and technical documentation
 ├── notebooks/         # exploration, EDA, and modeling experiments
-├── src/               # reusable data, modeling, and backend code
+├── src/               # reusable data, modeling, and backend code (api/)
 ├── tests/             # pytest tests for src/
 ├── data/
 │   ├── raw/           # original data; never edit or commit
@@ -174,6 +174,35 @@ python -m src.download_qpass
 ```
 
 ## Running things
+
+### Local FastAPI backend and proposed interface contract
+
+After installing `requirements.txt`, run from the repository root:
+
+```bash
+python -m uvicorn src.api.main:app --reload
+python -m pytest tests/test_api.py tests/test_api_schemas.py -q
+```
+
+Open `http://127.0.0.1:8000/docs` to call GET `/health` and GET `/locations`.
+Only `/health` and `/locations` are implemented. Recommendation request/response
+models and static JSON examples are proposed only; there is no recommendation
+endpoint or logic. No model, eligibility, routing, or live data is connected.
+The catalog uses fictional sample IDs and null coordinates; IDs and field names
+remain proposed until Dylan and Hanrong confirm them. No data
+files or secrets are required. Endpoint handling lives in `src/api/main.py`,
+Pydantic v2 contracts in `schemas.py`, and the catalog in `locations.py`.
+Keep future prediction logic outside endpoint handlers.
+JSON uses snake_case, null for unknowns, 0–1 availability fractions, and minutes
+for walking time. Arrival datetimes normalize to `America/Los_Angeles`; ambiguous
+local DST times require an explicit offset. The local browser CORS allowlist
+covers localhost/127.0.0.1 ports 3000 and 5173. See `docs/backend.md` and
+`docs/examples/backend/` for startup, fixtures, and the pending Dylan/Hanrong
+contract review. Production location IDs and permit codes require team review.
+Coordination status is recorded in `docs/api_proposal.md`; the setup guide must
+remain usable for teammates starting interface work with the sample catalog.
+`not_implemented` means no recommendation evaluation is available;
+`no_suitable_location` is reserved for a future evaluated empty result.
 
 ### Integrated pipeline — Issue #10
 
@@ -362,7 +391,8 @@ DS3 code-review skill remain required before requesting review.
   jupyter lab notebooks/
   ```
 
-- Commands for the FastAPI backend, React frontend, cleaning pipeline, and model training should be added after those components are implemented and tested.
+- Commands for the React frontend and model training should be added after those
+  components are implemented and tested. Backend commands are documented above.
 
 ## Testing
 

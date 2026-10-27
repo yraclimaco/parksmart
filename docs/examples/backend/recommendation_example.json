@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "status": "ready",
+  "is_example": true,
+  "arrival_time": "2026-10-27T09:00:00-07:00",
+  "time_zone": "America/Los_Angeles",
+  "first_choice": {
+    "location": {
+      "location_id": "sample-parking-a",
+      "name": "Sample Parking A",
+      "coordinates": null
+    },
+    "estimated_available_fraction": null,
+    "estimated_walking_minutes": null,
+    "explanation": "Fictional first-choice card for interface layout only."
+  },
+  "backup_choice": {
+    "location": {
+      "location_id": "sample-parking-b",
+      "name": "Sample Parking B",
+      "coordinates": null
+    },
+    "estimated_available_fraction": null,
+    "estimated_walking_minutes": null,
+    "explanation": "Fictional backup card for interface layout only."
+  },
+  "explanation": "EXAMPLE ONLY: demonstrates a future response shape, not a prediction.",
+  "limitations": [
+    "All locations and rankings in this file are fictional UI fixtures.",
+    "No coordinates, eligibility, availability, or walking estimates are asserted.",
+    "This static example is never returned by the recommendation endpoint."
+  ]
+}

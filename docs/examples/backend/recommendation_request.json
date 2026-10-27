@@ -1,0 +1,6 @@
+{
+  "destination": {"name": "User-selected destination", "coordinates": null},
+  "arrival_time": "2026-10-27T09:00:00-07:00",
+  "permit_type": "S",
+  "starting_location": null
+}
