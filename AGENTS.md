@@ -175,6 +175,41 @@ python -m src.download_qpass
 
 ## Running things
 
+### Parking patterns and benchmarks — Issue #11
+
+After building Dylan's integrated dataset, run from the repository root:
+
+```bash
+python -m src.parking_analysis
+python scripts/execute_parking_notebook.py
+python -m pytest tests/test_parking_benchmarks.py tests/test_parking_analysis.py -q
+```
+
+The CLI accepts `--dataset` and `--output-dir`; defaults are
+`data/processed/pipeline/analysis_dataset.csv` and `results/issue11/`.
+It writes EDA tables/charts, metrics, test predictions, facility errors, fallback
+counts and `summary.md`. These generated artifacts stay local and gitignored.
+`docs/issue11_findings.md` is a compact snapshot of locally verified results.
+The walkthrough is `notebooks/11_parking_patterns.ipynb`; select `.venv` as its
+VS Code Python kernel. `ipykernel` and `nbclient` are explicit requirements for
+notebook execution; JupyterLab is optional for VS Code use. The execution script
+uses the current Python via a temporary kernel spec, without user registration.
+On PowerShell systems blocking activation, use `.\.venv\Scripts\python.exe`
+in place of `python`; no execution-policy change is needed.
+
+`src.parking_benchmarks` preserves all exported readings, validates required
+fields, and keeps subtype/level distinctions. Its fixed holdout is the latest
+20% of unique survey dates, rounded up; no survey date crosses the split.
+Historical means back off from full parking group + weekday/time/quarter to
+parking group + time, parking group, then training-wide mean. Both benchmarks
+fit training data only and score identical test rows. Regression inputs exclude
+observed counts, capacity, source identifiers and quality/decision metadata.
+Primary predictions are clipped to [0, 1]; raw MAE/out-of-range rates remain
+reported. Near full means actual availability <= 10%; MAE is in percentage points.
+Coverage flags (<100 readings) are descriptive and never exclude records.
+Results apply to historical survey coverage, not full quarters or live parking.
+Review dataset assumptions with Dylan before requesting mentor review.
+
 ### Integrated pipeline — Issue #10
 
 From the repository root, after `python -m src.download_qpass` and
@@ -362,7 +397,8 @@ DS3 code-review skill remain required before requesting review.
   jupyter lab notebooks/
   ```
 
-- Commands for the FastAPI backend, React frontend, cleaning pipeline, and model training should be added after those components are implemented and tested.
+- Commands for the FastAPI backend, React frontend and future forecasting
+  deployment should be added after those components are implemented and tested.
 
 ## Testing
 
