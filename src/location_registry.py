@@ -190,6 +190,25 @@ def location_groups(locations, records):
     return groups
 
 
+def current_groups(locations, records):
+    """Return parking groups seen in the latest surveyed quarter.
+
+    These are the candidates for recommendations: older groups (for example
+    2018 level-by-level splits) may no longer match how a facility is
+    allocated. Groups from facilities missing in the registry are dropped
+    here; ``unmapped_facilities`` reports them.
+
+    Args:
+        locations: validated registry list.
+        records: analysis dataset (see ``location_groups``).
+    Returns:
+        DataFrame like ``location_groups`` filtered to the latest quarter.
+    """
+    groups = location_groups(locations, records)
+    keep = groups["in_latest_quarter"] & groups["location_id"].notna()
+    return groups[keep].reset_index(drop=True)
+
+
 def location_summary(locations, records):
     """Summarize registry entries with dataset coverage and current-use evidence.
 

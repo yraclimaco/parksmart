@@ -644,9 +644,9 @@
       "coordinate_status": "verified",
       "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
       "coordinate_verified_on": "2026-10-21",
-      "registry_status": "supported",
-      "access_note": null,
-      "notes": null
+      "registry_status": "restricted",
+      "access_note": "Sanford lot: weekday access controls 7 AM to 11 PM and a card requirement 7 AM to 5 PM (citation guidance names P384)",
+      "notes": "Research v1.2 C4: P384 (citation guidance) and P385 (visitor page) may or may not be separate facilities; kept separate."
     },
     {
       "location_id": "p385",
@@ -662,9 +662,9 @@
       "coordinate_status": "verified",
       "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
       "coordinate_verified_on": "2026-10-21",
-      "registry_status": "supported",
-      "access_note": null,
-      "notes": null
+      "registry_status": "restricted",
+      "access_note": "Sanford lot: weekday access controls 7 AM to 11 PM and a card requirement 7 AM to 5 PM (citation guidance names P384)",
+      "notes": "Research v1.2 C4: P384 (citation guidance) and P385 (visitor page) may or may not be separate facilities; kept separate."
     },
     {
       "location_id": "p386",
@@ -1165,7 +1165,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Label meaning unknown (possibly an address); no verified location."
+      "notes": "Likely the 8980 Extended Studies structure (research v1.2 section 4), which has visitor parking and supplemental-authorization areas; location and scope not verified."
     },
     {
       "location_id": "mesa-canyon",

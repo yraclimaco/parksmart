@@ -51,15 +51,16 @@ is open or that its allocation is unchanged.
 
 | Group | Count |
 | --- | --- |
-| Supported, verified pin | 47 |
+| Supported, verified pin | 45 |
 | Supported, approximate pin (Gliderport P386) | 1 |
-| Restricted (SIO P001–P017, Preuss P706, Medical Center P759, International Center P416) | 16 |
+| Restricted (SIO P001–P017, Preuss P706, Medical Center P759, International Center P416, Sanford P384/P385) | 18 |
 | Unresolved, no coordinates | 22 |
 | Excluded (Mesa Canyon, resident housing) | 1 |
 
-Supported locations not observed in the latest quarter (Fall 2026-2027), so
-their recent use is unknown: Theatre District Parking Structure (last
-2025-01-17), P384 and P385 (last 2025-07-11).
+Theatre District Parking Structure (last observed 2025-01-17) is supported
+but was not surveyed in the latest quarter (Fall 2026-2027), so its recent use
+is unknown. Recommendations only use parking groups seen in the latest quarter
+(`current_groups()`), so it is not recommended until it is surveyed again.
 
 ## Unsupported and unresolved locations
 
@@ -67,7 +68,7 @@ These are kept so no observation is dropped, but are never recommended.
 
 | location_id | Status | Readings | Last observed | Reason |
 | --- | --- | ---: | --- | --- |
-| `8980` | unresolved | 1079 | 2026-10-09 | Label meaning unknown (possibly an address). |
+| `8980` | unresolved | 1079 | 2026-10-09 | Likely the 8980 Extended Studies structure (research v1.2 section 4), with visitor and supplemental-authorization areas; unverified. |
 | `tdlln` | unresolved | 1144 | 2026-10-09 | Possibly related to Theatre District Garage; not merged without evidence (Issue #3). |
 | `mesa-canyon` | excluded | 294 | 2026-10-09 | Graduate-housing structure serving residents. |
 | `nuevo-west` | unresolved | 120 | 2019-10-11 | Housing-area label; relationship to Nuevo West/Vela unverified. |
@@ -81,6 +82,7 @@ These are kept so no observation is dropped, but are never recommended.
 
 - Official P-numbers for the parking structures.
 - Whether TDLLN, 8980 and the Nuevo West labels are public parking.
+- Whether Sanford P384 and P385 are separate facilities (research C4).
 - Whether Gliderport's approximate pin is acceptable for walking estimates.
 - The website still has its own copy of the pins (`frontend/src/data/`); it
   should read `/locations` once Daira serves this registry.

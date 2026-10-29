@@ -468,6 +468,19 @@ with `location_groups()`; only `supported` locations may be recommended.
 Recent observations are not proof of current use. See
 `docs/location_registry.md`.
 
+### Eligibility and ranking — Issue #20
+
+`src/eligibility.check_eligibility()` returns `allowed`, `not_allowed` or
+`needs_verification` for a permit (`A`, `B`, `S`, `SR`, `D`, `V`), parking group
+and time; only `allowed` is recommended, and unknown or conflicting rules are
+never treated as allowed. `src/ranking.recommend()` takes latest-quarter groups
+from `current_groups()` with `estimated_available_fraction`, and returns a first
+choice and distinct backup (`to_api()` matches `ParkingChoice`). Missing
+estimates are reported, never filled in. Rule sources, weights, walking
+assumptions and tie-breaking are in `docs/recommendations.md`; update it and
+the rule tests when permit rules change. Tests:
+`python -m pytest tests/test_eligibility.py tests/test_ranking.py -q`.
+
 - Commands for future forecasting deployment should be added after it is
   implemented and tested. Backend and parking analysis commands are documented
   above.
