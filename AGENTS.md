@@ -140,7 +140,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 │   └── processed/     # cleaned datasets and generated artifacts
 ├── results/           # model evaluations, figures, and reports
 ├── models/            # saved models and forecast artifacts
-├── frontend/          # planned React and TypeScript application
+├── frontend/          # React + TypeScript website (synced copy; see Website)
 └── infra/             # planned AWS deployment configuration
 ```
 
@@ -426,9 +426,38 @@ DS3 code-review skill remain required before requesting review.
   jupyter lab notebooks/
   ```
 
-- Commands for the React frontend and future forecasting deployment should be
-  added after those components are implemented and tested. Backend and parking
-  analysis commands are documented above.
+### Website — Issue #20
+
+`frontend/` is a one-way copy of
+[dylanwang-main/ParkSmart-Website](https://github.com/dylanwang-main/ParkSmart-Website),
+which is synced with Google AI Studio. **Never edit files in `frontend/`**; the
+next sync overwrites them. Change ParkSmart-Website, then from the repo root:
+
+```bash
+scripts/sync_frontend.sh            # or --ref <branch|commit>, --source <clone>
+```
+
+The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
+`node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
+the tests, type check and build. Review `git diff -- frontend` before committing.
+
+Run the website (Node 20.19+ or 22.12+), from `frontend/`:
+
+```bash
+npm ci
+npm run dev       # http://localhost:3000, on the backend CORS allowlist
+npm test          # Vitest
+npm run lint      # TypeScript type check
+npm run build
+```
+
+`VITE_API_BASE_URL` (default `http://127.0.0.1:8000`) sets the backend; override it
+in `frontend/.env.local`, never with secrets. Website data marked sample in
+`frontend/README.md` is not a real prediction.
+
+- Commands for future forecasting deployment should be added after it is
+  implemented and tested. Backend and parking analysis commands are documented
+  above.
 
 ## Testing
 
