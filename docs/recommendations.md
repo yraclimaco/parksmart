@@ -56,9 +56,10 @@ Permit codes: `A`, `B`, `S`, `SR`, `D`, `V` (V = pay-station visitor permit).
 | S | S, D\* | A, B | |
 | SR | SR, S, D\* | A, B | |
 | D | D | A, B, S | |
-| V | Visitor, D\* | B, S until 7:30 AM | A 5 PM–7:30 AM daily, not weekends |
+| V | Visitor, D\* | B, S until 7:30 AM | A 5 PM–7:30 AM every day (no all-day weekend access) |
 
 \* Published privilege, but returned as `needs_verification` (see D stalls below).
+Pairs not listed (for example S in SR stalls) are `not_allowed`.
 
 Each check returns `allowed`, `not_allowed` or `needs_verification`. Only
 `allowed` is ever recommended. Conservative choices:
