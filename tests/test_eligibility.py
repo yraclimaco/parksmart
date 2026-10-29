@@ -128,6 +128,15 @@ def test_holidays_do_not_borrow_weekend_rules():
                              veterans_day.replace(hour=17)).status == ALLOWED
 
 
+def test_weekend_holiday_does_not_borrow_weekday_rules(monkeypatch):
+    # No 2026-27 holiday falls on a weekend; check the rule with a made-up one.
+    monkeypatch.setattr("src.eligibility.UNIVERSITY_HOLIDAYS",
+                        {SATURDAY.date()})
+    result = check_eligibility("S", "B", "", at(SATURDAY, 10))
+    assert result.status == NEEDS_VERIFICATION
+    assert "weekday" in result.reason
+
+
 def test_gliderport_overnight_needs_verification():
     assert check_eligibility("S", "S", "", at(TUESDAY, 19),
                              location_id="p386").status == ALLOWED

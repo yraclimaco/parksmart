@@ -156,8 +156,8 @@ VITE_RECOMMENDATION_SOURCE=api npm run dev
   invalid input, unreadable responses) show a message with Try again. API mode
   never falls back to sample data.
 - Sample-only features are hidden in API mode: pin availability dots, the Time
-  tool and the "Your usual" instant answer. The lot detail card still shows sample
-  numbers and is labeled as a sample estimate.
+  tool, the "Your usual" instant answer, and the lot card's sample availability and
+  permit hours. The lot card shows the backend's estimate only for recommended lots.
 
 ---
 

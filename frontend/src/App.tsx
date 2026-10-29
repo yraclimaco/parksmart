@@ -672,6 +672,12 @@ export default function App() {
                 }
                 isConfirmed={confirmedLotId === selectedLot.locationId}
                 onConfirm={() => handleConfirmLot(selectedLot.locationId)}
+                backendMode={USE_API}
+                backendEstimate={
+                  isStale
+                    ? null
+                    : activeRecommendations.find((r) => r.lot.locationId === selectedLot.locationId)?.estimate ?? null
+                }
                 onPlanFor={(date) =>
                   handleFormChange({
                     arrivalDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,

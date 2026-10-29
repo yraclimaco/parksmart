@@ -87,6 +87,8 @@ PERMIT_RULES = {
 GLIDERPORT_ID = "p386"
 GLIDERPORT_WINTER = (_minutes(6), _minutes(18))   # Nov-Mar
 GLIDERPORT_SUMMER = (_minutes(6), _minutes(20))   # Apr-Oct
+GLIDERPORT_SUMMER_MONTHS = range(4, 11)            # April through October
+SATURDAY = 5  # datetime.weekday(): Monday is 0, so 5 and 6 are the weekend
 
 TIME_LIMIT_PATTERN = re.compile(
     r"^(\d+)[ -]?(min|minute|minutes|hour|hours)(?: limit)?$", re.IGNORECASE
@@ -246,7 +248,7 @@ def _check_moment(permit, base, moment, location_id):
 
 def _in_window(rule, moment, treat_as_weekday=False):
     """Return whether ``moment`` falls inside an overnight Window."""
-    weekend = moment.weekday() >= 5 and not treat_as_weekday
+    weekend = moment.weekday() >= SATURDAY and not treat_as_weekday
     if rule.weekends and weekend:
         return True
     minute = moment.hour * 60 + moment.minute
@@ -254,7 +256,7 @@ def _in_window(rule, moment, treat_as_weekday=False):
 
 
 def _gliderport_daylight(moment):
-    start, end = (GLIDERPORT_SUMMER if 4 <= moment.month <= 10
+    start, end = (GLIDERPORT_SUMMER if moment.month in GLIDERPORT_SUMMER_MONTHS
                   else GLIDERPORT_WINTER)
     minute = moment.hour * 60 + moment.minute
     return start <= minute < end

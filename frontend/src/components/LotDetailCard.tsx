@@ -9,7 +9,7 @@ import { CalendarClock, CheckCircle2, Clock, Footprints, Info, X, XCircle } from
 import { SpotActions } from './SpotActions.tsx';
 import { AvailabilityMeter } from './AvailabilityMeter.tsx';
 import { LotAerial } from './LotAerial.tsx';
-import { CampusDestination, ParkingLot, PermitType } from '../types.ts';
+import { BackendEstimate, CampusDestination, ParkingLot, PermitType } from '../types.ts';
 import { estimateWalkingTime } from '../data/sampleRecommendations.ts';
 import { availabilityAt, tightFrom } from '../utils/availabilityModel.ts';
 import { accessLabel, formatAccessTime, lotAccess, relyOnUnverifiedDAccess, usableCategories } from '../utils/permitRules.ts';
@@ -31,6 +31,12 @@ interface LotDetailCardProps {
   /** Moves the arrival to a time when this permit can use the lot. */
   onPlanFor: (date: Date) => void;
   onClose: () => void;
+  /**
+   * Results come from the backend: sample availability and sample permit rules are not
+   * shown. ``backendEstimate`` is set when this lot is one of the backend's results.
+   */
+  backendMode?: boolean;
+  backendEstimate?: BackendEstimate | null;
 }
 
 /**
@@ -49,6 +55,8 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
   onConfirm,
   onPlanFor,
   onClose,
+  backendMode = false,
+  backendEstimate = null,
 }) => {
   const percent = availabilityAt(lot, availabilityTime);
   const tight = tightFrom(lot, availabilityTime);
@@ -105,7 +113,23 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
         </button>
       </div>
 
-      {/* Availability: the same readout the result cards show */}
+      {/* Availability: the same readout the result cards show. With the backend, only
+          its own estimate for a recommended lot is shown, never the sample model. */}
+      {backendMode ? (
+        <div className="mt-4">
+          {backendEstimate ? (
+            <AvailabilityMeter
+              percent={backendEstimate.availablePercent}
+              timeLabel={(arrival ?? availabilityTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              size="lg"
+            />
+          ) : (
+            <p className="text-[13px] text-muted">
+              No estimate here. Only lots recommended for your search show a historical estimate.
+            </p>
+          )}
+        </div>
+      ) : (
       <div className="mt-4">
         <AvailabilityMeter percent={percent} timeLabel={timeLabel} size="lg" />
         {/* Campus-specific insight from the (sample) daily pattern */}
@@ -115,10 +139,12 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
             : `Usually stays open all day on ${isWeekend ? 'weekends' : 'weekdays'}.`}
         </p>
       </div>
+      )}
 
       {/* Facts */}
       <div className="mt-4 rounded-2xl bg-paper divide-y divide-line text-[13px]">
-        <div className="flex items-center gap-2 px-3 py-2.5">
+        {/* Permit hours and stall types use sample stall data, so they are hidden with the backend */}
+        {!backendMode && <div className="flex items-center gap-2 px-3 py-2.5">
           {access.status === 'always' ? (
             <CheckCircle2 className="w-4 h-4 text-[#1E8E5A] shrink-0" aria-hidden="true" />
           ) : permitWorks ? (
@@ -141,8 +167,8 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
               </span>
             ))}
           </div>
-        </div>
-        {relyOnUnverifiedDAccess(userPermit, lot.spaceCategories, when) && (
+        </div>}
+        {!backendMode && relyOnUnverifiedDAccess(userPermit, lot.spaceCategories, when) && (
           <div className="flex items-start gap-2 px-3 py-2.5 text-[#835300]">
             <span>Needs verification: this relies on D stalls, and UCSD's Sept 18, 2026 D restriction may change who can use them.</span>
           </div>
@@ -165,7 +191,11 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
       </div>
 
       <div className="mt-3">
-        {permitWorks ? (
+        {backendMode ? (
+          backendEstimate && (
+            <SpotActions tone="primary" isConfirmed={isConfirmed} onConfirm={onConfirm} lot={lot} />
+          )
+        ) : permitWorks ? (
           <SpotActions
             tone="primary"
             isConfirmed={isConfirmed}
@@ -190,7 +220,9 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
       </div>
 
       <p className="mt-2 text-[11px] text-muted text-center">
-        Sample estimate, not live availability
+        {backendMode
+          ? 'Historical estimates from past surveys, not live availability'
+          : 'Sample estimate, not live availability'}
       </p>
     </motion.div>
   );

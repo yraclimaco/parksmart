@@ -437,6 +437,7 @@ next sync overwrites them. Change ParkSmart-Website, then from the repo root:
 scripts/sync_frontend.sh            # or --ref <branch|commit>, --source <clone>
 ```
 
+It needs bash, `tar` and `rsync` (macOS/Linux, or WSL/Git Bash on Windows).
 The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
 `node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
 the tests, type check and build. Review `git diff -- frontend` before committing.

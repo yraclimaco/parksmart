@@ -11,6 +11,7 @@ from src.location_registry import (
     DEFAULT_DATASET,
     DEFAULT_REGISTRY,
     api_locations,
+    main,
     facility_to_location,
     load_registry,
     location_groups,
@@ -164,3 +165,17 @@ def test_website_location_ids_exist_in_registry():
     assert ids, "no locationId values found in the website data"
     registry_ids = {location["location_id"] for location in load_registry()}
     assert ids - registry_ids == set()
+
+
+def test_cli_reports_unmapped_facilities(tmp_path, capsys):
+    registry = tmp_path / "locations.json"
+    registry.write_text(json.dumps({"schema_version": "0.1",
+                                    "locations": LOCATIONS}))
+    dataset = tmp_path / "analysis.csv"
+    _records().to_csv(dataset, index=False)
+    with pytest.raises(SystemExit, match="Unlisted"):
+        main(["--registry", str(registry), "--dataset", str(dataset)])
+    mapped = _records()[lambda d: d.facility != "Unlisted"]
+    mapped.to_csv(dataset, index=False)
+    main(["--registry", str(registry), "--dataset", str(dataset)])
+    assert "mapped to exactly one location" in capsys.readouterr().out
