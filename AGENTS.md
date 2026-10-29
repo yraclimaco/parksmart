@@ -455,6 +455,19 @@ npm run build
 in `frontend/.env.local`, never with secrets. Website data marked sample in
 `frontend/README.md` is not a real prediction.
 
+### Location registry — Issue #20
+
+`config/locations.json` holds every parking location with a stable
+`location_id`, its standardized dataset facilities, coordinates and
+`registry_status`; `src/location_registry.py` validates it. Check it against the
+integrated dataset with `python -m src.location_registry`; tests:
+`python -m pytest tests/test_location_registry.py -q`. Never rename or reuse a
+`location_id`. Every dataset facility must map to exactly one location. Keep
+predictions keyed by facility/category/subtype/level and attach `location_id`
+with `location_groups()`; only `supported` locations may be recommended.
+Recent observations are not proof of current use. See
+`docs/location_registry.md`.
+
 - Commands for future forecasting deployment should be added after it is
   implemented and tested. Backend and parking analysis commands are documented
   above.
