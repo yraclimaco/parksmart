@@ -149,3 +149,18 @@ def test_committed_registry_is_valid():
 def test_real_dataset_facilities_are_all_mapped():
     records = pd.read_csv(DEFAULT_DATASET, usecols=["facility"])
     assert unmapped_facilities(load_registry(), records) == []
+
+
+FRONTEND_DATA = DEFAULT_REGISTRY.parent.parent / "frontend" / "src" / "data"
+
+
+@pytest.mark.skipif(not FRONTEND_DATA.exists(), reason="frontend/ not present")
+def test_website_location_ids_exist_in_registry():
+    """The website pins and the registry must use the same location IDs."""
+    ids = set()
+    for name in ("parkingLots.ts", "surfaceLots.ts"):
+        text = (FRONTEND_DATA / name).read_text()
+        ids.update(re.findall(r"locationId:\s*['\"]([^'\"]+)['\"]", text))
+    assert ids, "no locationId values found in the website data"
+    registry_ids = {location["location_id"] for location in load_registry()}
+    assert ids - registry_ids == set()

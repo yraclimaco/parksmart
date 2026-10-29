@@ -16,3 +16,18 @@ export function resolveApiBaseUrl(configured: string | undefined): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+/** Where recommendations come from: built-in sample data, or the FastAPI backend. */
+export type RecommendationSource = 'sample' | 'api';
+
+/**
+ * VITE_RECOMMENDATION_SOURCE=api sends searches to POST /recommendations. Anything
+ * else (including unset, as in AI Studio previews) keeps the labeled sample data.
+ */
+export function resolveRecommendationSource(configured: string | undefined): RecommendationSource {
+  return configured?.trim().toLowerCase() === 'api' ? 'api' : 'sample';
+}
+
+export const RECOMMENDATION_SOURCE = resolveRecommendationSource(
+  import.meta.env.VITE_RECOMMENDATION_SOURCE
+);

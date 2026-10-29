@@ -38,7 +38,7 @@ A desktop-first web prototype for UCSD parking planning. This prototype uses sam
 | Class-schedule codes (WLH, PCYNH, CENTR...) | **Real** (verified 2026-10-21) | 24 classroom buildings from facilities.ucsd.edu/Classrooms, plus GIS alias codes |
 | "Popular" list order | **Our pick** | Swap for real search counts from `GET /destinations` |
 | Lot photo on the lot card | **Real** aerial imagery (verified 2026-10-22) | USGS NAIP orthoimagery, about 0.3 m/pixel, public domain, cropped around each pin on demand (`src/utils/lotAerial.ts`) |
-| Availability %, stall categories per structure, rankings | **Sample** | Placeholders until the QPASS pipeline and permit rules connect |
+| Availability %, stall categories per structure, rankings | **Sample** by default | In API mode, cards use the backend's historical estimates and rankings instead |
 
 Lot data lives in `src/data/parkingLots.ts`. Pins mark each structure's building point, not its vehicle entrance. Mapping each structure to its official P-number (e.g. P701) is still an open question for the backend team.
 
@@ -134,34 +134,30 @@ Tests live next to the code they cover (for example `src/data/sampleRecommendati
 
 ---
 
-## Swapping in Real API Data
+## Backend Recommendations (API mode)
 
-To connect real live parking sensor data and prediction models:
+Searches use built-in sample data unless `VITE_RECOMMENDATION_SOURCE=api` is set
+(in `.env.local`, or on the command line). In API mode the website sends each
+search to the FastAPI backend's `POST /recommendations`
+(`src/api/recommendations.ts`) and shows what it returns:
 
-1. **API Contracts (`src/types.ts`)**:
-   - `ParkingPlannerRequest`: destination, arrival date, arrival time, and permit type.
-   - `ParkingPlannerResponse`: array of `ParkingRecommendation` objects.
+```bash
+VITE_RECOMMENDATION_SOURCE=api npm run dev
+```
 
-2. **Replace Sample Service (`src/data/sampleRecommendations.ts`)**:
-   - Replace the implementation of `getSampleRecommendations(request: ParkingPlannerRequest)`:
-   ```typescript
-   export async function getLiveRecommendations(
-     request: ParkingPlannerRequest
-   ): Promise<ParkingPlannerResponse> {
-     const response = await fetch('/api/parking/recommendations', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify(request),
-     });
-     if (!response.ok) {
-       throw new Error('Failed to fetch parking predictions');
-     }
-     return response.json();
-   }
-   ```
-
-3. **Update State in `src/App.tsx`**:
-   - In `runPlanner()`, call `await getLiveRecommendations(formInputs)` inside a `try/catch` block. On catch, set `isError(true)`.
+- Request: `destination` (name and coordinates), `arrival_time` in local UCSD time
+  without an offset, and `permit_type`, following the backend contract in
+  `docs/backend.md` of the team repo.
+- Cards show the backend's availability, walking time and explanation, and say
+  they are historical estimates. A null value shows as "Unavailable", never 0.
+- `no_suitable_location`, `predictions_unavailable` and `not_implemented` show the
+  backend's explanation and say this does not mean parking is full.
+- Errors (backend down, CORS, 404 while the endpoint is not built yet, 422
+  invalid input, unreadable responses) show a message with Try again. API mode
+  never falls back to sample data.
+- Sample-only features are hidden in API mode: pin availability dots, the Time
+  tool and the "Your usual" instant answer. The lot detail card still shows sample
+  numbers and is labeled as a sample estimate.
 
 ---
 

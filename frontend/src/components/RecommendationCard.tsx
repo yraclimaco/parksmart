@@ -47,15 +47,23 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   onSelect,
   onConfirm,
 }) => {
-  const { badgeLabel, lot, reason, access } = recommendation;
-  const usable = arrival ? usableCategories(userPermit, lot.spaceCategories, arrival) : [];
+  const { badgeLabel, lot, reason, access, estimate } = recommendation;
+  // Backend results carry their own numbers and explanation; every sample-only part
+  // of the card (model availability, sample stall chips, D note) is skipped for them.
+  const fromBackend = estimate !== undefined;
+  const usable = arrival && !fromBackend ? usableCategories(userPermit, lot.spaceCategories, arrival) : [];
   // The model needs the lot's original sample numbers. The lot on a recommendation has its
   // availability already overwritten with the arrival-time value, so reading it here gave a
   // different answer than the map card (83% vs 80% at the same time).
   const baseLot = SAMPLE_LOTS.find((l) => l.locationId === lot.locationId) ?? lot;
-  const percent = availabilityAt(baseLot, availabilityTime);
-  const status = availabilityStatus(percent);
-  const timeLabel = availabilityTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const percent = fromBackend ? estimate.availablePercent : availabilityAt(baseLot, availabilityTime);
+  const walkingMinutes = fromBackend ? estimate.walkingMinutes : lot.walkingMinutes;
+  // Unknown availability gets a neutral edge instead of a red/amber/green one
+  const edgeColor = percent === null ? '#94A3B8' : availabilityStatus(percent).color;
+  const timeLabel = (fromBackend && arrival ? arrival : availabilityTime).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
   // The first choice is the one bold moment: a solid navy card. The rest stay quiet and white.
   const hero = badgeLabel === 'First choice';
@@ -69,7 +77,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       onClick={onSelect}
       aria-label={`${badgeLabel}: ${lot.name}`}
       // The left edge carries the availability color, so a list scans at a glance
-      style={{ borderLeftColor: status.color }}
+      style={{ borderLeftColor: edgeColor }}
       className={`relative p-4 rounded-lg border border-l-[5px] transition-[box-shadow,transform] duration-150 cursor-pointer text-left select-none ${
         hero ? 'bg-navy border-navy text-white' : 'bg-white border-line'
       } ${
@@ -112,7 +120,13 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       <div className={`mt-1 flex items-center gap-1.5 text-[13px] ${muted}`}>
         <Footprints className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
         <span>
-          <span className={`font-semibold ${strong}`}>{lot.walkingMinutes} min walk</span> to {destinationName}
+          {walkingMinutes === null ? (
+            <>Walk time unavailable</>
+          ) : (
+            <>
+              <span className={`font-semibold ${strong}`}>{walkingMinutes} min walk</span> to {destinationName}
+            </>
+          )}
         </span>
       </div>
 
@@ -125,14 +139,21 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       <p className={`mt-3 text-[13px] leading-relaxed ${hero ? 'text-white/90' : 'text-ink'}`}>{reason}</p>
 
       {/* Non-D permits that get in only through D stalls: the Sept 18 D restriction is unresolved */}
-      {arrival && relyOnUnverifiedDAccess(userPermit, lot.spaceCategories, arrival) && (
+      {fromBackend && (
+        <p className={`mt-2 text-[11px] ${muted}`}>
+          {estimate.isExample ? 'Example only, not a real estimate.' : 'Historical estimate from past surveys, not live availability.'}
+        </p>
+      )}
+
+      {!fromBackend && arrival && relyOnUnverifiedDAccess(userPermit, lot.spaceCategories, arrival) && (
         <p className={`mt-2 text-[12px] font-medium ${hero ? 'text-sun' : 'text-[#835300]'}`}>
           Needs verification: this relies on D stalls, and UCSD's Sept 18, 2026 D restriction may change who can use them.
         </p>
       )}
 
-      {/* Parking hours for this permit, and which stall types it can use */}
-      <div className={`mt-3 flex items-center justify-between gap-2 pt-2.5 border-t text-[12px] ${hero ? 'border-white/20' : 'border-line'}`}>
+      {/* Parking hours for this permit, and which stall types it can use (sample rules;
+          backend explanations already name the stall type and cutoff) */}
+      {!fromBackend && <div className={`mt-3 flex items-center justify-between gap-2 pt-2.5 border-t text-[12px] ${hero ? 'border-white/20' : 'border-line'}`}>
         <span className={`flex items-center gap-1.5 font-medium ${hero ? 'text-white' : 'text-[#136B42]'}`}>
           {access.status === 'always' ? (
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
@@ -160,10 +181,10 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             </span>
           ))}
         </div>
-      </div>
+      </div>}
 
-      {/* Confirm, then open directions in Google Maps */}
-      <div className="mt-3.5">
+      {/* Confirm, then open directions in Google Maps (needs a verified pin) */}
+      {Number.isFinite(lot.latitude) && Number.isFinite(lot.longitude) && <div className="mt-3.5">
         <SpotActions
           tone={hero ? 'onDark' : 'subtle'}
           isConfirmed={isConfirmed}
@@ -171,7 +192,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           onConfirm={onConfirm}
           lot={lot}
         />
-      </div>
+      </div>}
     </article>
   );
 };

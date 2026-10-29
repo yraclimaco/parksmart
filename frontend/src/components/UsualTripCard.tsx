@@ -17,6 +17,8 @@ interface UsualTripCardProps {
   topPick: ParkingRecommendation | null;
   /** e.g. "9:45 AM": when the top pick usually gets tight that day. */
   tightAt: string | null;
+  /** False hides the instant answer (it comes from sample data). */
+  showPreview?: boolean;
   onShowOptions: () => void;
   onForget: () => void;
 }
@@ -30,6 +32,7 @@ export const UsualTripCard: React.FC<UsualTripCardProps> = ({
   whenLabel,
   topPick,
   tightAt,
+  showPreview = true,
   onShowOptions,
   onForget,
 }) => {
@@ -49,7 +52,7 @@ export const UsualTripCard: React.FC<UsualTripCardProps> = ({
         Heading to {destinationName}, {whenLabel}?
       </p>
 
-      {topPick && status ? (
+      {!showPreview ? null : topPick && status ? (
         <>
           <div className="mt-3 flex items-center justify-between gap-2">
             <span className="text-sm font-semibold text-navy truncate">{topPick.lot.name}</span>

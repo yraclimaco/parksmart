@@ -21,6 +21,9 @@ import { UsualTrip, forgetUsualTrip, loadUsualTrip, nextUsualDate, saveUsualTrip
 import { tightFrom } from './utils/availabilityModel.ts';
 import { parseArrival } from './utils/permitRules.ts';
 import { SAMPLE_LOTS, getSampleRecommendations } from './data/sampleRecommendations.ts';
+import { RECOMMENDATION_SOURCE } from './config.ts';
+import { fetchRecommendations } from './api/recommendations.ts';
+import type { ResultInfo } from './components/ResultsList.tsx';
 import {
   ParkingPlannerRequest,
   ParkingRecommendation,
@@ -79,6 +82,9 @@ function useIsMobile(): boolean {
 }
 
 /** The state simulator is for developers: shown in dev builds, or in production with ?dev in the URL. */
+/** True when searches go to the backend; sample-only map features are then hidden. */
+const USE_API = RECOMMENDATION_SOURCE === 'api';
+
 const showDevTools = import.meta.env.DEV || new URLSearchParams(window.location.search).has('dev');
 
 /** "HH:MM" to minutes after midnight, clamped to the scrubber's range. */
@@ -123,6 +129,12 @@ export default function App() {
 
   // 4. Loading & Animation State
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Backend results: where they came from, its status message and limitations, or
+  // the error to show. Sample searches set source 'sample' and nothing else.
+  const [resultInfo, setResultInfo] = useState<ResultInfo | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
   // The exact request the current results were computed for. null until the first
   // search, which is how the panel knows to show its "enter your trip" prompt.
@@ -193,12 +205,13 @@ export default function App() {
       if (getArrivalError(inputs)) return; // the form shows the message; nothing to search
       if (!findDestination(inputs.destinationId)) return; // no destination picked yet
       setIsLoading(true);
+      setErrorMessage(null);
       setIsDetailOpen(false); // a new search shows results in the panel, not the pin card
       setConfirmedLotId(null);
 
-      const finish = () => {
-        const response = getSampleRecommendations(inputs);
-        setRecommendations(response.recommendations);
+      const finish = (results: ParkingRecommendation[], info: ResultInfo) => {
+        setRecommendations(results);
+        setResultInfo(info);
         // Move the search being replaced into history (unless it is the same trip)
         const previous = searchedRequestRef.current;
         if (previous && !sameRequest(previous, inputs)) {
@@ -211,7 +224,7 @@ export default function App() {
         setIsLoading(false);
 
         // Pre-select the First Choice recommendation lot by default
-        setSelectedLocationId(response.recommendations[0]?.lot.locationId ?? null);
+        setSelectedLocationId(results[0]?.lot.locationId ?? null);
 
         // Remember this trip as "your usual" (this browser only). A dropped pin is a
         // one-off spot, not a place to offer again, so it is not saved.
@@ -225,12 +238,43 @@ export default function App() {
         setUsualTrip(usual);
       };
 
+      if (USE_API) {
+        // Only the latest search may update the panel
+        requestRef.current?.abort();
+        const controller = new AbortController();
+        requestRef.current = controller;
+        fetchRecommendations(inputs, { signal: controller.signal })
+          .then((outcome) => {
+            if (controller.signal.aborted) return;
+            if (outcome.kind === 'error') {
+              setRecommendations([]);
+              setResultInfo(null);
+              setErrorMessage(outcome.message);
+              setIsLoading(false);
+              return;
+            }
+            const { response } = outcome;
+            finish(outcome.recommendations, {
+              source: 'api',
+              status: response.status,
+              explanation: response.explanation,
+              limitations: response.limitations,
+              isExample: response.is_example,
+            });
+          })
+          .catch(() => {
+            // Aborted by a newer search; that search owns the loading state.
+          });
+        return () => controller.abort();
+      }
+
+      const sample = () => finish(getSampleRecommendations(inputs).recommendations, { source: 'sample' });
       // Sample data answers instantly; a real API call would keep the loading state up
       if (ANIMATION_TIMINGS.SHIMMER_DURATION_MS === 0) {
-        finish();
+        sample();
         return;
       }
-      const timer = setTimeout(finish, ANIMATION_TIMINGS.SHIMMER_DURATION_MS);
+      const timer = setTimeout(sample, ANIMATION_TIMINGS.SHIMMER_DURATION_MS);
       return () => clearTimeout(timer);
     },
     [formInputs]
@@ -362,7 +406,8 @@ export default function App() {
     const arrival = parseArrival(request.arrivalDate, request.arrivalTime);
     if (!arrival) return null;
     if (!findDestination(request.destinationId)) return null;
-    const topPick = getSampleRecommendations(request).recommendations[0] ?? null;
+    // The instant answer comes from sample data, so it is skipped when using the backend
+    const topPick = USE_API ? null : getSampleRecommendations(request).recommendations[0] ?? null;
     const tight = topPick ? tightFrom(topPick.lot, arrival) : null;
     const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const isToday = request.arrivalDate === getTodayDateString();
@@ -415,7 +460,7 @@ export default function App() {
 
   // Derive active rendering state based on normal computation or dev simulator
   const activeIsLoading = devState === 'loading' || isLoading;
-  const activeIsError = devState === 'error';
+  const activeIsError = devState === 'error' || (devState === 'normal' && errorMessage !== null);
   const activeRecommendations = useMemo(() => {
     if (devState === 'empty') return [];
     if (devState === 'error' || devState === 'loading') return [];
@@ -453,6 +498,7 @@ export default function App() {
         isDetailOpen={isDetailOpen}
         rankedLotIds={rankedLotIds}
         availabilityTime={previewTime}
+        showSampleAvailability={!USE_API}
       />
 
       {/* Hamburger toggle: stays in the top-left whether the panel is open or closed */}
@@ -562,6 +608,7 @@ export default function App() {
                       whenLabel={usualPreview.whenLabel}
                       topPick={usualPreview.topPick}
                       tightAt={usualPreview.tightAt}
+                      showPreview={!USE_API}
                       onShowOptions={handleShowUsual}
                       onForget={handleForgetUsual}
                     />
@@ -575,13 +622,20 @@ export default function App() {
                 onSelectLot={handleSelectLot}
                 onRetry={handleRetry}
                 onResetFilters={handleResetFilters}
+                errorMessage={devState === 'normal' ? errorMessage : null}
+                resultInfo={devState === 'normal' ? resultInfo : null}
               />
             </section>
           </div>
 
           {/* Panel Footer Note */}
           <footer className="px-5 py-2.5 bg-paper border-t border-line text-[11px] text-muted leading-snug shrink-0">
-            <span>Sample data. Estimates only. Unofficial student project, not affiliated with UC San Diego.</span>
+            <span>
+              {USE_API
+                ? 'Historical estimates from past surveys, not live availability.'
+                : 'Sample data. Estimates only.'}{' '}
+              Unofficial student project, not affiliated with UC San Diego.
+            </span>
           </footer>
         </div>
       </aside>

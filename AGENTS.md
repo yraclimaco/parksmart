@@ -452,8 +452,12 @@ npm run build
 ```
 
 `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`) sets the backend; override it
-in `frontend/.env.local`, never with secrets. Website data marked sample in
-`frontend/README.md` is not a real prediction.
+in `frontend/.env.local`, never with secrets. Searches use labeled sample data
+unless `VITE_RECOMMENDATION_SOURCE=api`, which sends them to
+`POST /recommendations` (`frontend/src/api/recommendations.ts`) and never falls
+back to sample data. Website data marked sample in `frontend/README.md` is not a
+real prediction. Website pins must use registry `location_id` values; a test in
+`tests/test_location_registry.py` checks this.
 
 ### Location registry — Issue #20
 

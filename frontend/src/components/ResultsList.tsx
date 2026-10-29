@@ -14,6 +14,19 @@ import { SkeletonCard } from './SkeletonCard.tsx';
 import { EmptyState } from './EmptyState.tsx';
 import { ErrorState } from './ErrorState.tsx';
 import { RecentSearches } from './RecentSearches.tsx';
+import type { ApiStatus } from '../api/recommendations.ts';
+
+/** Where the shown results came from, plus the backend's own messages. */
+export type ResultInfo =
+  | { source: 'sample' }
+  | { source: 'api'; status: ApiStatus; explanation: string; limitations: string[]; isExample: boolean };
+
+/** Headline for backend results that contain no parking choice. */
+const EMPTY_TITLES: Record<Exclude<ApiStatus, 'ready'>, string> = {
+  no_suitable_location: 'No suitable parking found',
+  predictions_unavailable: 'No availability estimate for this trip',
+  not_implemented: 'Recommendations are not available yet',
+};
 
 /** Results shown before "Show more", and how many each click reveals. */
 const INITIAL_VISIBLE = 3;
@@ -42,6 +55,10 @@ interface ResultsListProps {
   onSelectLot: (locationId: string) => void;
   onRetry: () => void;
   onResetFilters: () => void;
+  /** Backend failure to explain in the error state (API mode). */
+  errorMessage?: string | null;
+  /** Source and backend messages for the current results; null for the dev simulator. */
+  resultInfo?: ResultInfo | null;
 }
 
 /**
@@ -65,7 +82,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   onSelectLot,
   onRetry,
   onResetFilters,
+  errorMessage = null,
+  resultInfo = null,
 }) => {
+  const api = resultInfo?.source === 'api' ? resultInfo : null;
   // Show the top 3, then reveal 5 more per "Show more" click; reset on every new search
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const previousVisibleRef = useRef(INITIAL_VISIBLE);
@@ -111,7 +131,23 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   if (isError) {
     return (
       <div className="pt-2">
-        <ErrorState onRetry={onRetry} />
+        <ErrorState onRetry={onRetry} message={errorMessage ?? undefined} />
+      </div>
+    );
+  }
+
+  if (recommendations.length === 0 && api && api.status !== 'ready') {
+    return (
+      <div className="pt-2 space-y-3">
+        {api.isExample && <ExampleBadge />}
+        <div role="status" className="p-5 text-center bg-white rounded-2xl border border-line space-y-2">
+          <h4 className="text-sm font-bold text-navy">{EMPTY_TITLES[api.status]}</h4>
+          <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">{api.explanation}</p>
+          <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">
+            Try a different time, destination or permit.
+          </p>
+        </div>
+        <Limitations notes={api.limitations} />
       </div>
     );
   }
@@ -130,6 +166,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
   return (
     <div className="space-y-3 pt-2">
+      {api?.isExample && <ExampleBadge />}
       <div className="flex items-center justify-between text-xs text-ink font-medium px-1">
         <span>Recommended for your arrival</span>
         <RecentSearches history={searchHistory} onRestore={onRestoreSearch} />
@@ -184,10 +221,14 @@ export const ResultsList: React.FC<ResultsListProps> = ({
         })}
       </div>
 
-      <p className="px-1 text-[11px] text-muted leading-snug">
-        Open-space numbers are a time-of-day estimate from sample data, not live counts. Walk times are
-        straight-line estimates. Always check posted signs and UCSD Transportation before you park.
-      </p>
+      {api ? (
+        <Limitations notes={api.limitations} />
+      ) : (
+        <p className="px-1 text-[11px] text-muted leading-snug">
+          Open-space numbers are a time-of-day estimate from sample data, not live counts. Walk times are
+          straight-line estimates. Always check posted signs and UCSD Transportation before you park.
+        </p>
+      )}
 
       {visibleCount < recommendations.length && (
         <button
@@ -209,3 +250,20 @@ export const ResultsList: React.FC<ResultsListProps> = ({
     </div>
   );
 };
+
+/** Shown when the backend says the response is a static example, not a real estimate. */
+const ExampleBadge: React.FC = () => (
+  <div role="note" className="px-3 py-2 rounded-xl bg-[#D98A00]/15 text-[12px] font-semibold text-[#835300]">
+    Example response from the backend, not a real estimate.
+  </div>
+);
+
+/** The backend's limitations for these results, in its own words. */
+const Limitations: React.FC<{ notes: string[] }> = ({ notes }) =>
+  notes.length === 0 ? null : (
+    <ul className="px-1 space-y-1 text-[11px] text-muted leading-snug list-disc list-inside">
+      {notes.map((note) => (
+        <li key={note}>{note}</li>
+      ))}
+    </ul>
+  );

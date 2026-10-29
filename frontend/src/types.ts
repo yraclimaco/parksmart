@@ -71,6 +71,20 @@ export interface ParkingRecommendation {
   reason: string;
   /** When the searched permit can use this lot, relative to the arrival time. */
   access: LotAccess;
+  /**
+   * Present only for results from the backend: its historical estimates, which replace
+   * every sample number on the card. null means unknown, never zero.
+   */
+  estimate?: BackendEstimate;
+}
+
+/** Backend numbers for one recommendation (src/api/recommendations.ts). */
+export interface BackendEstimate {
+  /** 0-100, or null when the backend has no estimate. */
+  availablePercent: number | null;
+  walkingMinutes: number | null;
+  /** The backend marked the whole response as a static example. */
+  isExample: boolean;
 }
 
 /**

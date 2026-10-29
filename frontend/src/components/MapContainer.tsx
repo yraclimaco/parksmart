@@ -137,6 +137,11 @@ interface MapContainerProps {
   rankedLotIds: { first: string | null; backup: string | null; third: string | null };
   /** Time the pins' availability colors represent (the time scrubber). */
   availabilityTime: Date;
+  /**
+   * Color pins and offer the Time tool from the sample availability model. Off when
+   * results come from the backend, so the map never shows sample numbers beside them.
+   */
+  showSampleAvailability?: boolean;
 }
 
 /**
@@ -159,9 +164,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   isDetailOpen,
   rankedLotIds,
   availabilityTime,
+  showSampleAvailability = true,
 }) => {
   const availabilityTimeRef = useRef(availabilityTime);
   availabilityTimeRef.current = availabilityTime;
+  const showSampleAvailabilityRef = useRef(showSampleAvailability);
+  showSampleAvailabilityRef.current = showSampleAvailability;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const lotMarkersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
@@ -478,7 +486,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         el.dataset.dropDelay = String(PIN_DROP_BASE_DELAY_MS + index * PIN_DROP_STAGGER_MS);
         el.setAttribute('role', 'button');
         el.setAttribute('tabindex', '0');
-        el.setAttribute('aria-label', `Parking Lot ${lot.name}, ${lot.estimatedAvailabilityPercent}% estimated capacity`);
+        el.setAttribute(
+          'aria-label',
+          showSampleAvailabilityRef.current
+            ? `Parking Lot ${lot.name}, ${lot.estimatedAvailabilityPercent}% estimated capacity (sample)`
+            : `Parking Lot ${lot.name}`
+        );
 
         el.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -538,7 +551,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       if (el.dataset.renderKey === renderKey) return;
       el.dataset.renderKey = renderKey;
 
-      const avail = `<span class="ps-avail" style="background:${availabilityStatus(availabilityAt(lot, availabilityTimeRef.current)).color}"></span>`;
+      const avail = showSampleAvailabilityRef.current
+        ? `<span class="ps-avail" style="background:${availabilityStatus(availabilityAt(lot, availabilityTimeRef.current)).color}"></span>`
+        : '';
       const rankTag =
         rank === 'first'
           ? '<span class="ps-rank ps-rank-first">First choice</span>'
@@ -669,17 +684,19 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         createPortal(
           <div className="relative flex flex-col items-end gap-2">
             <div className="flex items-start gap-2">
-              <button
-                type="button"
-                aria-pressed={isTimeOpen}
-                aria-expanded={isTimeOpen}
-                onClick={onTimeToggle}
-                className={CONTROL_BUTTON}
-                data-tone="navy"
-              >
-                <Clock className="w-4 h-4" aria-hidden="true" />
-                Time
-              </button>
+              {showSampleAvailability && (
+                <button
+                  type="button"
+                  aria-pressed={isTimeOpen}
+                  aria-expanded={isTimeOpen}
+                  onClick={onTimeToggle}
+                  className={CONTROL_BUTTON}
+                  data-tone="navy"
+                >
+                  <Clock className="w-4 h-4" aria-hidden="true" />
+                  Time
+                </button>
+              )}
               <div
                 role="radiogroup"
                 aria-label="Map style"

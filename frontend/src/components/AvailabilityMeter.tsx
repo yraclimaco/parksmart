@@ -8,7 +8,8 @@ import { motion } from 'motion/react';
 import { availabilityStatus } from '../utils/availability.ts';
 
 interface AvailabilityMeterProps {
-  percent: number;
+  /** null when there is no estimate: shown as "Unavailable", never 0%. */
+  percent: number | null;
   /** "10:30 AM", the time the estimate describes. */
   timeLabel: string;
   /** "dark" for the navy first-choice card. */
@@ -27,8 +28,18 @@ export const AvailabilityMeter: React.FC<AvailabilityMeterProps> = ({
   tone = 'light',
   size = 'md',
 }) => {
-  const status = availabilityStatus(percent);
   const dark = tone === 'dark';
+  if (percent === null) {
+    return (
+      <div>
+        <div className={`font-serif font-semibold leading-none ${size === 'lg' ? 'text-[28px]' : 'text-[22px]'} ${dark ? 'text-white' : 'text-navy'}`}>
+          Unavailable
+        </div>
+        <div className={`mt-1 text-xs ${dark ? 'text-white/70' : 'text-muted'}`}>No estimate for {timeLabel}</div>
+      </div>
+    );
+  }
+  const status = availabilityStatus(percent);
 
   return (
     <div>
