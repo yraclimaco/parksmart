@@ -1,0 +1,1510 @@
+{
+  "schema_version": "0.1",
+  "description": "Shared ParkSmart location registry (Issue #20). location_id values are stable; never reuse or rename one. See docs/location_registry.md.",
+  "locations": [
+    {
+      "location_id": "gilman-ps",
+      "name": "Gilman Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Gilman"
+      ],
+      "coordinates": {
+        "latitude": 32.87756239,
+        "longitude": -117.23365383
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "hopkins-ps",
+      "name": "Hopkins Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Hopkins"
+      ],
+      "coordinates": {
+        "latitude": 32.88379995,
+        "longitude": -117.23933606
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "pangea-ps",
+      "name": "Pangea Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Pangea"
+      ],
+      "coordinates": {
+        "latitude": 32.88423701,
+        "longitude": -117.24306936
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "scholars-ps",
+      "name": "Scholars Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Scholars"
+      ],
+      "coordinates": {
+        "latitude": 32.88034796,
+        "longitude": -117.24163894
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "theatre-district-ps",
+      "name": "Theatre District Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Theatre District Garage"
+      ],
+      "coordinates": {
+        "latitude": 32.87178041,
+        "longitude": -117.24305356
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "south-ps",
+      "name": "South Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "South"
+      ],
+      "coordinates": {
+        "latitude": 32.87398156,
+        "longitude": -117.23709381
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "triton-ps",
+      "name": "Triton Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Triton"
+      ],
+      "coordinates": {
+        "latitude": 32.87754489,
+        "longitude": -117.23527198
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "campus-point-west-ps",
+      "name": "Campus Point Parking Structure West",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Campus Point West"
+      ],
+      "coordinates": {
+        "latitude": 32.87963061,
+        "longitude": -117.22604283
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "campus-point-east-ps",
+      "name": "Campus Point Parking Structure East",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Campus Point East"
+      ],
+      "coordinates": {
+        "latitude": 32.88021536,
+        "longitude": -117.22513874
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "athena-ps",
+      "name": "Athena Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Athena"
+      ],
+      "coordinates": {
+        "latitude": 32.87929123,
+        "longitude": -117.22184339
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "torrey-pines-center-north-ps",
+      "name": "Torrey Pines Center North Parking Structure",
+      "kind": "structure",
+      "dataset_facilities": [
+        "Torrey Pines Center North"
+      ],
+      "coordinates": {
+        "latitude": 32.89164809,
+        "longitude": -117.24245761
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "torrey-pines-center-south",
+      "name": "Torrey Pines Center South",
+      "kind": "lot",
+      "dataset_facilities": [
+        "Torrey Pines Center South"
+      ],
+      "coordinates": {
+        "latitude": 32.89031,
+        "longitude": -117.24319
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, Building Points Public layer (BaseData/Campus_Map_Vector/MapServer/26); building point, not vehicle entrance",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": "Pin uses the Torrey Pines Center South building point."
+    },
+    {
+      "location_id": "p001",
+      "name": "Lot P001",
+      "kind": "lot",
+      "dataset_facilities": [],
+      "coordinates": {
+        "latitude": 32.8649,
+        "longitude": -117.25554
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": "No observations in the analysis dataset; no availability estimate."
+    },
+    {
+      "location_id": "p002",
+      "name": "Lot P002",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P002"
+      ],
+      "coordinates": {
+        "latitude": 32.8637,
+        "longitude": -117.25404
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p003",
+      "name": "Lot P003",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P003"
+      ],
+      "coordinates": {
+        "latitude": 32.86393,
+        "longitude": -117.25384
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p006",
+      "name": "Lot P006",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P006"
+      ],
+      "coordinates": {
+        "latitude": 32.86602,
+        "longitude": -117.25248
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p007",
+      "name": "Lot P007",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P007"
+      ],
+      "coordinates": {
+        "latitude": 32.86704,
+        "longitude": -117.2537
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p008",
+      "name": "Lot P008",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P008"
+      ],
+      "coordinates": {
+        "latitude": 32.86682,
+        "longitude": -117.2529
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p010",
+      "name": "Lot P010",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P010"
+      ],
+      "coordinates": {
+        "latitude": 32.86886,
+        "longitude": -117.25336
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p011",
+      "name": "Lot P011",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P011"
+      ],
+      "coordinates": {
+        "latitude": 32.86923,
+        "longitude": -117.25151
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p012",
+      "name": "Lot P012",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P012"
+      ],
+      "coordinates": {
+        "latitude": 32.87005,
+        "longitude": -117.25263
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p013",
+      "name": "Lot P013",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P013"
+      ],
+      "coordinates": {
+        "latitude": 32.87007,
+        "longitude": -117.25161
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p014",
+      "name": "Lot P014",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P014"
+      ],
+      "coordinates": {
+        "latitude": 32.86963,
+        "longitude": -117.2511
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p016",
+      "name": "Lot P016",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P016"
+      ],
+      "coordinates": {
+        "latitude": 32.8674,
+        "longitude": -117.2516
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p017",
+      "name": "Lot P017",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P017"
+      ],
+      "coordinates": {
+        "latitude": 32.86553,
+        "longitude": -117.24899
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
+      "notes": null
+    },
+    {
+      "location_id": "p031",
+      "name": "Lot P031",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P031"
+      ],
+      "coordinates": {
+        "latitude": 32.87087,
+        "longitude": -117.25252
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p032",
+      "name": "Lot P032",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P032"
+      ],
+      "coordinates": {
+        "latitude": 32.87104,
+        "longitude": -117.25053
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p106",
+      "name": "Lot P106",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P106"
+      ],
+      "coordinates": {
+        "latitude": 32.87305,
+        "longitude": -117.23851
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p113",
+      "name": "Lot P113",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P113"
+      ],
+      "coordinates": {
+        "latitude": 32.87658,
+        "longitude": -117.24004
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p201",
+      "name": "Lot P201",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P201"
+      ],
+      "coordinates": {
+        "latitude": 32.87788,
+        "longitude": -117.24192
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p302",
+      "name": "Lot P302",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P302"
+      ],
+      "coordinates": {
+        "latitude": 32.88128,
+        "longitude": -117.24165
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p303",
+      "name": "Lot P303",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P303"
+      ],
+      "coordinates": {
+        "latitude": 32.88162,
+        "longitude": -117.24278
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p304",
+      "name": "Lot P304",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P304"
+      ],
+      "coordinates": {
+        "latitude": 32.88259,
+        "longitude": -117.24274
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p351",
+      "name": "Lot P351",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P351"
+      ],
+      "coordinates": {
+        "latitude": 32.88734,
+        "longitude": -117.24198
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p357",
+      "name": "Lot P357",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P357"
+      ],
+      "coordinates": {
+        "latitude": 32.88761,
+        "longitude": -117.2409
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p384",
+      "name": "Lot P384",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P384"
+      ],
+      "coordinates": {
+        "latitude": 32.88851,
+        "longitude": -117.24494
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Sanford lot: weekday access controls 7 AM to 11 PM and a card requirement 7 AM to 5 PM (citation guidance names P384)",
+      "notes": "Research v1.2 C4: P384 (citation guidance) and P385 (visitor page) may or may not be separate facilities; kept separate."
+    },
+    {
+      "location_id": "p385",
+      "name": "Lot P385",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P385"
+      ],
+      "coordinates": {
+        "latitude": 32.88842,
+        "longitude": -117.24395
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Sanford lot: weekday access controls 7 AM to 11 PM and a card requirement 7 AM to 5 PM (citation guidance names P384)",
+      "notes": "Research v1.2 C4: P384 (citation guidance) and P385 (visitor page) may or may not be separate facilities; kept separate."
+    },
+    {
+      "location_id": "p386",
+      "name": "Gliderport (P386)",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P386"
+      ],
+      "coordinates": {
+        "latitude": 32.889722,
+        "longitude": -117.246944
+      },
+      "coordinate_status": "approximate",
+      "coordinate_source": "Published approximate airfield coordinates (https://airport-data.com/airport/CA84); not in UCSD GIS",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": "Gliderport: daylight only (6 AM to 6 PM Nov to Mar, 6 AM to 8 PM Apr to Oct)",
+      "notes": null
+    },
+    {
+      "location_id": "p401",
+      "name": "Lot P401",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P401"
+      ],
+      "coordinates": {
+        "latitude": 32.87941,
+        "longitude": -117.22917
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p402",
+      "name": "Lot P402",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P402"
+      ],
+      "coordinates": {
+        "latitude": 32.87844,
+        "longitude": -117.23034
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p406",
+      "name": "Lot P406",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P406"
+      ],
+      "coordinates": {
+        "latitude": 32.87734,
+        "longitude": -117.2303
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p414",
+      "name": "Lot P414",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P414"
+      ],
+      "coordinates": {
+        "latitude": 32.8782,
+        "longitude": -117.23992
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p416",
+      "name": "Lot P416",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P416"
+      ],
+      "coordinates": {
+        "latitude": 32.87778,
+        "longitude": -117.23813
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "International Center: affiliate access only 7 AM to 5 PM weekdays",
+      "notes": null
+    },
+    {
+      "location_id": "p503",
+      "name": "Lot P503",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P503"
+      ],
+      "coordinates": {
+        "latitude": 32.88219,
+        "longitude": -117.23547
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p504",
+      "name": "Lot P504",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P504"
+      ],
+      "coordinates": {
+        "latitude": 32.882,
+        "longitude": -117.23221
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p507",
+      "name": "Lot P507",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P507"
+      ],
+      "coordinates": {
+        "latitude": 32.88365,
+        "longitude": -117.22914
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p508",
+      "name": "Lot P508",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P508"
+      ],
+      "coordinates": {
+        "latitude": 32.88054,
+        "longitude": -117.23423
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p510",
+      "name": "Lot P510",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P510"
+      ],
+      "coordinates": {
+        "latitude": 32.88156,
+        "longitude": -117.23011
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p602",
+      "name": "Lot P602",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P602"
+      ],
+      "coordinates": {
+        "latitude": 32.87668,
+        "longitude": -117.23458
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p603",
+      "name": "Lot P603",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P603"
+      ],
+      "coordinates": {
+        "latitude": 32.87401,
+        "longitude": -117.23467
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p610",
+      "name": "Lot P610",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P610"
+      ],
+      "coordinates": {
+        "latitude": 32.87495,
+        "longitude": -117.2378
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p671",
+      "name": "Lot P671",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P671"
+      ],
+      "coordinates": {
+        "latitude": 32.8738,
+        "longitude": -117.23331
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p701",
+      "name": "Lot P701",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P701"
+      ],
+      "coordinates": {
+        "latitude": 32.88104,
+        "longitude": -117.22739
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p702",
+      "name": "Lot P702",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P702"
+      ],
+      "coordinates": {
+        "latitude": 32.88166,
+        "longitude": -117.2243
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p703",
+      "name": "Lot P703",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P703"
+      ],
+      "coordinates": {
+        "latitude": 32.87984,
+        "longitude": -117.22071
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p704",
+      "name": "Lot P704",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P704"
+      ],
+      "coordinates": {
+        "latitude": 32.87952,
+        "longitude": -117.2191
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p705",
+      "name": "Lot P705",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P705"
+      ],
+      "coordinates": {
+        "latitude": 32.88094,
+        "longitude": -117.2195
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p706",
+      "name": "Lot P706",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P706"
+      ],
+      "coordinates": {
+        "latitude": 32.88269,
+        "longitude": -117.22216
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "Preuss School lot: needs supplemental authorization 24/7",
+      "notes": null
+    },
+    {
+      "location_id": "p707",
+      "name": "Lot P707",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P707"
+      ],
+      "coordinates": {
+        "latitude": 32.88118,
+        "longitude": -117.22271
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p753",
+      "name": "Lot P753",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P753"
+      ],
+      "coordinates": {
+        "latitude": 32.87695,
+        "longitude": -117.22645
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p759",
+      "name": "Lot P759",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P759"
+      ],
+      "coordinates": {
+        "latitude": 32.87705,
+        "longitude": -117.22759
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "restricted",
+      "access_note": "La Jolla Medical Center lot: needs supplemental authorization 24/7",
+      "notes": null
+    },
+    {
+      "location_id": "p782",
+      "name": "Lot P782",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P782"
+      ],
+      "coordinates": {
+        "latitude": 32.87596,
+        "longitude": -117.21883
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p784",
+      "name": "Lot P784",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P784"
+      ],
+      "coordinates": {
+        "latitude": 32.87809,
+        "longitude": -117.22182
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "p785",
+      "name": "Lot P785",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P785"
+      ],
+      "coordinates": {
+        "latitude": 32.87812,
+        "longitude": -117.22079
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-21",
+      "registry_status": "supported",
+      "access_note": null,
+      "notes": null
+    },
+    {
+      "location_id": "8980",
+      "name": "8980",
+      "kind": "unknown",
+      "dataset_facilities": [
+        "8980"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Likely the 8980 Extended Studies structure (research v1.2 section 4), which has visitor parking and supplemental-authorization areas; location and scope not verified."
+    },
+    {
+      "location_id": "mesa-canyon",
+      "name": "Mesa Canyon",
+      "kind": "unknown",
+      "dataset_facilities": [
+        "Mesa Canyon"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "excluded",
+      "access_note": null,
+      "notes": "Graduate-housing structure serving residents; excluded from the website on purpose."
+    },
+    {
+      "location_id": "nuevo-west",
+      "name": "Nuevo West",
+      "kind": "unknown",
+      "dataset_facilities": [
+        "Nuevo West"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Housing-area label; relationship to Nuevo West/Vela unverified (Issue #3)."
+    },
+    {
+      "location_id": "nuevo-west-vela",
+      "name": "Nuevo West/Vela",
+      "kind": "unknown",
+      "dataset_facilities": [
+        "Nuevo West/Vela"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Housing-area label; relationship to Nuevo West unverified (Issue #3)."
+    },
+    {
+      "location_id": "p021",
+      "name": "Lot P021",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P021"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p102",
+      "name": "Lot P102",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P102"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
+    },
+    {
+      "location_id": "p103",
+      "name": "Lot P103",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P103"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
+    },
+    {
+      "location_id": "p111",
+      "name": "Lot P111",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P111"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
+    },
+    {
+      "location_id": "p206",
+      "name": "Lot P206",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P206"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p308",
+      "name": "Lot P308",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P308"
+      ],
+      "coordinates": {
+        "latitude": 32.88263,
+        "longitude": -117.24202
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-30",
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
+    },
+    {
+      "location_id": "p309",
+      "name": "Lot P309",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P309"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
+    },
+    {
+      "location_id": "p359",
+      "name": "Lot P359",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P359"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p383",
+      "name": "Lot P383",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P383"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p395",
+      "name": "Lot P395",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P395"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p405",
+      "name": "Lot P405",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P405"
+      ],
+      "coordinates": {
+        "latitude": 32.87876,
+        "longitude": -117.23482
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-30",
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
+    },
+    {
+      "location_id": "p411",
+      "name": "Lot P411",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P411"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
+    },
+    {
+      "location_id": "p502",
+      "name": "Lot P502",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P502"
+      ],
+      "coordinates": {
+        "latitude": 32.88313,
+        "longitude": -117.23346
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-30",
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
+    },
+    {
+      "location_id": "p506",
+      "name": "Lot P506",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P506"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p511",
+      "name": "Lot P511",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P511"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
+    },
+    {
+      "location_id": "p751",
+      "name": "Lot P751",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P751"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p752",
+      "name": "Lot P752",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P752"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "p760",
+      "name": "Lot P760",
+      "kind": "lot",
+      "dataset_facilities": [
+        "P760"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "No UCSD GIS lot outline found; coordinates unknown."
+    },
+    {
+      "location_id": "tdlln",
+      "name": "TDLLN",
+      "kind": "unknown",
+      "dataset_facilities": [
+        "TDLLN"
+      ],
+      "coordinates": null,
+      "coordinate_status": "missing",
+      "coordinate_source": null,
+      "coordinate_verified_on": null,
+      "registry_status": "unresolved",
+      "access_note": null,
+      "notes": "Possibly related to Theatre District Garage; not merged without evidence (Issue #3)."
+    }
+  ]
+}
