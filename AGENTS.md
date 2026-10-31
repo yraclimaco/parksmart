@@ -485,6 +485,8 @@ estimates are reported, never filled in. Rule sources, weights, walking
 assumptions and tie-breaking are in `docs/recommendations.md`; update it and
 the rule tests when permit rules change. Tests:
 `python -m pytest tests/test_eligibility.py tests/test_ranking.py -q`.
+`docs/recommendations_handoff.md` shows how `POST /recommendations` should call
+these functions and lists the open interface questions.
 
 - Commands for future forecasting deployment should be added after it is
   implemented and tested. Backend and parking analysis commands are documented

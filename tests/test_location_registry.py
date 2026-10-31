@@ -11,6 +11,7 @@ from src.location_registry import (
     DEFAULT_DATASET,
     DEFAULT_REGISTRY,
     api_locations,
+    current_groups,
     main,
     facility_to_location,
     load_registry,
@@ -108,6 +109,22 @@ def test_unmapped_facilities_are_kept_and_reported():
     groups = location_groups(LOCATIONS, _records())
     unlisted = groups[groups.facility == "Unlisted"]
     assert len(unlisted) == 1 and unlisted.location_id.isna().all()
+
+
+def test_current_groups_keep_latest_quarter_mapped_groups_only():
+    records = pd.concat([_records(), pd.DataFrame([{
+        "facility": "TDLLN", "category": "A", "subtype": None, "level": None,
+        "observation_date": "2026-10-03", "academic_year": "2026-2027",
+        "quarter": "Fall",
+    }])], ignore_index=True)
+    current = current_groups(LOCATIONS, records)
+    # Old Gilman Level 2 split, P406 (last seen Winter 2025) and the unmapped
+    # facility drop out. Unresolved TDLLN stays: ranking filters by status.
+    assert set(zip(current.location_id, current.category, current.level)) == {
+        ("gilman-ps", "A", ""), ("gilman-ps", "Visitor", ""), ("tdlln", "A", ""),
+    }
+    assert current.in_latest_quarter.all()
+    assert list(current.index) == list(range(len(current)))
     assert unmapped_facilities(LOCATIONS, _records()) == ["Unlisted"]
 
 

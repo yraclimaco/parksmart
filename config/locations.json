@@ -1240,7 +1240,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
     },
     {
       "location_id": "p103",
@@ -1255,7 +1255,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
     },
     {
       "location_id": "p111",
@@ -1270,7 +1270,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
     },
     {
       "location_id": "p206",
@@ -1294,13 +1294,16 @@
       "dataset_facilities": [
         "P308"
       ],
-      "coordinates": null,
-      "coordinate_status": "missing",
-      "coordinate_source": null,
-      "coordinate_verified_on": null,
+      "coordinates": {
+        "latitude": 32.88263,
+        "longitude": -117.24202
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-30",
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
     },
     {
       "location_id": "p309",
@@ -1315,7 +1318,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
     },
     {
       "location_id": "p359",
@@ -1369,13 +1372,16 @@
       "dataset_facilities": [
         "P405"
       ],
-      "coordinates": null,
-      "coordinate_status": "missing",
-      "coordinate_source": null,
-      "coordinate_verified_on": null,
+      "coordinates": {
+        "latitude": 32.87876,
+        "longitude": -117.23482
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-30",
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
     },
     {
       "location_id": "p411",
@@ -1390,7 +1396,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
     },
     {
       "location_id": "p502",
@@ -1399,13 +1405,16 @@
       "dataset_facilities": [
         "P502"
       ],
-      "coordinates": null,
-      "coordinate_status": "missing",
-      "coordinate_source": null,
-      "coordinate_verified_on": null,
+      "coordinates": {
+        "latitude": 32.88313,
+        "longitude": -117.23346
+      },
+      "coordinate_status": "verified",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
+      "coordinate_verified_on": "2026-10-30",
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
     },
     {
       "location_id": "p506",
@@ -1435,7 +1444,7 @@
       "coordinate_verified_on": null,
       "registry_status": "unresolved",
       "access_note": null,
-      "notes": "Observed only through 2019; not yet checked against UCSD GIS. Coordinates unknown."
+      "notes": "Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). Coordinates unknown."
     },
     {
       "location_id": "p751",

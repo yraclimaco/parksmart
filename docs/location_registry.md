@@ -35,7 +35,7 @@ when the dataset is built locally.
 | Field | Meaning |
 | --- | --- |
 | `registry_status` | `supported` (may be recommended if eligible), `restricted` (needs a supplemental permit or authorization), `unresolved` (name, location or scope unverified), `excluded` (out of scope). Only `supported` locations may be recommended. |
-| `coordinates`, `coordinate_status` | `verified` (UCSD GIS, checked 2026-10-21), `approximate`, or `missing` (null). The API passes only verified coordinates. |
+| `coordinates`, `coordinate_status` | `verified` (UCSD GIS; check date in `coordinate_verified_on`), `approximate`, or `missing` (null). The API passes only verified coordinates. |
 | `coordinate_source`, `coordinate_verified_on` | Where the pin came from and when it was checked. |
 | `access_note` | Lot restriction text from Domain Research v1.2, section 4. |
 
@@ -54,7 +54,8 @@ is open or that its allocation is unchanged.
 | Supported, verified pin | 45 |
 | Supported, approximate pin (Gliderport P386) | 1 |
 | Restricted (SIO P001–P017, Preuss P706, Medical Center P759, International Center P416, Sanford P384/P385) | 18 |
-| Unresolved, no coordinates | 22 |
+| Unresolved, no coordinates | 19 |
+| Unresolved, verified pin (P308, P405, P502) | 3 |
 | Excluded (Mesa Canyon, resident housing) | 1 |
 
 Theatre District Parking Structure (last observed 2025-01-17) is supported
@@ -76,7 +77,8 @@ These are kept so no observation is dropped, but are never recommended.
 | `p021`, `p206`, `p359`, `p506`, `p751` | unresolved | 666–1445 each | 2026-10-09 | No UCSD GIS lot outline found. |
 | `p383`, `p395`, `p760` | unresolved | 422–1189 each | 2025-01-17 | No UCSD GIS lot outline found. |
 | `p752` | unresolved | 20 | 2025-07-11 | No UCSD GIS lot outline found. |
-| `p102`, `p103`, `p111`, `p308`, `p309`, `p405`, `p411`, `p502`, `p511` | unresolved | 261–909 each | 2019 | Observed only through 2019; not yet checked against UCSD GIS. |
+| `p102`, `p103`, `p111`, `p309`, `p411`, `p511` | unresolved | 261–835 each | 2019 | Observed only through 2019; no UCSD GIS lot outline found (checked 2026-10-30). |
+| `p308`, `p405`, `p502` | unresolved | 301–909 each | 2019 | Observed only through 2019; GIS outline found (pin verified 2026-10-30), but current use and allocation are unverified. |
 
 ## Open questions
 
