@@ -175,6 +175,22 @@ python -m src.download_qpass
 
 ## Running things
 
+### Availability prediction artifacts - Issue #18
+
+Run `python -m src.train_availability` after building the integrated CSV.
+Optional flags: `--dataset`, `--output-dir`, `--model-dir`. Defaults write
+comparisons to `results/issue18/` and trusted local pickle artifacts to
+`models/issue18/` (both gitignored). A baseline is saved before comparisons;
+selected-model serving fits use all records after frozen evaluation.
+Load once with `src.availability_prediction.load_prediction_service()`;
+`predict(features)` returns aligned `prediction` and `baseline_group` columns
+without retraining. Unknown exact groups/times/calendar values return NaN;
+blank quarter uses an explicit historical fallback. Preserve all four group
+fields, including subtype and level. See `docs/issue18_predictions.md` for
+Dylan's PR #21 adapter wiring, reproduction, evaluation and occupancy findings.
+Tests: `python -m pytest tests/test_availability_prediction.py -q`.
+
+
 ### Local FastAPI backend and proposed interface contract - Issue #12
 
 After installing `requirements.txt`, run from the repository root:

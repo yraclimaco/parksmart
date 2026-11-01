@@ -185,3 +185,6 @@ This template is intentionally simple so students can focus on the science inste
 - frontend UI/UX code in `frontend/`
 - CI checks
 - docs pages
+
+Availability prediction training, saved artifacts, and backend integration:
+see [Issue #18 handoff and evaluation](docs/issue18_predictions.md).
