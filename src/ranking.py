@@ -14,7 +14,9 @@ from typing import List, Optional
 
 import pandas as pd
 
-from .eligibility import ALLOWED, NEEDS_VERIFICATION, check_eligibility
+from .eligibility import (ALLOWED, NEEDS_VERIFICATION, check_eligibility,
+                          clock, to_ucsd_time)
+from .ucsd_calendar import VERIFIED_END, VERIFIED_START, is_verified
 
 # Same weights as the website prototype (frontend/src/constants.ts).
 AVAILABILITY_WEIGHT = 0.65
@@ -30,6 +32,8 @@ MIN_WALK_MINUTES = 3
 EARTH_RADIUS_KM = 6371.0
 # Matches the near-full threshold in src/parking_benchmarks.py (10% open).
 NEAR_FULL_FRACTION = 0.10
+# API Text fields (explanations, limitations) allow at most 200 characters.
+MAX_TEXT_LENGTH = 200
 
 READY = "ready"
 NO_SUITABLE_LOCATION = "no_suitable_location"
@@ -60,6 +64,8 @@ class Choice:
     eligibility_reason: str
     allowed_until: Optional[object]
     explanation: str = ""
+    estimate_survey_time: Optional[str] = None
+    estimate_note: Optional[str] = None
 
     def to_api(self):
         """Return fields matching src.api.schemas.ParkingChoice."""
@@ -143,8 +149,11 @@ def recommend(candidates, locations, permit, arrival, destination=None,
 
     Args:
         candidates: DataFrame, one row per current parking group, with
-            REQUIRED_COLUMNS (fraction NaN/None when no estimate) and an
-            optional ``estimate_basis`` column (e.g. "historical_average").
+            REQUIRED_COLUMNS (fraction NaN/None when no estimate) and the
+            optional ``estimate_basis``, ``estimate_survey_time`` and
+            ``estimate_note`` columns from
+            ``src.availability.AvailabilityEstimator.attach``. A note marks a
+            limited estimate and is shown in the explanation and limitations.
         locations: validated registry list (src.location_registry).
         permit: permit code (see src.eligibility.PERMIT_TYPES).
         arrival: datetime; naive values are UCSD local time.
@@ -206,13 +215,15 @@ def recommend(candidates, locations, permit, arrival, destination=None,
             score=score(fraction, walk, walking_known),
             eligibility_reason=result.reason,
             allowed_until=result.allowed_until,
+            estimate_survey_time=_optional(row, "estimate_survey_time"),
+            estimate_note=_optional(row, "estimate_note"),
         ))
 
     best = {}
     for choice in sorted(scored, key=_sort_key):
         best.setdefault(choice.location["location_id"], choice)
     ranked = sorted(best.values(), key=_sort_key)
-    limitations = _limitations(counts, walking_known, departure)
+    limitations = _limitations(counts, walking_known, arrival, departure)
 
     if not ranked:
         if counts["missing_estimate"]:
@@ -231,6 +242,10 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     first.explanation = _explain(first, permit, None)
     if backup:
         backup.explanation = _explain(backup, permit, first)
+    for label, choice in (("First choice", first), ("Backup", backup)):
+        if choice is not None and choice.estimate_note:
+            limitations.append(f"{label} estimate is limited: "
+                               f"{choice.estimate_note}.")
     summary = (f"{first.location['name']} scored highest on expected "
                "availability and walking distance.")
     if backup is None:
@@ -259,17 +274,39 @@ def _stall_text(group):
     return f"{group['category']}{subtype} stalls"
 
 
-def _explain(choice, permit, first):
-    """Build a short explanation (the API allows 200 characters).
+def _optional(row, column):
+    """Return a candidate's optional text column, or None when absent/blank."""
+    value = getattr(row, column, None)
+    return None if value is None or pd.isna(value) else str(value)
 
-    The estimate basis is kept on the Choice, not repeated here.
+
+def _explain(choice, permit, first):
+    """Build a short explanation of at most MAX_TEXT_LENGTH characters.
+
+    A limited estimate is named in parentheses. If that does not fit, a
+    shorter marker is used, then the backup comparison is dropped; the full
+    note always stays in the limitations.
     """
+    attempts = [(f" ({choice.estimate_note})", True),
+                (" (limited estimate)", True), (" (limited estimate)", False)]
+    if not choice.estimate_note:
+        attempts = [("", True)]
+    for note, compare in attempts:
+        text = _explanation_text(choice, permit, first if compare else None,
+                                 note)
+        if len(text) <= MAX_TEXT_LENGTH:
+            break
+    return text
+
+
+def _explanation_text(choice, permit, first, note):
+    """Join the explanation parts; ``first`` adds the backup comparison."""
     parts = [f"{permit} permit valid in {_stall_text(choice.parking_group)}"]
     if choice.allowed_until is not None:
         parts[0] += f" until {_clock(choice.allowed_until)}"
     parts[0] += "."
     percent = round(choice.estimated_available_fraction * 100)
-    parts.append(f"Past surveys: about {percent}% open.")
+    parts.append(f"Past surveys: about {percent}% open{note}.")
     if choice.estimated_available_fraction <= NEAR_FULL_FRACTION:
         parts.append("Often nearly full.")
     if choice.estimated_walking_minutes is not None:
@@ -280,11 +317,14 @@ def _explain(choice, permit, first):
     return " ".join(parts)
 
 
+def _day(day):
+    """Format a date like "Sep 21, 2026" (portable; no platform strftime flags)."""
+    return f"{day:%b} {day.day}, {day.year}"
+
+
 def _clock(moment):
-    """Format a time like "8:00 AM" (portable; no platform strftime flags)."""
-    hour = moment.hour % 12 or 12
-    suffix = "AM" if moment.hour < 12 else "PM"
-    return f"{moment.strftime('%a')} {hour}:{moment.minute:02d} {suffix}"
+    """Format a time like "Wed 8:00 AM"."""
+    return f"{moment:%a} {clock(moment)}"
 
 
 def _compare(backup, first):
@@ -301,8 +341,15 @@ def _compare(backup, first):
     return f"Backup: {' and '.join(reasons)}."
 
 
-def _limitations(counts, walking_known, departure):
+def _limitations(counts, walking_known, arrival, departure):
     notes = list(BASE_LIMITATIONS)
+    days = [to_ucsd_time(arrival).date()]
+    if departure is not None:
+        days.append(to_ucsd_time(departure).date())
+    if not all(is_verified(day) for day in days):
+        notes.append(f"Holiday and quarter dates are verified only from "
+                     f"{_day(VERIFIED_START)} to {_day(VERIFIED_END)}; "
+                     "this date was not checked.")
     if not walking_known:
         notes.append("No destination coordinates, so walking time was not "
                      "estimated and only availability was compared.")

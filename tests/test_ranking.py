@@ -1,13 +1,17 @@
 """Tests for first-choice/backup ranking (Issue #20)."""
 
+import re
 from datetime import datetime
+from pathlib import Path
+from typing import get_args
 
 import pandas as pd
 import pytest
 
 from src import ranking
 
-from src.api.schemas import ParkingChoice
+from src.api.schemas import ParkingChoice, RecommendationResponse
+from src.eligibility import UCSD_TIME_ZONE
 from src.ranking import (
     AVAILABILITY_WEIGHT,
     NO_SUITABLE_LOCATION,
@@ -189,3 +193,78 @@ def test_api_output_matches_backend_schema():
         "location_id", "facility", "category", "subtype", "level",
         "estimated_available_fraction"]), LOCATIONS, "S", WEEKDAY_MORNING)
     assert empty.to_api()["first_choice"] is None
+
+
+def test_limited_estimates_are_named_in_explanation_and_limitations():
+    candidates = _candidates([("near", "S", "", 0.6), ("mid", "S", "", 0.5)])
+    candidates["estimate_basis"] = ["level_1", "level_3"]
+    candidates["estimate_survey_time"] = "14:00"
+    candidates["estimate_note"] = ["2:00 PM surveys; none cover 10:00 PM",
+                                   "none cover 10:00 PM; all-day average for "
+                                   "these stalls"]
+    result = recommend(candidates, LOCATIONS, "S",
+                       WEEKDAY_MORNING.replace(hour=22), DESTINATION)
+    first, backup = result.first_choice, result.backup_choice
+    assert "(2:00 PM surveys; none cover 10:00 PM)" in first.explanation
+    assert first.estimate_survey_time == "14:00"
+    assert first.estimate_basis == "level_1"
+    assert len(backup.explanation) <= ranking.MAX_TEXT_LENGTH
+    assert ("First choice estimate is limited: 2:00 PM surveys; none cover "
+            "10:00 PM.") in result.limitations
+    assert any(note.startswith("Backup estimate is limited: none cover")
+               for note in result.limitations)
+
+
+def test_full_match_estimates_add_no_note():
+    candidates = _candidates([("near", "S", "", 0.6)])
+    candidates["estimate_note"] = [None]
+    result = recommend(candidates, LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION)
+    assert "(" not in result.first_choice.explanation
+    assert not any("estimate is limited" in n for n in result.limitations)
+
+
+def test_long_estimate_note_falls_back_to_short_marker():
+    first, backup = (recommend(_candidates([(loc, "Visitor", "2-Hour Limit",
+                                             frac)]), LOCATIONS, "V",
+                               WEEKDAY_MORNING, DESTINATION,
+                               WEEKDAY_MORNING.replace(hour=11)).first_choice
+                     for loc, frac in (("near", 0.9), ("gliderport", 0.05)))
+    backup.allowed_until = datetime(2026, 10, 28, 7, 30)
+    backup.estimated_walking_minutes = 19
+    backup.estimate_note = ("2:00 PM surveys; none cover 10:00 PM; same time, "
+                            "any weekday or quarter")
+    text = ranking._explain(backup, "V", first)
+    assert "(limited estimate)" in text
+    assert len(text) <= ranking.MAX_TEXT_LENGTH, text
+
+
+def test_dates_outside_verified_calendar_get_a_limitation():
+    candidates = _candidates([("near", "S", "", 0.6)])
+    inside = recommend(candidates, LOCATIONS, "S", WEEKDAY_MORNING)
+    outside = recommend(candidates, LOCATIONS, "S", datetime(2027, 10, 5, 10))
+    assert not any("verified only" in n for n in inside.limitations)
+    assert any("verified only from Sep 21, 2026 to Sep 6, 2027" in n
+               for n in outside.limitations)
+
+
+def test_every_ranking_status_is_accepted_by_backend_and_website():
+    statuses = {READY, NO_SUITABLE_LOCATION, PREDICTIONS_UNAVAILABLE}
+    schema = RecommendationResponse.model_fields["status"].annotation
+    assert statuses <= set(get_args(schema))
+    client = Path("frontend/src/api/recommendations.ts").read_text()
+    website = set(re.search(r"export type ApiStatus = ([^;]+);",
+                            client).group(1).replace("'", "").split(" | "))
+    assert statuses <= website
+
+
+def test_predictions_unavailable_passes_response_schema():
+    candidates = _candidates([("near", "S", "", None)])
+    result = recommend(candidates, LOCATIONS, "S", WEEKDAY_MORNING)
+    assert result.status == PREDICTIONS_UNAVAILABLE
+    response = RecommendationResponse(**result.to_api(), is_example=False,
+                                      arrival_time=datetime(
+                                          2026, 10, 27, 10,
+                                          tzinfo=UCSD_TIME_ZONE))
+    assert response.status == PREDICTIONS_UNAVAILABLE
+    for note in response.limitations:
+        assert len(note) <= ranking.MAX_TEXT_LENGTH

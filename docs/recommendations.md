@@ -12,22 +12,26 @@ python -m pytest tests/test_eligibility.py tests/test_ranking.py -q
 ## Calling it from the backend
 
 ```python
-from src.location_registry import load_registry, current_groups
-from src.ranking import recommend
+from src.recommender import Recommender
 
-locations = load_registry()                    # config/locations.json
-groups = current_groups(locations, records)    # latest-quarter parking groups
-groups["estimated_available_fraction"] = ...   # Vivaan's predictor, 0-1 or NaN
-groups["estimate_basis"] = ...                 # optional, e.g. fallback level
-result = recommend(groups, locations, permit="S", arrival=arrival,
-                   destination={"latitude": 32.881, "longitude": -117.238},
-                   departure=None)
+recommender = Recommender.from_files()       # once: dataset, registry, estimator
+result = recommender.recommend("S", arrival,
+                               destination={"latitude": 32.881,
+                                            "longitude": -117.238},
+                               departure=None)
 result.to_api()   # status, first_choice, backup_choice, explanation, limitations
 ```
 
+From a shell: `python -m src.recommender --permit S --arrival 2026-11-03T09:00
+--lat 32.8811 --lon -117.2376` prints the same JSON. `Recommender` wires together
+`current_groups()` (registry), `AvailabilityEstimator.attach()` (estimates) and
+`ranking.recommend()`; call those directly to swap one piece.
+
 `to_api()` choices match `src.api.schemas.ParkingChoice`. The result also keeps
-`parking_group`, `score`, `estimate_basis`, `allowed_until` and `counts`
-(why candidates were skipped) for the website and debugging.
+`parking_group`, `score`, `estimate_basis`, `estimate_survey_time`,
+`estimate_note`, `allowed_until` and `counts` (why candidates were skipped) for
+the website and debugging. The full endpoint walkthrough is
+`docs/recommendations_handoff.md`.
 
 Result `status`:
 
@@ -35,7 +39,7 @@ Result `status`:
 | --- | --- |
 | `ready` | First choice found; `backup_choice` may be null if only one location qualifies. |
 | `no_suitable_location` | Evaluation found nothing eligible within the walking limit. Not proof parking is full. |
-| `predictions_unavailable` | Eligible parking exists but none has an estimate. **Proposed addition** to the API status list; needs Daira's agreement. |
+| `predictions_unavailable` | Eligible parking exists but none has an estimate. Accepted by `RecommendationResponse` and the website; a test keeps all three in sync. |
 
 ## Permit rules
 
@@ -72,17 +76,25 @@ Each check returns `allowed`, `not_allowed` or `needs_verification`. Only
 - **Posted A 24/7 stalls:** A permits only.
 - **Time-limited stalls** (`2 Hours`, `5 Min`, ...): `needs_verification`
   without a departure time; with one, allowed only if the stay fits the limit.
-- **University holidays 2026-27** (Nov 11, Nov 26-27, Dec 24-25, Dec 31,
-  Jan 1): fees are waived but category rules are unconfirmed, so any result that
-  would differ between weekday and weekend rules is `needs_verification`.
+- **University holidays:** all 14 holiday days on the official
+  [2026-27 calendar](https://blink.ucsd.edu/instructors/resources/academic/calendars/2026.html)
+  (Veterans Day through Labor Day 2027), stored in `src/ucsd_calendar.py`.
+  Fees are waived but category rules are unconfirmed, so any result that would
+  differ between weekday and weekend rules is `needs_verification`. Only
+  Sep 21, 2026 to Sep 6, 2027 is verified; other dates get a limitation saying
+  holidays were not checked.
 - **Gliderport P386:** overnight parking is banned but the boundary is not
   published; outside the 6 AM-6 PM (Nov-Mar) / 6 AM-8 PM (Apr-Oct) daylight
   window it is `needs_verification`.
 - **Lot-wide supplemental permits** (SIO, Preuss, Medical Center, International
   Center, Sanford): the registry marks these `restricted`, so they are never
   candidates.
-- With a `departure`, the whole stay is checked every 15 minutes (elapsed time,
-  so DST changes are handled). Without one, only arrival is checked and a
+- With a `departure`, the whole stay is checked at arrival and at every
+  wall-clock :00/:15/:30/:45 mark before departure. Every published boundary is
+  on :00 or :30 (a test enforces this), so a cutoff inside the final partial
+  interval is caught: B in A stalls from 7:50 to 8:04 AM is `not_allowed`.
+  Leaving exactly at the cutoff is allowed. Steps use elapsed time, so DST
+  changes are handled. Without a departure, only arrival is checked and a
   limitation says so.
 
 Not modeled: OPH, NW, CPP, SuperSaver, AMYRV, M, OB and other special permits;
@@ -114,10 +126,25 @@ Explanations stay under the API's 200-character limit and name the permitted
 stall type and cutoff (e.g. "valid in B stalls until Wed 8:00 AM"). Choices at
 or below 10% expected availability say "Often nearly full."
 
+## Estimates and their labels
+
+`src/availability.AvailabilityEstimator` wraps the Issue #11 historical-average
+baseline. Per request it uses the nearest survey time (8:00, 10:00, 12:00,
+2:00; ties go earlier) and the quarter from the official calendar (none during
+breaks), then records `estimate_basis`, `estimate_survey_time` and
+`estimate_note`. A note appears whenever an estimate is not a full match at
+the requested time: a different survey time, an arrival outside survey hours
+("2:00 PM surveys; none cover 10:00 PM"), or a broader fallback average. Ranking
+shows the note in the choice's explanation and adds "First choice estimate is
+limited: ..." to the limitations. If the note does not fit the 200-character
+explanation, "(limited estimate)" is used and the backup comparison may be
+dropped; the limitation always has the full note.
+
 ## Limitations
 
 - Estimates come from historical surveys at four times a day, mostly the start
-  of each quarter; they are not live availability.
+  of each quarter; they are not live availability. Limited estimates are
+  labeled (see above).
 - Permit rules are simplified from official pages and can be overridden by
   posted signs, closures and events.
 - Weights (65/35) and the 20-minute limit are product choices carried over

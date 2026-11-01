@@ -129,7 +129,10 @@ class RecommendationResponse(APIModel):
     """Future result envelope; status controls whether parking choices exist."""
 
     schema_version: Literal["0.1"] = "0.1"
-    status: Literal["ready", "no_suitable_location", "not_implemented"]
+    # predictions_unavailable: eligible parking exists but none has an estimate
+    # (src.ranking, Issue #20). Like no_suitable_location, it has no choices.
+    status: Literal["ready", "no_suitable_location", "not_implemented",
+                    "predictions_unavailable"]
     is_example: bool
     arrival_time: datetime
     time_zone: Literal["America/Los_Angeles"] = UCSD_TIME_ZONE

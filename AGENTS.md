@@ -202,7 +202,10 @@ contract review. Production location IDs and permit codes require team review.
 Coordination status is recorded in `docs/api_proposal.md`; the setup guide must
 remain usable for teammates starting interface work with the sample catalog.
 `not_implemented` means no recommendation evaluation is available;
-`no_suitable_location` is reserved for a future evaluated empty result.
+`no_suitable_location` is reserved for a future evaluated empty result;
+`predictions_unavailable` means eligible parking exists but has no estimate.
+The ranking statuses, `RecommendationResponse.status` and the website's
+`ApiStatus` must match (`tests/test_ranking.py` checks this).
 
 ### Parking patterns and benchmarks — Issue #11
 
@@ -478,15 +481,29 @@ Recent observations are not proof of current use. See
 `src/eligibility.check_eligibility()` returns `allowed`, `not_allowed` or
 `needs_verification` for a permit (`A`, `B`, `S`, `SR`, `D`, `V`), parking group
 and time; only `allowed` is recommended, and unknown or conflicting rules are
-never treated as allowed. `src/ranking.recommend()` takes latest-quarter groups
-from `current_groups()` with `estimated_available_fraction`, and returns a first
-choice and distinct backup (`to_api()` matches `ParkingChoice`). Missing
-estimates are reported, never filled in. Rule sources, weights, walking
-assumptions and tie-breaking are in `docs/recommendations.md`; update it and
-the rule tests when permit rules change. Tests:
-`python -m pytest tests/test_eligibility.py tests/test_ranking.py -q`.
+never treated as allowed. With a departure, every rule boundary during the
+stay is checked; all boundaries must stay on the 30-minute grid
+(`BOUNDARY_GRID_MINUTES`). Holidays and quarters come from the official 2026-27
+calendar in `src/ucsd_calendar.py` (verified Sep 21, 2026 to Sep 6, 2027);
+update it from the Registrar's calendar each year. `src/availability.py`'s
+`AvailabilityEstimator` attaches historical-average estimates for an arrival
+time and labels any estimate that uses another survey time or a fallback
+average; any model following the prediction contract in its docstring can
+replace the default `HistoricalAverage`, and NaN predictions stay missing.
+The proposed shared interface for all teammates is in `docs/api_proposal.md`. `src/ranking.recommend()` takes latest-quarter groups from
+`current_groups()` with those estimates, and returns a first choice and
+distinct backup (`to_api()` matches `ParkingChoice`); limited estimates and
+unverified dates appear in explanations and limitations. Missing estimates are
+reported, never filled in. Rule sources, weights, walking assumptions and
+tie-breaking are in `docs/recommendations.md`; update it and the rule tests
+when permit rules change. Tests:
+`python -m pytest tests/test_eligibility.py tests/test_ranking.py tests/test_availability.py tests/test_ucsd_calendar.py -q`.
+`src/recommender.Recommender.from_files()` loads all of this once and answers
+requests with `.recommend(permit, arrival, destination)`; try it with
+`python -m src.recommender --permit S --arrival 2026-11-03T09:00 --lat 32.8811 --lon -117.2376`
+(needs the integrated dataset). Tests: `python -m pytest tests/test_recommender.py -q`.
 `docs/recommendations_handoff.md` shows how `POST /recommendations` should call
-these functions and lists the open interface questions.
+it and lists the open interface questions.
 
 - Commands for future forecasting deployment should be added after it is
   implemented and tested. Backend and parking analysis commands are documented

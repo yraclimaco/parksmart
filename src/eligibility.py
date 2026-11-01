@@ -17,9 +17,11 @@ registry's ``registry_status``, not here.
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from zoneinfo import ZoneInfo
+
+from .ucsd_calendar import UNIVERSITY_HOLIDAYS
 
 UCSD_TIME_ZONE = ZoneInfo("America/Los_Angeles")
 ALLOWED = "allowed"
@@ -29,19 +31,18 @@ NEEDS_VERIFICATION = "needs_verification"
 PERMIT_TYPES = ("A", "B", "S", "SR", "D", "V")
 ORDINARY_CATEGORIES = {"A", "B", "S", "SR", "D", "Visitor"}
 A_24_7_SUBTYPE = "24/7 Enforced"
-# Session checks step through the stay; every published boundary is on :00/:30.
-STEP_MINUTES = 15
+# Every published rule boundary (8:00, 7:30, 4 PM, midnight...) is a multiple
+# of BOUNDARY_GRID_MINUTES past midnight, so access cannot change between grid
+# marks. Stays are checked at arrival and at every mark before departure.
+BOUNDARY_GRID_MINUTES = 30
+STEP_MINUTES = 15  # divides the grid, so every boundary is a checked mark
 STEP = timedelta(minutes=STEP_MINUTES)
 # How far ahead to look for the end of a valid window ("valid until 8:00 AM").
 ACCESS_HORIZON = timedelta(hours=24)
 
-# 2026-27 university holidays (research section 3, S10). Fees are waived, but
-# whether weekday category limits still apply is unresolved.
-UNIVERSITY_HOLIDAYS = {
-    date(2026, 11, 11), date(2026, 11, 26), date(2026, 11, 27),
-    date(2026, 12, 24), date(2026, 12, 25), date(2026, 12, 31),
-    date(2027, 1, 1),
-}
+# University holidays come from src.ucsd_calendar (official 2026-27 calendar).
+# Fees are waived, but whether weekday category limits still apply is
+# unresolved (research section 3, S10), so holidays need verification.
 
 
 def _minutes(hour, minute=0):
@@ -115,6 +116,14 @@ def to_ucsd_time(moment):
     if moment.tzinfo is None:
         return moment.replace(tzinfo=UCSD_TIME_ZONE)
     return moment.astimezone(UCSD_TIME_ZONE)
+
+
+def clock(value):
+    """Format "HH:MM" text or a datetime as "8:00 AM" (no platform strftime flags)."""
+    if isinstance(value, str):
+        value = datetime.strptime(value, "%H:%M")
+    hour = value.hour % 12 or 12
+    return f"{hour}:{value.minute:02d} {'AM' if value.hour < 12 else 'PM'}"
 
 
 def time_limit_minutes(subtype):
@@ -263,21 +272,30 @@ def _gliderport_daylight(moment):
 
 
 def _session_moments(arrival, departure):
-    """Return the instants to check: arrival, then every STEP before departure."""
+    """Return the instants to check: arrival, then every grid mark before departure.
+
+    Marks are aligned to the wall clock (:00, :15, :30, :45), not to arrival,
+    so a boundary inside the final partial interval is still checked.
+    """
     if departure is None:
         return [arrival]
-    moments, moment = [], arrival
+    moments, moment = [arrival], _next_mark(arrival)
     while moment < departure:
         moments.append(moment)
         moment = _later(moment, STEP)
     return moments
 
 
+def _next_mark(moment):
+    """Return the first wall-clock STEP mark strictly after ``moment``."""
+    start = moment.replace(second=0, microsecond=0)
+    return _later(start, timedelta(minutes=STEP_MINUTES
+                                   - start.minute % STEP_MINUTES))
+
+
 def _allowed_until(permit, base, arrival, location_id):
-    """Return the first STEP boundary within ACCESS_HORIZON that is not ALLOWED."""
-    moment = arrival.replace(second=0, microsecond=0)
-    moment = _later(moment, timedelta(
-        minutes=STEP_MINUTES - moment.minute % STEP_MINUTES))
+    """Return the first STEP mark within ACCESS_HORIZON that is not ALLOWED."""
+    moment = _next_mark(arrival)
     while moment - arrival <= ACCESS_HORIZON:
         if _check_moment(permit, base, moment, location_id).status != ALLOWED:
             return moment

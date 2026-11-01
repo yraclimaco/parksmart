@@ -139,7 +139,7 @@ versions with `-07:00` and `-08:00` identify different instants.
 | Field | Meaning |
 | --- | --- |
 | `schema_version` | Contract version string, currently `"0.1"` |
-| `status` | `ready`, `no_suitable_location`, or `not_implemented` |
+| `status` | `ready`, `no_suitable_location`, `predictions_unavailable`, or `not_implemented` |
 | `is_example` | `true` identifies a static UI example, never a real prediction |
 | `arrival_time`, `time_zone` | Arrival normalized to UCSD local time with offset, and IANA zone name |
 | `first_choice` | Parking choice object, or null |
@@ -152,7 +152,8 @@ A choice contains `location` (the same ID/name/coordinates shape as the catalog)
 Fractions are in **0–1**, not 0–100. Walking estimates are nonnegative minutes.
 Both estimates can be null independently, including for an otherwise ready
 result. An unavailable backup is null; a ready result requires a first choice.
-`no_suitable_location` and `not_implemented` require both choices to be null.
+`no_suitable_location`, `predictions_unavailable` and `not_implemented` require
+both choices to be null.
 
 Clients should display null estimates as “Unavailable,” never “0%” or “0 min.”
 Zero is a known numerical estimate, not a missing-value sentinel. Skip map
@@ -169,7 +170,9 @@ appear in the UI.
 parking evaluation was attempted. It is a proposed result state, not an actual
 HTTP response from this backend. In the future,
 `no_suitable_location` will mean evaluation found no defensible recommendation;
-it must not be presented as proof that all locations are full. Static examples
+it must not be presented as proof that all locations are full.
+`predictions_unavailable` (added in Issue #20) means eligible parking exists
+but none has an availability estimate; it is not proof parking is full either. Static examples
 stay under `docs/examples/backend/` and are never loaded by endpoint code.
 No numerical estimates have been fabricated for these examples.
 

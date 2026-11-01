@@ -9,8 +9,12 @@ import pytest
 
 from src.eligibility import (
     ALLOWED,
+    BOUNDARY_GRID_MINUTES,
+    GLIDERPORT_SUMMER,
+    GLIDERPORT_WINTER,
     NEEDS_VERIFICATION,
     NOT_ALLOWED,
+    PERMIT_RULES,
     UCSD_TIME_ZONE,
     check_eligibility,
     stall_category,
@@ -111,6 +115,33 @@ def test_whole_stay_fails_when_access_ends_midway():
                              at(TUESDAY, 9)).status == NOT_ALLOWED
 
 
+@pytest.mark.parametrize("permit, category, arrival, departure, expected", [
+    # Final partial interval: the 8:00 cutoff falls between 15-minute steps.
+    ("B", "A", at(TUESDAY, 7, 50), at(TUESDAY, 8, 4), NOT_ALLOWED),
+    ("S", "B", at(TUESDAY, 7, 59), at(TUESDAY, 8, 1), NOT_ALLOWED),
+    # Leaving exactly at the cutoff is still allowed (departure is exclusive).
+    ("B", "A", at(TUESDAY, 7, 50), at(TUESDAY, 8), ALLOWED),
+    # Visitor A access ends at 7:30 AM.
+    ("V", "A", at(TUESDAY, 7, 20), at(TUESDAY, 7, 40), NOT_ALLOWED),
+    # The weekend window ends at midnight Sunday; Monday's 8 AM cutoff applies.
+    ("B", "A", at(SUNDAY, 23, 50), datetime(2026, 11, 2, 7, 59), ALLOWED),
+    ("B", "A", at(SUNDAY, 23, 50), datetime(2026, 11, 2, 8, 4), NOT_ALLOWED),
+])
+def test_every_boundary_inside_the_stay_is_checked(permit, category, arrival,
+                                                   departure, expected):
+    assert check_eligibility(permit, category, "", arrival,
+                             departure).status == expected
+
+
+def test_rule_boundaries_fall_on_the_check_grid():
+    # Session checks rely on every boundary being a multiple of the grid.
+    windows = [rule for rules in PERMIT_RULES.values()
+               for rule in rules.values() if rule != "always"]
+    edges = [edge for window in windows for edge in (window.start, window.end)]
+    edges += [*GLIDERPORT_SUMMER, *GLIDERPORT_WINTER]
+    assert all(edge % BOUNDARY_GRID_MINUTES == 0 for edge in edges)
+
+
 def test_allowed_until_reports_the_next_cutover():
     result = check_eligibility("S", "B", "", at(TUESDAY, 17))
     assert result.status == ALLOWED
@@ -175,3 +206,9 @@ def test_stall_classification_helpers():
     assert time_limit_minutes("2-Hour Limit") == 120
     assert time_limit_minutes("5 Min") == 5
     assert time_limit_minutes("Blue Pool") is None
+
+
+def test_new_calendar_holidays_need_verification():
+    # Added from the official 2026-27 calendar (MLK Day, Memorial Day).
+    for day in (datetime(2027, 1, 18, 10), datetime(2027, 5, 31, 10)):
+        assert check_eligibility("S", "B", "", day).status == NEEDS_VERIFICATION
