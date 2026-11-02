@@ -18,6 +18,9 @@ python -m pytest tests/test_location_registry.py -q
   name-based IDs (`gilman-ps`); their official P-numbers are not verified.
   Facilities with no pin use their dataset label (`tdlln`, `8980`).
 - They replace Daira's fixture IDs `sample-parking-a` / `sample-parking-b`.
+Issue #19 serves supported entries from GET `/locations`, with verified pins
+only. Restricted, unresolved and excluded entries remain here for audit but are
+omitted from that public catalog. See `docs/backend.md` for the API contract.
 
 ## How predictions connect
 

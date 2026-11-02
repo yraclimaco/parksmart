@@ -175,37 +175,40 @@ python -m src.download_qpass
 
 ## Running things
 
-### Local FastAPI backend and proposed interface contract - Issue #12
+### Local FastAPI backend and website integration — Issues #12 and #19
 
-After installing `requirements.txt`, run from the repository root:
+From the root with requirements installed:
 
 ```bash
 python -m uvicorn src.api.main:app --reload
-python -m pytest tests/test_api.py tests/test_api_schemas.py -q
+MPLBACKEND=Agg python -m pytest tests/test_api.py tests/test_api_schemas.py -q
 ```
 
-Open `http://127.0.0.1:8000/docs` to call GET `/health` and GET `/locations`.
-Only `/health` and `/locations` are implemented. Recommendation request/response
-models and static JSON examples are proposed only; there is no recommendation
-endpoint or logic. No model, eligibility, routing, or live data is connected.
-The catalog uses fictional sample IDs and null coordinates; IDs and field names
-remain proposed until Dylan and Hanrong confirm them. No data
-files or secrets are required. Endpoint handling lives in `src/api/main.py`,
-Pydantic v2 contracts in `schemas.py`, and the catalog in `locations.py`.
-Keep future prediction logic outside endpoint handlers.
-JSON uses snake_case, null for unknowns, 0–1 availability fractions, and minutes
-for walking time. Arrival datetimes normalize to `America/Los_Angeles`; ambiguous
-local DST times require an explicit offset. The local browser CORS allowlist
-covers localhost/127.0.0.1 ports 3000 and 5173. See `docs/backend.md` and
-`docs/examples/backend/` for startup, fixtures, and the pending Dylan/Hanrong
-contract review. Production location IDs and permit codes require team review.
-Coordination status is recorded in `docs/api_proposal.md`; the setup guide must
-remain usable for teammates starting interface work with the sample catalog.
-`not_implemented` means no recommendation evaluation is available;
-`no_suitable_location` is reserved for a future evaluated empty result;
-`predictions_unavailable` means eligible parking exists but has no estimate.
-The ranking statuses, `RecommendationResponse.status` and the website's
-`ApiStatus` must match (`tests/test_ranking.py` checks this).
+Open `http://127.0.0.1:8000/docs`. GET `/health` checks process liveness.
+GET `/locations` uses `config/locations.json`, supported entries only, with
+verified coordinates or null. POST `/recommendations` calls the cached
+`src.recommender.Recommender`; no prediction/ranking logic is duplicated in
+handlers. A lifespan loads the registry and processed dataset once per process
+and prepares the existing historical baseline once. No request rebuilds data,
+runs notebooks or refits the model. Missing/invalid resources produce 503;
+health and the registry remain usable if only predictions are unavailable.
+
+Schemas use snake_case, 0–1 fractions, walking minutes, nulls and UCSD-local
+arrival times, including DST validation. Permits use `src.eligibility.PERMIT_TYPES`.
+Starting location is accepted but unused and disclosed. Ready responses may
+have no backup; `predictions_unavailable` differs from `no_suitable_location`.
+Neither means parking is full. Runtime results are `is_example: false`.
+Static examples remain labeled and never provide runtime fallback estimates.
+`not_implemented` is legacy schema compatibility only.
+
+Local CORS permits GET/POST from localhost/127.0.0.1 ports 3000 and 5173. Start
+Dylan's synced website using `VITE_RECOMMENDATION_SOURCE=api npm run dev` from
+`frontend/`; do not edit synced website files here. The source website client
+already sends the implemented JSON contract. See `docs/backend.md` for setup,
+architecture, failure handling and local browser testing; `docs/api_proposal.md`
+records current interfaces and Daira's local verification. A ready
+AvailabilityEstimator wrapping Vivaan's saved model can be supplied to
+`create_app(estimator=...)` once his loader/metadata are available.
 
 ### Parking patterns and benchmarks — Issue #11
 
@@ -502,8 +505,9 @@ when permit rules change. Tests:
 requests with `.recommend(permit, arrival, destination)`; try it with
 `python -m src.recommender --permit S --arrival 2026-11-03T09:00 --lat 32.8811 --lon -117.2376`
 (needs the integrated dataset). Tests: `python -m pytest tests/test_recommender.py -q`.
-`docs/recommendations_handoff.md` shows how `POST /recommendations` should call
-it and lists the open interface questions.
+`POST /recommendations` now calls this recommender; the original integration
+handoff is `docs/recommendations_handoff.md`, and current setup/limitations are
+in `docs/backend.md`.
 
 - Commands for future forecasting deployment should be added after it is
   implemented and tested. Backend and parking analysis commands are documented

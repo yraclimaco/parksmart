@@ -1,92 +1,77 @@
-# Proposed API format — for Dylan and Hanrong
+# API integration contract — Issue #19
 
-**Proposed contract; Hanrong's confirmation is pending.** The current proposal
-with real location IDs and statuses is the Issue #20 update at the end.
+This implementation follows Dylan's merged Issue #20 handoff. It uses the shared
+registry and existing historical baseline while Vivaan develops improved models.
+This is the implemented API contract; acceptance by all teammates and a joint
+website walkthrough have not been recorded. Record feedback and outcomes below.
 
-Coordination status (reported by Daira): Dylan said he is willing to make his
-frontend work with the proposed format. Hanrong has not started his app yet;
-this contract and the examples provide a starting point for that work. His
-confirmation is pending. Neither client integration nor agreement on every field
-and production ID has been verified.
+| Interface | Contract used by this integration |
+| --- | --- |
+| Location IDs | Stable IDs from `config/locations.json`, e.g. `gilman-ps` and `p406` |
+| Public locations | Supported registry entries only; verified coordinates or null |
+| Trip input | `destination`, `arrival_time`, `permit_type`, optional `starting_location` |
+| Destination/origin | `name`, optional complete `latitude`/`longitude` coordinates; no geocoding |
+| Permits | A, B, S, SR, D, V (pay-station visitor); other values return 422 |
+| Time | America/Los_Angeles; naive local or explicit instant normalized to UCSD time; DST ambiguity requires offset |
+| Predictions | Facility/category/subtype/level plus weekday, survey time and quarter; returns 0–1 `prediction` or NaN, and `baseline_group` |
+| Recommender | `.recommend(permit, arrival, destination=coordinates)`; `.to_api()` returns choices, status, explanation and limitations |
+| Result | `ready`, `no_suitable_location`, `predictions_unavailable`; null backup when only one location qualifies |
+| Units | Availability fraction 0–1; walking minutes; null for unknown values |
 
-The backend uses the proposed `location_id`, `name`, and `coordinates` fields
-and the fixture IDs `sample-parking-a` and `sample-parking-b` now, so Hanrong
-can build his app against a concrete response while providing feedback.
+FastAPI loads the registry and existing dataset once at startup. The current
+baseline is fitted once, never per request. A ready `AvailabilityEstimator`
+wrapping a model loaded with Vivaan's loader can replace it without endpoint
+changes. There is no saved-model loader in the merged prediction code yet;
+no artifact format is assumed. See `src/availability.py` for the full interface.
 
-This week's backend exposes `GET /health` and `GET /locations`, with interactive
-docs at `/docs`. `/locations` currently uses two fictional fixtures, explicitly
-marked `data_status: "sample"`. Proposed IDs are `sample-parking-a` and
-`sample-parking-b`; they are not production UCSD IDs. Coordinates are null.
+The registry attaches shared IDs to facility/category/subtype/level groups;
+restrictions and level distinctions are not flattened. Production pins retain
+registry verification rules. `GET /locations` omits restricted, unresolved and
+excluded entries and explains this in its limitations. Catalog support is not
+proof that the location is currently open or eligible for a user's permit.
 
-Please review these proposed conventions:
+Destination coordinates determine straight-line walking estimates. Destination
+name is display-only. Starting location is accepted but unused, explicitly
+reported in response limitations when supplied. Eligibility checks arrival only.
+Historical fallback basis, outside-survey-hours requests and calendar limitations
+come from the reusable recommender, not endpoint guesses.
 
-- JSON fields use snake_case. Locations contain `location_id`, `name`, and
-  `coordinates` (null or a complete `latitude`/`longitude` object).
-- Recommendation input contains `destination`, `arrival_time`, `permit_type`,
-  and optional `starting_location`. Destination/origin have `name` and optional
-  coordinates. Permit codes and the future destination representation still
-  need confirmation; no permit eligibility is implied.
-- Arrival uses ISO 8601 in `America/Los_Angeles`. Prefer an explicit UTC offset.
-  An omitted offset means UCSD local time; nonexistent spring times are rejected
-  and ambiguous autumn times need an offset. Other explicit offsets are
-  converted to UCSD time.
-- Proposed output contains `first_choice`, `backup_choice`, an explanation and
-  limitations. Each choice has a location, `estimated_available_fraction` (0–1
-  or null), `estimated_walking_minutes` (minutes or null), and an explanation.
-- Unknown means JSON null, never zero. `not_implemented` means no recommendation
-  evaluation exists; `no_suitable_location` is reserved for a future evaluation
-  that finds no defensible choice. Neither means all parking is full.
+Missing/invalid startup resources return 503, not an evaluated empty result.
+Eligible groups without estimates return 200 / `predictions_unavailable`.
+Evaluation with no eligible option returns 200 / `no_suitable_location`.
+Neither means parking is full. `not_implemented` remains a legacy schema state,
+but is no longer emitted by the endpoint.
 
-No recommendation endpoint, model, ranking, or verified coordinates are
-available. All recommendation JSON files are labeled static examples and use
-null estimates. See [examples and full contract](backend.md).
+Static JSON responses in `docs/examples/backend/` remain explicitly marked
+`is_example: true`; runtime results are `false`. No synthetic fixture estimates
+are used as a runtime fallback. See [backend setup and learning guide](backend.md)
+for the request/response details and local website commands.
 
-Record agreed changes to field names, permit values, units, or time/null handling
-here. Real location IDs and facility/level details need review before replacing
-the sample catalog. The current proposal can be used for interface development
-while feedback is pending.
+## Coordination and acceptance
 
-## Issue #20 update (Dylan, 2026-10-31): proposed shared interface
+- Dylan owns the registry, eligibility/ranking modules and source website.
+  His merged `docs/recommendations_handoff.md` supplies the integration interface.
+- Vivaan owns improved predictions and saved artifacts; the existing baseline
+  is used now. Confirm model loader, survey-time metadata and basis labels before
+  swapping in an artifact. The documented campus-wide baseline fallback remains
+  labeled; whether unseen groups should instead return NaN remains a team decision.
+- Hanrong's app can use the same HTTP contract. No additional app confirmation
+  is recorded here; live-data research is a separate task.
+- [x] API integration and generated-fixture endpoint tests implemented.
+- [x] Daira tested the local website in API mode with the historical baseline.
+- [x] Record the local test and full-suite result below.
 
-Proposed, not yet confirmed by Daira, Vivaan and Hanrong. Everything below is
-implemented and tested on `feature/recommendations` (PR #21).
+Local verification (2026-11-01, reported by Daira):
 
-**Location IDs.** Use the registry IDs in `config/locations.json` (for example
-`gilman-ps`, `p406`) everywhere: `/locations`, recommendation results, website
-and app map markers. IDs never change or get reused. To build the catalog:
-
-```python
-from src.location_registry import api_locations, load_registry
-
-api_locations(load_registry())   # [{location_id, name, coordinates}], verified pins only
-```
-
-The registry also says which locations may be recommended (`registry_status`:
-`supported`, `restricted`, `unresolved`, `excluded`); see
-`docs/location_registry.md`. Hanrong can build the app against this list now.
-
-**Permit codes.** `A`, `B`, `S`, `SR`, `D`, `V` (pay-station visitor). Any other
-value is rejected with 422.
-
-**Statuses.** `ready`, `no_suitable_location`, `predictions_unavailable`
-(eligible parking exists but has no estimate) and `not_implemented`. Only
-`ready` has choices. None of them means parking is full. The schema accepts all
-four and a test keeps ranking, schema and website in sync.
-
-**Request fields.** Eligibility checks `arrival_time` only (there is no
-departure field yet). `destination.coordinates` drives straight-line walking
-estimates. `starting_location` is accepted but unused (no routing).
-
-**Predictions (for Vivaan).** `src/availability.AvailabilityEstimator` takes any
-model with `predict(features)` returning `prediction` (0–1, or NaN when
-unsupported) and `baseline_group` (a basis label). It picks the survey time and
-quarter for the arrival and labels estimates that use another survey time or a
-fallback. A model loaded from a saved artifact plugs in with
-`AvailabilityEstimator(model, survey_times=[...])`; the default is today's
-`HistoricalAverage`. NaN predictions become `predictions_unavailable`, never a
-substituted estimate. Full contract: module docstring of `src/availability.py`.
-
-**Endpoint (for Daira).** `Recommender.from_files()` once at startup, then
-`.recommend(permit, arrival, destination)` per request. Copy-paste sketch, CORS
-change and `/locations` swap: `docs/recommendations_handoff.md`. Try real output
-with `python -m src.recommender --permit S --arrival 2026-11-03T09:00`.
+- Used Dylan's merged registry/recommender and the existing historical baseline,
+  as requested; no improved-model artifact was required.
+- At `localhost:3000` in API mode, searched for Pepper Canyon Hall with B permit
+  and arrival November 1, 2026 at 5 PM UCSD time.
+- The supplied screenshot shows Lot P671 as first choice, a 68% historical
+  estimate, a 9-minute approximate walk, and first/backup map markers. The card
+  explains the 2 PM survey fallback and that availability is not live.
+- This is Daira's local browser test, not a joint session with Dylan. The raw
+  network JSON and backup ID were not captured in these notes.
+- Full local suite: `MPLBACKEND=Agg python -m pytest -q` — **683 passed,
+  17 warnings in 71.79s**. Automated fixture tests cover invalid requests,
+  unavailable predictions, no eligible options and a result without a backup.

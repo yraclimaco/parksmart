@@ -1,6 +1,12 @@
 {
-  "destination": {"name": "User-selected destination", "coordinates": null},
-  "arrival_time": "2026-10-27T09:00:00-07:00",
+  "destination": {
+    "name": "Geisel Library",
+    "coordinates": {
+      "latitude": 32.8811,
+      "longitude": -117.2376
+    }
+  },
+  "arrival_time": "2026-11-03T10:00:00-08:00",
   "permit_type": "S",
   "starting_location": null
 }

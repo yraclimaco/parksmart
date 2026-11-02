@@ -2,32 +2,32 @@
   "schema_version": "0.1",
   "status": "ready",
   "is_example": true,
-  "arrival_time": "2026-10-27T09:00:00-07:00",
+  "arrival_time": "2026-11-03T10:00:00-08:00",
   "time_zone": "America/Los_Angeles",
   "first_choice": {
     "location": {
-      "location_id": "sample-parking-a",
-      "name": "Sample Parking A",
+      "location_id": "gilman-ps",
+      "name": "Gilman Parking Structure",
       "coordinates": null
     },
     "estimated_available_fraction": null,
     "estimated_walking_minutes": null,
-    "explanation": "Fictional first-choice card for interface layout only."
+    "explanation": "EXAMPLE ONLY: layout placeholder, not an evaluated recommendation."
   },
   "backup_choice": {
     "location": {
-      "location_id": "sample-parking-b",
-      "name": "Sample Parking B",
+      "location_id": "hopkins-ps",
+      "name": "Hopkins Parking Structure",
       "coordinates": null
     },
     "estimated_available_fraction": null,
     "estimated_walking_minutes": null,
-    "explanation": "Fictional backup card for interface layout only."
+    "explanation": "EXAMPLE ONLY: layout placeholder, not an evaluated recommendation."
   },
   "explanation": "EXAMPLE ONLY: demonstrates a future response shape, not a prediction.",
   "limitations": [
-    "All locations and rankings in this file are fictional UI fixtures.",
-    "No coordinates, eligibility, availability, or walking estimates are asserted.",
-    "This static example is never returned by the recommendation endpoint."
+    "Real registry IDs are used only to illustrate the response shape; the choice ordering is fictional.",
+    "Coordinates, eligibility, availability and walking estimates are not asserted by this static example.",
+    "This static example is never loaded by the API."
   ]
 }

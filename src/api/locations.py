@@ -1,25 +1,30 @@
-"""Explicitly fictional UI fixtures; no processed dataset is read at startup."""
+"""Build the public catalog from Dylan's validated shared registry."""
 
-from .schemas import LocationsResponse, ParkingLocation
+from src.location_registry import api_locations, load_registry
+
+from .schemas import LocationsResponse
 
 
-def get_locations() -> LocationsResponse:
-    """Return a fresh sample catalog with stable fixture IDs and no coordinates.
+def get_locations(registry=None) -> LocationsResponse:
+    """Return supported real locations with verified coordinates or JSON null.
 
-    Takes no parameters. These IDs are for interface development only and must
-    be replaced with a team-reviewed, persisted catalog before real use.
-    The proposed fields and fixture IDs give Hanrong a starting point for his app.
+    Args:
+        registry: validated registry entries, or None to load the shared file.
+    Returns:
+        Supported IDs. Registry support is not proof of current use or eligibility.
     """
+    registry = load_registry() if registry is None else registry
+    supported = [entry for entry in registry
+                 if entry["registry_status"] == "supported"]
     return LocationsResponse(
-        data_status="sample",
-        locations=[
-            ParkingLocation(location_id="sample-parking-a", name="Sample Parking A"),
-            ParkingLocation(location_id="sample-parking-b", name="Sample Parking B"),
-        ],
+        data_status="verified",
+        locations=api_locations(supported),
         limitations=[
-            "Fictional sample locations for interface development only.",
-            "Proposed location IDs and fields support Hanrong's app development.",
-            "Coordinates and permit eligibility have not been verified.",
-            "Catalog is not connected to the processed pipeline dataset.",
+            "Only supported registry locations are listed; restricted, unresolved "
+            "and excluded entries are omitted.",
+            "Only verified coordinates are returned; approximate or missing "
+            "coordinates are null.",
+            "Registry support does not verify current use, permit eligibility "
+            "or availability. Recommendations evaluate eligible parking groups.",
         ],
     )

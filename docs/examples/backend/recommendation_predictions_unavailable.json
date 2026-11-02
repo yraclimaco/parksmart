@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "status": "predictions_unavailable",
+  "is_example": true,
+  "arrival_time": "2026-11-03T10:00:00-08:00",
+  "time_zone": "America/Los_Angeles",
+  "first_choice": null,
+  "backup_choice": null,
+  "explanation": "EXAMPLE ONLY: eligible parking exists, but no historical estimate is available.",
+  "limitations": ["Missing estimates do not establish that parking is full."]
+}
