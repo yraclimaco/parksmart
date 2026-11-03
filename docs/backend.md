@@ -61,12 +61,18 @@ Website form
 - Endpoint handlers only pass validated arguments to `src/recommender.py` and
   serialize its result. `src/availability.py`, `src/eligibility.py` and
   `src/ranking.py` own estimation and parking decisions.
-- To use Vivaan's saved model, load it once with his supplied loader and wrap it
-  in `AvailabilityEstimator(model, survey_times=[...], basis_descriptions=...)`.
-  Pass that ready estimator to `create_app(estimator=estimator)`. There is no
-  invented artifact format or loader here: the merged baseline is the current
-  working integration. See `docs/recommendations_handoff.md` for his model's
-  prediction contract. A ready estimator is not refitted by the API.
+- To use the reviewed Issue #18 artifact, run
+  `python -m uvicorn src.api.saved_model:create_saved_app --factory` after
+  `python -m src.train_availability`. The factory loads the checked v2 artifact,
+  uses its `survey_times` metadata and shared basis descriptions, and passes
+  `AvailabilityEstimator` to `create_app(estimator=...)` without fitting it.
+  Exact training dependency versions are required; missing/incompatible artifacts
+  stop saved-model startup with an error instead of a silent model substitution.
+  The normal `src.api.main:app` entrypoint retains its original fitted baseline.
+  The selected saved artifact now uses historical averages, selected on requests
+  the service supports; unseen groups remain NaN. Full Python wiring, coverage
+  rules and regression wording are in `docs/recommendations_handoff.md` and
+  `docs/issue18_predictions.md`.
 
 FastAPI's lifespan pattern is described in its
 [official documentation](https://fastapi.tiangolo.com/advanced/events/).

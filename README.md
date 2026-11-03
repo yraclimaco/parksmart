@@ -82,7 +82,8 @@ Reusable code lives in `src/`, tests in `tests/`, and exploration in `notebooks/
 Intermediate Inventory groups/audits are in `data/interim/inventory/`; batch
 reports are in `results/capacity_matching/batch/`. Delivery copies are compressed
 CSVs in `results/capacity_matching/deliverables/`; pandas reads `.csv.gz` directly.
-Frontend, infrastructure and model folders are placeholders for later work.
+The frontend contains the synced website; model artifacts are generated locally.
+Infrastructure remains planned.
 
 ## Git and GitHub workflow for DS3 projects
 
@@ -189,3 +190,8 @@ This template is intentionally simple so students can focus on the science inste
 
 Availability prediction training, saved artifacts, and backend integration:
 see [Issue #18 handoff and evaluation](docs/issue18_predictions.md).
+Run `python -m src.train_availability`, then serve the reviewed saved estimator
+with `python -m uvicorn src.api.saved_model:create_saved_app --factory`.
+The selected model is historical averages, chosen on supported validation rows.
+Exact artifact dependency versions are checked at load; unsupported groups stay
+unknown. Later-quarter accuracy remains unvalidated.

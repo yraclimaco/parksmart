@@ -13,7 +13,9 @@ from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-from .availability_prediction import PredictionService, engineer_features
+from .availability_prediction import (
+    CANDIDATE_FEATURE_MODES, PredictionService, dependency_versions, select_features,
+)
 from .parking_benchmarks import (
     DEFAULT_DATASET, FEATURES, GROUP_COLUMNS, TARGET, HistoricalAverage,
     chronological_split, evaluate_predictions, load_analysis_dataset,
@@ -74,8 +76,7 @@ def fit_candidate(name, train):
 
 def candidate_features(name, records):
     """Return original or engineered prediction-time features for named model."""
-    return (engineer_features(records) if name.endswith("engineered")
-            else records[FEATURES])
+    return select_features(records, CANDIDATE_FEATURE_MODES[name])
 
 
 def predict_candidate(name, model, records):
@@ -91,23 +92,82 @@ def score_rows(name, model, train, test, split):
     name identifies the fitted model; train defines exact-group history, and
     split labels exported rows. All candidates score identical test records.
     """
-    prediction = predict_candidate(name, model, test)
+    prediction = np.array(predict_candidate(name, model, test), copy=True)
+    service = PredictionService(train, None if name == "historical_average"
+                                else model, name)
+    reasons = service.support_labels(test).to_numpy()
+    supported = reasons == "supported"
+    # Match serving's baseline fallback outside verified quarters even for
+    # regression candidates. Experimental unsupported predictions stay separate.
+    blank_quarter = test.quarter.fillna("").eq("").to_numpy()
+    if blank_quarter.any():
+        prediction[blank_quarter] = service.baseline.predict(
+            test.loc[blank_quarter]).prediction.to_numpy()
     groups = set(train[GROUP_COLUMNS].itertuples(index=False, name=None))
     history = np.array([key in groups for key in
                         test[GROUP_COLUMNS].itertuples(index=False, name=None)])
     rows = []
-    for label, mask in (("all", np.ones(len(test), dtype=bool)),
+    for label, mask in (("all_experimental", np.ones(len(test), dtype=bool)),
+                        ("supported", supported),
+                        ("unsupported_experimental", ~supported),
                         ("matching_history", history), ("no_history", ~history)):
         if mask.any():
             rows.append(dict(model=name, split=split, coverage=label,
                              **evaluate_predictions(test[TARGET].to_numpy()[mask],
                                                     prediction[mask])))
+        else:
+            rows.append(dict(model=name, split=split, coverage=label,
+                             test_readings=0, near_full_readings=0, mae_pp=None,
+                             near_full_mae_pp=None))
     predictions = test[["record_id", "observation_date"] + FEATURES + [TARGET]].copy()
     predictions["prediction_raw"] = prediction
     predictions["matching_history"] = history
+    predictions["support_reason"] = reasons
+    predictions["served_prediction"] = np.where(supported, np.clip(prediction, 0, 1),
+                                                np.nan)
     predictions["model"] = name
     predictions["split"] = split
     return rows, predictions
+
+
+def summarize_metrics(metrics):
+    """Pool split metrics by model/coverage using row and near-full counts.
+
+    Args:
+        metrics: DataFrame from score_rows for the desired evaluation splits.
+    Returns:
+        DataFrame with coverage counts and weighted MAE/near-full MAE in pp.
+    """
+    data = metrics.copy()
+    data["absolute_error"] = data.mae_pp * data.test_readings
+    data["near_full_error"] = (
+        data.near_full_mae_pp.fillna(0) * data.near_full_readings)
+    summary = data.groupby(["model", "coverage"])[[
+        "absolute_error", "test_readings", "near_full_error", "near_full_readings"
+    ]].sum()
+    summary["mae_pp"] = (summary.absolute_error
+                         / summary.test_readings.replace(0, np.nan))
+    summary["near_full_mae_pp"] = (summary.near_full_error
+                                   / summary.near_full_readings.replace(0, np.nan))
+    return summary
+
+
+def select_model(metrics):
+    """Select by supported validation-row MAE only; return (name, summary).
+
+    metrics may include holdout rows, which are explicitly excluded. Each
+    candidate must cover identical numbers of rows in each validation fold.
+    Ties are resolved alphabetically; no supported rows raises ValueError.
+    """
+    validation = metrics[metrics.split.str.startswith("validation_")
+                         & metrics.coverage.eq("supported")]
+    if validation.empty or not validation.test_readings.sum():
+        raise ValueError("No supported validation rows for model selection")
+    counts = validation.pivot(index="split", columns="model", values="test_readings")
+    if counts.isna().any().any() or not counts.nunique(axis=1).eq(1).all():
+        raise ValueError("Candidates must be compared on identical supported rows")
+    summary = summarize_metrics(validation).xs("supported", level="coverage")
+    return summary.mae_pp.sort_values(kind="stable").index[0], summary
 
 
 def run_training(records, output_dir="results/issue18", model_dir="models/issue18"):
@@ -136,11 +196,9 @@ def run_training(records, output_dir="results/issue18", model_dir="models/issue1
             predictions.append(predicted)
         print(f"Completed validation fold {fold}", flush=True)
     validation_metrics = pd.DataFrame(metrics)
-    overall = validation_metrics[validation_metrics.coverage.eq("all")].copy()
-    overall["absolute_error"] = overall.mae_pp * overall.test_readings
-    summary = overall.groupby("model")[["absolute_error", "test_readings"]].sum()
-    summary["mae_pp"] = summary.absolute_error / summary.test_readings
-    selected = summary.mae_pp.sort_values(kind="stable").index[0]
+    selected, summary = select_model(validation_metrics)
+    summarize_metrics(validation_metrics).to_csv(
+        output_dir / "validation_coverage.csv")
     # Holdout results cannot influence the selected model or its settings.
     for name in CANDIDATES:
         model = fit_candidate(name, train)
@@ -150,12 +208,17 @@ def run_training(records, output_dir="results/issue18", model_dir="models/issue1
     pd.DataFrame(metrics).to_csv(output_dir / "metrics.csv", index=False)
     pd.concat(predictions).to_csv(output_dir / "predictions.csv", index=False)
     summary.to_csv(output_dir / "validation_summary.csv")
+    summarize_metrics(pd.DataFrame(metrics).query("split == 'holdout'")).to_csv(
+        output_dir / "holdout_coverage.csv")
     serving_model = (None if selected == "historical_average"
                      else fit_candidate(selected, records))
     PredictionService(records, serving_model, selected).save(model_dir / "selected.pkl")
     metadata = dict(selected=selected, seed=SEED, records=len(records),
                     sklearn_version=sklearn.__version__,
                     pandas_version=pd.__version__,
+                    dependency_versions=dependency_versions(),
+                    selection_coverage="supported",
+                    feature_mode=CANDIDATE_FEATURE_MODES[selected],
                     dataset_sha256=hashlib.sha256(
                         records.sort_values("record_id").to_csv(index=False)
                         .encode("utf-8")).hexdigest(),

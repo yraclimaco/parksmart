@@ -290,7 +290,7 @@ def _explain(choice, permit, first):
     attempts = [(f" ({choice.estimate_note})", True),
                 (" (limited estimate)", True), (" (limited estimate)", False)]
     if not choice.estimate_note:
-        attempts = [("", True)]
+        attempts = [("", True), ("", False)]
     for note, compare in attempts:
         text = _explanation_text(choice, permit, first if compare else None,
                                  note)
@@ -306,7 +306,9 @@ def _explanation_text(choice, permit, first, note):
         parts[0] += f" until {_clock(choice.allowed_until)}"
     parts[0] += "."
     percent = round(choice.estimated_available_fraction * 100)
-    parts.append(f"Past surveys: about {percent}% open{note}.")
+    basis = ("Model estimate based on historical surveys"
+             if choice.estimate_basis == "model" else "Past surveys")
+    parts.append(f"{basis}: about {percent}% open{note}.")
     if choice.estimated_available_fraction <= NEAR_FULL_FRACTION:
         parts.append("Often nearly full.")
     if choice.estimated_walking_minutes is not None:
