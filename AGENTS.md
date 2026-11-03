@@ -140,7 +140,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 │   └── processed/     # cleaned datasets and generated artifacts
 ├── results/           # model evaluations, figures, and reports
 ├── models/            # saved models and forecast artifacts
-├── frontend/          # planned React and TypeScript application
+├── frontend/          # React + TypeScript website (synced copy; see Website)
 └── infra/             # planned AWS deployment configuration
 ```
 
@@ -191,34 +191,40 @@ Dylan's PR #21 adapter wiring, reproduction, evaluation and occupancy findings.
 Tests: `python -m pytest tests/test_availability_prediction.py -q`.
 
 
-### Local FastAPI backend and proposed interface contract - Issue #12
+### Local FastAPI backend and website integration — Issues #12 and #19
 
-After installing `requirements.txt`, run from the repository root:
+From the root with requirements installed:
 
 ```bash
 python -m uvicorn src.api.main:app --reload
-python -m pytest tests/test_api.py tests/test_api_schemas.py -q
+MPLBACKEND=Agg python -m pytest tests/test_api.py tests/test_api_schemas.py -q
 ```
 
-Open `http://127.0.0.1:8000/docs` to call GET `/health` and GET `/locations`.
-Only `/health` and `/locations` are implemented. Recommendation request/response
-models and static JSON examples are proposed only; there is no recommendation
-endpoint or logic. No model, eligibility, routing, or live data is connected.
-The catalog uses fictional sample IDs and null coordinates; IDs and field names
-remain proposed until Dylan and Hanrong confirm them. No data
-files or secrets are required. Endpoint handling lives in `src/api/main.py`,
-Pydantic v2 contracts in `schemas.py`, and the catalog in `locations.py`.
-Keep future prediction logic outside endpoint handlers.
-JSON uses snake_case, null for unknowns, 0–1 availability fractions, and minutes
-for walking time. Arrival datetimes normalize to `America/Los_Angeles`; ambiguous
-local DST times require an explicit offset. The local browser CORS allowlist
-covers localhost/127.0.0.1 ports 3000 and 5173. See `docs/backend.md` and
-`docs/examples/backend/` for startup, fixtures, and the pending Dylan/Hanrong
-contract review. Production location IDs and permit codes require team review.
-Coordination status is recorded in `docs/api_proposal.md`; the setup guide must
-remain usable for teammates starting interface work with the sample catalog.
-`not_implemented` means no recommendation evaluation is available;
-`no_suitable_location` is reserved for a future evaluated empty result.
+Open `http://127.0.0.1:8000/docs`. GET `/health` checks process liveness.
+GET `/locations` uses `config/locations.json`, supported entries only, with
+verified coordinates or null. POST `/recommendations` calls the cached
+`src.recommender.Recommender`; no prediction/ranking logic is duplicated in
+handlers. A lifespan loads the registry and processed dataset once per process
+and prepares the existing historical baseline once. No request rebuilds data,
+runs notebooks or refits the model. Missing/invalid resources produce 503;
+health and the registry remain usable if only predictions are unavailable.
+
+Schemas use snake_case, 0–1 fractions, walking minutes, nulls and UCSD-local
+arrival times, including DST validation. Permits use `src.eligibility.PERMIT_TYPES`.
+Starting location is accepted but unused and disclosed. Ready responses may
+have no backup; `predictions_unavailable` differs from `no_suitable_location`.
+Neither means parking is full. Runtime results are `is_example: false`.
+Static examples remain labeled and never provide runtime fallback estimates.
+`not_implemented` is legacy schema compatibility only.
+
+Local CORS permits GET/POST from localhost/127.0.0.1 ports 3000 and 5173. Start
+Dylan's synced website using `VITE_RECOMMENDATION_SOURCE=api npm run dev` from
+`frontend/`; do not edit synced website files here. The source website client
+already sends the implemented JSON contract. See `docs/backend.md` for setup,
+architecture, failure handling and local browser testing; `docs/api_proposal.md`
+records current interfaces and Daira's local verification. A ready
+AvailabilityEstimator wrapping Vivaan's saved model can be supplied to
+`create_app(estimator=...)` once his loader/metadata are available.
 
 ### Parking patterns and benchmarks — Issue #11
 
@@ -442,9 +448,86 @@ DS3 code-review skill remain required before requesting review.
   jupyter lab notebooks/
   ```
 
-- Commands for the React frontend and future forecasting deployment should be
-  added after those components are implemented and tested. Backend and parking
-  analysis commands are documented above.
+### Website — Issue #20
+
+`frontend/` is a one-way copy of
+[dylanwang-main/ParkSmart-Website](https://github.com/dylanwang-main/ParkSmart-Website),
+which is synced with Google AI Studio. **Never edit files in `frontend/`**; the
+next sync overwrites them. Change ParkSmart-Website, then from the repo root:
+
+```bash
+scripts/sync_frontend.sh            # or --ref <branch|commit>, --source <clone>
+```
+
+It needs bash, `tar` and `rsync` (macOS/Linux, or WSL/Git Bash on Windows).
+The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
+`node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
+the tests, type check and build. Review `git diff -- frontend` before committing.
+
+Run the website (Node 20.19+ or 22.12+), from `frontend/`:
+
+```bash
+npm ci
+npm run dev       # http://localhost:3000, on the backend CORS allowlist
+npm test          # Vitest
+npm run lint      # TypeScript type check
+npm run build
+```
+
+`VITE_API_BASE_URL` (default `http://127.0.0.1:8000`) sets the backend; override it
+in `frontend/.env.local`, never with secrets. Searches use labeled sample data
+unless `VITE_RECOMMENDATION_SOURCE=api`, which sends them to
+`POST /recommendations` (`frontend/src/api/recommendations.ts`) and never falls
+back to sample data. Website data marked sample in `frontend/README.md` is not a
+real prediction. Website pins must use registry `location_id` values; a test in
+`tests/test_location_registry.py` checks this.
+
+### Location registry — Issue #20
+
+`config/locations.json` holds every parking location with a stable
+`location_id`, its standardized dataset facilities, coordinates and
+`registry_status`; `src/location_registry.py` validates it. Check it against the
+integrated dataset with `python -m src.location_registry`; tests:
+`python -m pytest tests/test_location_registry.py -q`. Never rename or reuse a
+`location_id`. Every dataset facility must map to exactly one location. Keep
+predictions keyed by facility/category/subtype/level and attach `location_id`
+with `location_groups()`; only `supported` locations may be recommended.
+Recent observations are not proof of current use. See
+`docs/location_registry.md`.
+
+### Eligibility and ranking — Issue #20
+
+`src/eligibility.check_eligibility()` returns `allowed`, `not_allowed` or
+`needs_verification` for a permit (`A`, `B`, `S`, `SR`, `D`, `V`), parking group
+and time; only `allowed` is recommended, and unknown or conflicting rules are
+never treated as allowed. With a departure, every rule boundary during the
+stay is checked; all boundaries must stay on the 30-minute grid
+(`BOUNDARY_GRID_MINUTES`). Holidays and quarters come from the official 2026-27
+calendar in `src/ucsd_calendar.py` (verified Sep 21, 2026 to Sep 6, 2027);
+update it from the Registrar's calendar each year. `src/availability.py`'s
+`AvailabilityEstimator` attaches historical-average estimates for an arrival
+time and labels any estimate that uses another survey time or a fallback
+average; any model following the prediction contract in its docstring can
+replace the default `HistoricalAverage`, and NaN predictions stay missing.
+The proposed shared interface for all teammates is in `docs/api_proposal.md`. `src/ranking.recommend()` takes latest-quarter groups from
+`current_groups()` with those estimates, and returns a first choice and
+distinct backup (`to_api()` matches `ParkingChoice`); limited estimates and
+unverified dates appear in explanations and limitations. Missing estimates are
+reported, never filled in. Rule sources, weights, walking assumptions and
+tie-breaking are in `docs/recommendations.md`; update it and the rule tests
+when permit rules change. Tests:
+`python -m pytest tests/test_eligibility.py tests/test_ranking.py tests/test_availability.py tests/test_ucsd_calendar.py -q`.
+`src/recommender.Recommender.from_files()` loads all of this once and answers
+requests with `.recommend(permit, arrival, destination)`; try it with
+`python -m src.recommender --permit S --arrival 2026-11-03T09:00 --lat 32.8811 --lon -117.2376`
+(needs the integrated dataset). Tests: `python -m pytest tests/test_recommender.py -q`.
+`POST /recommendations` now calls this recommender; the original integration
+handoff is `docs/recommendations_handoff.md`, and current setup/limitations are
+in `docs/backend.md`.
+
+- Commands for future forecasting deployment should be added after it is
+  implemented and tested. Backend and parking analysis commands are documented
+  above.
 
 ## Testing
 

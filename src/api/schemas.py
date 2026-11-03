@@ -10,6 +10,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from src.eligibility import PERMIT_TYPES
+
 UCSD_TIME_ZONE = "America/Los_Angeles"
 LOCAL_ZONE = ZoneInfo(UCSD_TIME_ZONE)
 Text = Annotated[str, Field(min_length=1, max_length=200)]
@@ -67,7 +69,7 @@ class LocationsResponse(APIModel):
 
 
 class RecommendationRequest(APIModel):
-    """Proposed user inputs; permit_type records input, not verified eligibility."""
+    """Validated trip inputs; eligibility is evaluated by the recommender."""
 
     destination: PlaceInput
     arrival_time: datetime = Field(
@@ -76,9 +78,19 @@ class RecommendationRequest(APIModel):
         "converted to UCSD local time. DST-ambiguous local times need an offset."
     )
     permit_type: Text = Field(
-        description="Team-proposed permit code; no eligibility rules applied yet."
+        description="Supported permit: A, B, S, SR, D or V (pay-station visitor)."
     )
-    starting_location: Optional[PlaceInput] = None
+    starting_location: Optional[PlaceInput] = Field(
+        default=None, description="Accepted but not used for routing or ranking yet."
+    )
+
+    @field_validator("permit_type")
+    @classmethod
+    def supported_permit(cls, value: str) -> str:
+        """Validate a trimmed permit against the eligibility module's codes."""
+        if value not in PERMIT_TYPES:
+            raise ValueError(f"Supported permit codes: {', '.join(PERMIT_TYPES)}")
+        return value
 
     @field_validator("arrival_time", mode="before")
     @classmethod
@@ -129,7 +141,10 @@ class RecommendationResponse(APIModel):
     """Future result envelope; status controls whether parking choices exist."""
 
     schema_version: Literal["0.1"] = "0.1"
-    status: Literal["ready", "no_suitable_location", "not_implemented"]
+    # predictions_unavailable: eligible parking exists but none has an estimate
+    # (src.ranking, Issue #20). Like no_suitable_location, it has no choices.
+    status: Literal["ready", "no_suitable_location", "not_implemented",
+                    "predictions_unavailable"]
     is_example: bool
     arrival_time: datetime
     time_zone: Literal["America/Los_Angeles"] = UCSD_TIME_ZONE

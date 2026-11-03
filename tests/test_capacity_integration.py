@@ -428,7 +428,8 @@ def test_documented_commands_use_fresh_downloader_filename(tmp_path, monkeypatch
     before = source.read_bytes()
     env = {**os.environ, "PYTHONPATH": str(project)}
     for doc in ("AGENTS.md", "docs/inventory_audit.md"):
-        commands = [line for line in (project / doc).read_text().splitlines()
+        text = (project / doc).read_text(encoding="utf-8")
+        commands = [line for line in text.splitlines()
                     if line.startswith("python -m src.clean_inventory_modern ")
                     or line.startswith("python -m src.compare_capacities ")]
         assert len(commands) == 2

@@ -1,0 +1,6 @@
+{
+  "name": "ParkSmart",
+  "description": "Desktop-first UCSD parking planner prototype using sample data to explore parking options and walking times.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

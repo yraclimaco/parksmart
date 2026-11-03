@@ -49,11 +49,11 @@ def test_invalid_or_ambiguous_arrivals(arrival):
         make_request(arrival_time=arrival)
 
 
-def test_optional_origin_and_unverified_permit_input():
-    request = make_request(permit_type=" proposed-code ")
+def test_optional_origin_and_supported_permit_input():
+    request = make_request(permit_type=" S ")
     assert request.starting_location is None
     assert request.destination.coordinates is None
-    assert request.permit_type == "proposed-code"
+    assert request.permit_type == "S"
     request = make_request(starting_location={"name": "User-selected origin"})
     assert request.starting_location.name == "User-selected origin"
 
@@ -115,6 +115,7 @@ def test_duplicate_catalog_ids_rejected():
     "recommendation_not_implemented.json",
     "recommendation_example.json",
     "recommendation_no_suitable.json",
+    "recommendation_predictions_unavailable.json",
 ])
 def test_response_examples(filename):
     response = RecommendationResponse.model_validate_json(
@@ -133,6 +134,7 @@ def test_request_example():
     {"status": "ready", "first_choice": None},
     {"status": "not_implemented"},
     {"status": "no_suitable_location"},
+    {"status": "predictions_unavailable"},
     {"arrival_time": "2026-10-27T09:00:00"},
 ])
 def test_inconsistent_response(changes):
@@ -153,14 +155,16 @@ def test_sample_catalog_objects_are_independent():
     first = get_locations()
     first.locations.clear()
     second = get_locations()
-    assert second.data_status == "sample"
-    assert len(second.locations) == 2
-    assert all(location.coordinates is None for location in second.locations)
+    assert second.data_status == "verified"
+    assert second.locations
+    assert all(not location.location_id.startswith("sample-")
+               for location in second.locations)
 
 
 @pytest.mark.parametrize("changes", [
     {"permit_type": "  "},
     {"permit_type": "S" * 201},
+    {"permit_type": "unsupported"},
     {"destination": {"name": ""}},
     {"destination": {"name": "Library", "coordinates": {"latitude": 91}}},
     {"permitType": "S"},
