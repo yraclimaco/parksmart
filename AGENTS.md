@@ -141,6 +141,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 ├── results/           # model evaluations, figures, and reports
 ├── models/            # saved models and forecast artifacts
 ├── frontend/          # React + TypeScript website (synced copy; see Website)
+├── mobile/ios/        # SwiftUI/MapKit iPhone prototype (see Native iPhone prototype)
 └── infra/             # planned AWS deployment configuration
 ```
 
@@ -197,6 +198,34 @@ limitations only for actual fallback/time/coverage issues. See
 `docs/issue18_predictions.md` for results and `docs/recommendations_handoff.md`
 for current merged integration. Tests:
 `python -m pytest tests/test_availability_prediction.py -q`.
+
+### Native iPhone prototype
+
+`mobile/ios/` contains the SwiftUI/MapKit iOS 17+ prototype and shared Xcode
+project/scheme (Mac with Xcode 15+; no third-party Swift packages or API keys).
+Run `open mobile/ios/ParkSmart.xcodeproj`, select the ParkSmart scheme and an
+iPhone simulator, then Command-R. Setup, xcodebuild build/test commands,
+physical-device networking and demo steps are in `mobile/ios/README.md`;
+verified behavior and open items (including framework confirmation with Yra)
+are in `mobile/ios/STATUS.md`.
+
+Default mode uses visibly labeled JSON samples from shared backend examples;
+API mode never silently falls back to them. Start the backend as described in
+the FastAPI section below and set its URL in Connection. GET /locations loads
+the verified catalog; POST /recommendations sends the Apple Maps-selected
+destination name and coordinates and needs the integrated dataset (otherwise
+503). Walking times are straight-line estimates and availability is a
+historical estimate, not live occupancy. Unknown values remain unknown.
+MapKit campus lookup only frames the basemap; parking markers require verified
+catalog entries with valid coordinates. Selection uses opaque location_id
+values. URL preferences and build/signing state stay out of Git. Native iOS
+requires no browser CORS changes. Do not recreate backend prediction,
+eligibility, ranking or routing, or fabricate coordinates or metrics.
+
+Fixture checks:
+`python -m pytest tests/test_mobile_fixtures.py tests/test_api.py tests/test_api_schemas.py -q`.
+Before PR review, run the Xcode build/tests on a Mac, full pytest and the
+mentor DS3 skill; report blocked checks honestly. Keep code_review.md local.
 
 ### Local FastAPI backend and website integration — Issues #12 and #19
 

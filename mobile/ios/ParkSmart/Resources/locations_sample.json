@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "data_status": "sample",
+  "locations": [
+    {
+      "location_id": "sample-parking-a",
+      "name": "Sample Parking A",
+      "coordinates": null
+    },
+    {
+      "location_id": "sample-parking-b",
+      "name": "Sample Parking B",
+      "coordinates": null
+    }
+  ],
+  "limitations": [
+    "Fictional sample locations for interface development only.",
+    "Proposed location IDs and fields support Hanrong's app development.",
+    "Coordinates and permit eligibility have not been verified.",
+    "Catalog is not connected to the processed pipeline dataset."
+  ]
+}

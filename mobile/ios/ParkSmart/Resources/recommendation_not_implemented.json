@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "status": "not_implemented",
+  "is_example": true,
+  "arrival_time": "2026-10-27T09:00:00-07:00",
+  "time_zone": "America/Los_Angeles",
+  "first_choice": null,
+  "backup_choice": null,
+  "explanation": "EXAMPLE ONLY: recommendation functionality has not been implemented.",
+  "limitations": [
+    "No permit eligibility or suitable parking has been evaluated.",
+    "Availability and walking-time estimates are unavailable.",
+    "Historical forecasts will not guarantee an available space."
+  ]
+}

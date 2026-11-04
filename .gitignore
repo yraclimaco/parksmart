@@ -50,3 +50,11 @@ results/issue3/*
 
 # Local DS3 review output; do not submit.
 /code_review.md
+
+# iOS local settings and generated output
+mobile/ios/build/
+mobile/ios/DerivedData/
+mobile/ios/**/*.xcuserstate
+mobile/ios/**/xcuserdata/
+mobile/ios/**/*.xcresult/
+mobile/ios/Config.local.xcconfig
