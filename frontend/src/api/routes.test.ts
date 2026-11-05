@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchRoute, parseRoute, type ApiRoute } from './routes.ts';
+import { OSM_FIX_THE_MAP_URL, fetchRoute, parseRoute, type ApiRoute } from './routes.ts';
 
 const TRIP = {
   mode: 'walking' as const,
@@ -102,5 +102,11 @@ describe('fetchRoute', () => {
 describe('parseRoute', () => {
   it('never accepts a traffic-aware claim the website cannot explain', () => {
     expect(parseRoute({ ...route(), traffic_aware: true })).toBeNull();
+  });
+});
+
+describe('OpenStreetMap attribution', () => {
+  it('links to the OSM page for reporting map errors', () => {
+    expect(OSM_FIX_THE_MAP_URL).toBe('https://www.openstreetmap.org/fixthemap');
   });
 });

@@ -35,19 +35,33 @@ MIN_WALK_MINUTES = 3
 EARTH_RADIUS_KM = 6371.0
 # Matches the near-full threshold in src/parking_benchmarks.py (10% open).
 NEAR_FULL_FRACTION = 0.10
-# Routed walking (Issue #25): only the best few locations by straight-line
-# score are routed, so one request costs at most this many provider calls
-# (fewer once routes are cached). Straight-line times are close to a lower
-# bound on routed times, so they are a safe first filter.
+# Routed walking (Issue #25): the best few locations by straight-line score
+# are routed first. Straight-line estimates are usually, but not always,
+# shorter than mapped paths (the pilot in docs/routing.md found paths 1.2-1.4x
+# the straight line), so a location outside this group can still end up as a
+# pick; the picks are then routed too, a few at a time, until both are checked
+# or the request's routing budget runs out.
 ROUTED_WALK_CANDIDATES = 5
+# Routing rounds per request: the first routes ROUTED_WALK_CANDIDATES
+# locations, each later one only the current first choice and backup that are
+# not yet checked (at most 2), so one request makes at most 5 + 2 * 3 = 11
+# provider calls (fewer once routes are cached).
+MAX_ROUTING_ROUNDS = 4
 WALK_STRAIGHT_LINE = "straight_line"
 WALK_ROUTED = "routed"
+# Routing was on but this location's path was not checked (not reached within
+# the request's budget, or the route failed): the straight-line time stands
+# and the 20-minute limit was only checked in a straight line.
+WALK_UNCHECKED = "straight_line_unchecked"
 STRAIGHT_LINE_NOTE = ("Walking times are straight-line estimates, not routed "
                       "walking paths.")
 ROUTED_NOTE = ("Walking times follow mapped walking paths from each parking "
                "location's map point; check signs for closures.")
 MIXED_ROUTED_NOTE = ("Walking times follow mapped walking paths where available; "
                      "others are straight-line estimates.")
+# How explanations name each walking-time source.
+WALK_KINDS = {WALK_ROUTED: "walking route",
+              WALK_UNCHECKED: "walk (straight-line, unchecked)"}
 # API Text fields (explanations, limitations) allow at most 200 characters.
 MAX_TEXT_LENGTH = 200
 
@@ -179,10 +193,12 @@ def recommend(candidates, locations, permit, arrival, destination=None,
         walk_router: optional callable ``(origins, destination) -> minutes``
             where ``origins`` maps location IDs to coordinate dicts and the
             result maps location IDs to routed walking minutes (missing or
-            None when a route is unavailable). Only the best
-            ROUTED_WALK_CANDIDATES locations are routed; routes over
-            MAX_WALK_MINUTES are dropped and the rest are rescored. Failures
-            keep the straight-line estimate. See src.routing.walk_router.
+            None when a route is unavailable). The best ROUTED_WALK_CANDIDATES
+            locations are routed, then any unchecked first choice or backup
+            (up to MAX_ROUTING_ROUNDS calls in all); routes over
+            MAX_WALK_MINUTES are dropped and the rest are rescored. A pick
+            whose route failed or was not reached keeps its straight-line
+            estimate and is labeled unchecked. See src.routing.walk_router.
     Returns:
         RecommendationResult.
     Raises:
@@ -270,7 +286,8 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     first.explanation = _explain(first, permit, None)
     if backup:
         backup.explanation = _explain(backup, permit, first)
-    _note_walking_sources(limitations, [first, backup], counts)
+    _note_walking_sources(limitations, [("First choice", first),
+                                        ("Backup", backup)], counts)
     for label, choice in (("First choice", first), ("Backup", backup)):
         if choice is not None and choice.estimate_note:
             limitations.append(f"{label} estimate is limited: "
@@ -284,49 +301,86 @@ def recommend(candidates, locations, permit, arrival, destination=None,
 
 
 def _apply_routed_walks(ranked, registry, destination, walk_router, counts):
-    """Replace straight-line walks of the top locations with routed ones.
+    """Replace straight-line walks with routed ones until both picks are checked.
 
-    Locations whose route is over MAX_WALK_MINUTES are removed; routed ones
-    are rescored. Locations beyond ROUTED_WALK_CANDIDATES, and any whose route
-    failed, keep their straight-line estimate and label.
+    The first round routes the top ROUTED_WALK_CANDIDATES locations; each later
+    round routes whichever of the current first choice and backup are not yet
+    checked, until both are checked, MAX_ROUTING_ROUNDS is reached or the router
+    (which owns the request's time budget) returns nothing more. Locations whose
+    route is over MAX_WALK_MINUTES are removed and routed ones are rescored.
+    Every other location keeps its straight-line estimate, labeled
+    WALK_UNCHECKED.
     """
-    top = ranked[:ROUTED_WALK_CANDIDATES]
+    for choice in ranked:
+        if choice.estimated_walking_minutes is not None:
+            choice.walking_source = WALK_UNCHECKED
+    attempted = set()
+    batch = ranked[:ROUTED_WALK_CANDIDATES]
+    for _ in range(MAX_ROUTING_ROUNDS):
+        batch = [choice for choice in batch
+                 if choice.location["location_id"] not in attempted]
+        if not batch:
+            break
+        attempted.update(choice.location["location_id"] for choice in batch)
+        minutes = _route_walks(batch, registry, destination, walk_router)
+        dropped = set()
+        for choice in batch:
+            location_id = choice.location["location_id"]
+            routed = minutes.get(location_id)
+            if routed is None:
+                counts["route_unavailable"] += 1
+            elif routed > MAX_WALK_MINUTES:
+                counts["too_far_routed"] += 1
+                dropped.add(location_id)
+            else:
+                choice.estimated_walking_minutes = routed
+                choice.walking_source = WALK_ROUTED
+                choice.score = score(choice.estimated_available_fraction, routed,
+                                     True)
+        ranked = sorted((choice for choice in ranked
+                         if choice.location["location_id"] not in dropped),
+                        key=_sort_key)
+        batch = ranked[:2]
+    return ranked
+
+
+def _route_walks(batch, registry, destination, walk_router):
+    """Call the router for one batch; an outage returns no routes."""
     origins = {}
-    for choice in top:
+    for choice in batch:
         location_id = choice.location["location_id"]
         coordinates = registry[location_id]["coordinates"]
         if coordinates:
             origins[location_id] = coordinates
+    if not origins:
+        return {}
     try:
-        minutes = walk_router(origins, destination) or {}
+        return walk_router(origins, destination) or {}
     except Exception as error:  # a routing outage must not break recommendations
         LOGGER.warning("Routed walking times unavailable: %s", error)
-        minutes = {}
-    kept = []
-    for choice in top:
-        routed = minutes.get(choice.location["location_id"])
-        if routed is None:
-            counts["route_unavailable"] += 1
-            kept.append(choice)
-            continue
-        if routed > MAX_WALK_MINUTES:
-            counts["too_far_routed"] += 1
-            continue
-        choice.estimated_walking_minutes = routed
-        choice.walking_source = WALK_ROUTED
-        choice.score = score(choice.estimated_available_fraction, routed, True)
-        kept.append(choice)
-    return sorted(kept + ranked[ROUTED_WALK_CANDIDATES:], key=_sort_key)
+        return {}
 
 
 def _note_walking_sources(limitations, picks, counts):
-    """Describe where the picks' walking times came from."""
-    sources = {choice.walking_source for choice in picks if choice is not None
+    """Describe where the picks' walking times came from.
+
+    Args:
+        limitations: list to update in place.
+        picks: (label, Choice or None) pairs for the first choice and backup.
+        counts: ranking counts (``too_far_routed``).
+    """
+    sources = {choice.walking_source for _, choice in picks if choice is not None
                and choice.estimated_walking_minutes is not None}
     if WALK_ROUTED in sources and STRAIGHT_LINE_NOTE in limitations:
         index = limitations.index(STRAIGHT_LINE_NOTE)
         limitations[index] = (ROUTED_NOTE if sources == {WALK_ROUTED}
                               else MIXED_ROUTED_NOTE)
+    for label, choice in picks:
+        if choice is not None and choice.walking_source == WALK_UNCHECKED:
+            limitations.append(
+                f"{label} walking time is a straight-line estimate; its mapped "
+                f"path was not checked against the {MAX_WALK_MINUTES}-minute "
+                "limit.")
     if counts["too_far_routed"]:
         count = counts["too_far_routed"]
         subject = ("1 parking location was" if count == 1
@@ -394,7 +448,7 @@ def _explanation_text(choice, permit, first, note):
         parts.append("Often nearly full.")
     if choice.estimated_walking_minutes is not None:
         approx = " (approximate pin)" if choice.walking_is_approximate else ""
-        kind = "walking route" if choice.walking_source == WALK_ROUTED else "walk"
+        kind = WALK_KINDS.get(choice.walking_source, "walk")
         parts.append(
             f"About {choice.estimated_walking_minutes} min {kind}{approx}.")
     if first is not None:

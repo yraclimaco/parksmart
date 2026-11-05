@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Car, Footprints, LocateFixed, Loader2, RefreshCw, X } from 'lucide-react';
+import { OSM_FIX_THE_MAP_URL } from '../api/routes.ts';
 import type { LegState, RouteLegs } from '../hooks/useRoutes.ts';
 import { formatDistance, formatDuration } from '../utils/routePlan.ts';
 
@@ -111,7 +112,20 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
 
       <p className="text-[11px] text-muted leading-snug">
         Typical travel times without live traffic. Routes use the parking location’s map point, which may not be
-        its entrance. {attribution ?? ''}
+        its entrance.{' '}
+        {attribution && (
+          <>
+            {attribution} ·{' '}
+            <a
+              href={OSM_FIX_THE_MAP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-navy"
+            >
+              Fix the map
+            </a>
+          </>
+        )}
       </p>
     </section>
   );

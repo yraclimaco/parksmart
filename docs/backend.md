@@ -16,9 +16,44 @@ python -m pip install -r requirements.txt
 python -m uvicorn src.api.main:app --reload
 ```
 
-For a new environment, first run `python3 -m venv .venv`. On Windows use
-`py -m venv .venv` and `.venv\Scripts\Activate.ps1`, or invoke
-`.venv\Scripts\python.exe` directly if activation is blocked.
+For a new environment, first run `python3 -m venv .venv` (see the supported
+setup below). On Windows use `py -m venv .venv` and `.venv\Scripts\Activate.ps1`,
+or invoke `.venv\Scripts\python.exe` directly if activation is blocked.
+
+### Supported Python setup
+
+Use **Python 3.11 or newer built with OpenSSL** (3.12 matches AWS Lambda; 3.13
+also works). Two things depend on it:
+
+- **Routes.** The public OSRM servers used by default accept TLS 1.3 only. The
+  macOS system/Xcode `python3` (3.9 with LibreSSL 2.8.3) has no TLS 1.3. The
+  backend detects this at startup, logs a warning that names the SSL library,
+  and turns routes off (`/routes` answers 503) instead of failing every request.
+  Recommendations keep straight-line walking times.
+- **Saved models.** Issue #18 artifacts record the exact Python, numpy, pandas,
+  scikit-learn, scipy and joblib versions they were trained with, and
+  `create_saved_app` refuses to start with any other versions. After creating a
+  new environment or changing Python, regenerate them.
+
+On macOS: `brew install python@3.12` (or `python@3.13`). Then, from the
+repository root:
+
+```bash
+python3.12 -m venv .venv            # or python3.13
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -c "import ssl, sys; print(sys.version.split()[0], ssl.OPENSSL_VERSION, ssl.HAS_TLSv1_3)"
+# expect 3.11 or newer, "OpenSSL 3...", True
+
+# Regenerate the saved model artifacts for this environment
+python -m src.train_availability     # needs data/processed/pipeline/analysis_dataset.csv
+python -m uvicorn src.api.saved_model:create_saved_app --factory
+```
+
+If the dataset is missing, build it first (`python -m src.download_qpass`,
+`python -m src.download_inventory`, `python -m src.build_dataset`). Old
+artifacts in `models/issue18/` are overwritten; they are gitignored and never
+shared between machines.
 
 Open http://127.0.0.1:8000/docs. Try GET `/health`, GET `/locations`, then POST
 `/recommendations` using [the request example](examples/backend/recommendation_request.json).

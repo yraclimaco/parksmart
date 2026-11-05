@@ -157,11 +157,13 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Use Python 3.11+ (AWS Lambda runs 3.12). On macOS, `python3` may be Apple's
-Python 3.9 with LibreSSL, which cannot reach TLS 1.3-only services such as the
-public OSRM routing servers; `brew install python@3.12` and create the venv with
-`python3.12 -m venv .venv`. Saved model artifacts store exact library versions,
-so rerun `python -m src.train_availability` after changing Python.
+Use Python 3.11+ built with OpenSSL (AWS Lambda runs 3.12; 3.13 also works). On
+macOS, `python3` may be Apple's Python 3.9 with LibreSSL, which cannot reach
+TLS 1.3-only services such as the public OSRM routing servers;
+`brew install python@3.12` and create the venv with `python3.12 -m venv .venv`.
+Saved model artifacts store exact library versions, so rerun
+`python -m src.train_availability` after changing Python. Full steps and a TLS
+check command: "Supported Python setup" in `docs/backend.md`.
 
 ### Windows PowerShell
 
@@ -509,18 +511,24 @@ Providers live in `src/routing.py`: OpenRouteService (`ORS_API_KEY`) or OSRM
 (public FOSSGIS servers, light use only). Unset means `ors` with a key, otherwise
 `osrm`, so routes work with no setup; `PARKSMART_ROUTING_PROVIDER=none` turns them
 off (503) and recommendations keep working. Keys stay on the backend, never in `VITE_` variables or Git.
-When routing is on, `/recommendations` also routes the top 5 locations' walks
-(`walk_router`, 6 s budget), drops routes over 20 minutes and rescores; failures
-keep straight-line estimates (see `docs/recommendations.md`). Tests set
+When routing is on, `/recommendations` routes the top 5 locations' walks, then
+any unchecked first choice/backup (`MAX_ROUTING_ROUNDS`, one 8 s budget per
+request via `walk_router`), drops routes over 20 minutes and rescores. Picks
+without a route keep straight-line times labeled unchecked; never say the
+20-minute limit was checked for them (see `docs/recommendations.md`). Every
+FOSSGIS request shares one per-process 1 request/s throttle; routes that snap a
+point over 150 m (walking) / 250 m (driving) are rejected. Tests set
 `PARKSMART_ROUTING_PROVIDER=none` (`tests/conftest.py`), so they never call a
 provider.
 Trips are capped (driving 150 km, walking 5 km straight line), successes are
 cached in memory, and provider errors are logged, not returned. Parking ends are
 registry building points, not verified entrances; responses say so. Never call
-travel times traffic-aware. FOSSGIS needs TLS 1.3, which the macOS Xcode Python
-3.9 cannot do; use Python 3.11+ for `osrm` locally. Contract, configuration,
-pilot results, open questions and a teammate quick start: `docs/routing.md`;
-copyable JSON: `docs/examples/backend/route_*.json` (validated by
+travel times traffic-aware. FOSSGIS needs TLS 1.3; without it (macOS Xcode
+Python 3.9) startup logs a warning and turns routes off (503), and a run-time
+TLS failure turns them off once. Contract, configuration, public-server limits,
+deployment plan, Lambda handoff and pilot results: `docs/routing.md`. The
+website's "Fix the map" OSM link lives in ParkSmart-Website (synced);
+copyable JSON is in `docs/examples/backend/route_*.json` (validated by
 `tests/test_api_schemas.py`). Tests:
 `python -m pytest tests/test_routing.py tests/test_api.py -q`.
 

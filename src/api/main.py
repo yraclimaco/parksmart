@@ -35,8 +35,8 @@ DATA_UNAVAILABLE = (
     "the processed dataset or estimator, then restart the backend. "
     "This does not mean parking is full."
 )
-ROUTING_OFF = ("Routes are not set up on this server. Recommendations still work; "
-               "set PARKSMART_ROUTING_PROVIDER (see docs/routing.md) to enable them.")
+ROUTING_OFF = ("Routes are not available on this server. Recommendations still "
+               "work; see the server log and docs/routing.md to enable them.")
 ROUTE_FAILED = ("The routing service could not provide this route right now. "
                 "Try again shortly.")
 ROUTE_ATTRIBUTION = "Route data \u00a9 OpenStreetMap contributors"
@@ -185,8 +185,10 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
     def routes(request: RouteRequest) -> RouteResponse:
         """Return one driving or walking route, or explain why there is none.
 
-        400: trip too long for the mode. 404: provider found no route.
-        502: provider failed. 503: routing is not configured.
+        400: trip too long for the mode. 404: provider found no route, or a
+        point is too far from any mapped road or path. 502: provider failed.
+        503: routing is not configured, or was turned off (for example a
+        Python without TLS 1.3; see the server log).
         """
         service = application.state.routes
         if service is None or not service.enabled:
@@ -195,6 +197,9 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
         destination = Point(request.destination.latitude, request.destination.longitude)
         try:
             route = service.route(request.mode, origin, destination)
+        except RuntimeError as error:
+            # Routing was turned off after a TLS failure; the reason is logged once
+            raise HTTPException(503, ROUTING_OFF) from error
         except ValueError as error:
             raise HTTPException(400, str(error)) from error
         except NoRouteFound as error:

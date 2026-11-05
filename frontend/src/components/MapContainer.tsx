@@ -544,7 +544,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         el.setAttribute(
           'aria-label',
           showSampleAvailabilityRef.current
-            ? `Parking Lot ${lot.name}, ${lot.estimatedAvailabilityPercent}% estimated capacity (sample)`
+            ? `Parking Lot ${lot.name}, ${lot.estimatedAvailabilityPercent}% of spaces open in past surveys (sample)`
             : `Parking Lot ${lot.name}`
         );
 

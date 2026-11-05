@@ -46,6 +46,12 @@ export type RouteOutcome =
   | { kind: 'unavailable'; message: string }
   | { kind: 'error'; message: string };
 
+/**
+ * Where people report wrong roads or paths in OpenStreetMap, the data behind
+ * every route. Shown next to the route attribution, as OSM asks of map users.
+ */
+export const OSM_FIX_THE_MAP_URL = 'https://www.openstreetmap.org/fixthemap';
+
 /** Routes are small requests; give up sooner than a recommendation search. */
 export const ROUTE_TIMEOUT_MS = 12_000;
 

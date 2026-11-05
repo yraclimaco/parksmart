@@ -20,13 +20,11 @@ reaches a real provider).
   "directions not set up", not as an error. Copyable JSON:
   `docs/examples/backend/route_request.json` and `route_response.json`. The
   website's client is `frontend/src/api/routes.ts`.
-- **Backend / Lambda:** nothing extra to deploy. `/routes` is part of the same
-  FastAPI app. Routes work with no configuration (public OSRM servers). For
-  the deployed website set `PARKSMART_CORS_ORIGINS`, and optionally
-  `ORS_API_KEY` (as a secret) for a provider with a published daily quota.
-  `PARKSMART_ROUTING_PROVIDER=none` turns routes off (503).
-- **Locally:** nothing to set; just start the backend (Python 3.11+; see the
-  note below).
+- **Backend / Lambda:** `/routes` is part of the same FastAPI app; see
+  [Lambda handoff](#lambda-handoff) for timeouts, internet access, cache and
+  provider constraints. `PARKSMART_ROUTING_PROVIDER=none` turns routes off (503).
+- **Locally:** nothing to set; just start the backend with Python 3.11+ built
+  with OpenSSL (see "Supported Python setup" in `docs/backend.md`).
 
 ## Provider choice
 
@@ -64,15 +62,65 @@ python -m uvicorn src.api.saved_model:create_saved_app --factory
 An unknown provider name or `ors` without a key logs a warning and turns routes
 off; recommendations and `/health` keep working.
 
-**Local Python note:** the FOSSGIS servers accept only TLS 1.3. The macOS
-system/Xcode Python 3.9 (LibreSSL 2.8.3) cannot connect to them and reports
-`SSLV3_ALERT_HANDSHAKE_FAILURE`; the route endpoint then returns 502. Use a newer
-Python (3.11+, as on AWS Lambda). OpenRouteService works with either.
+**TLS check:** the FOSSGIS servers accept only TLS 1.3. The macOS system/Xcode
+Python 3.9 (LibreSSL 2.8.3) has none. At startup, if the public servers would be
+used and `ssl.HAS_TLSv1_3` is false, the backend logs one warning naming the SSL
+library and turns routes off (`/routes` answers 503; recommendations keep
+straight-line walks). If a handshake still fails at run time (`ssl.SSLError`
+under the request error), routes are turned off for that process after the first
+failure, with one warning, instead of failing every request. Fix: use Python
+3.11+ built with OpenSSL (`docs/backend.md`). OpenRouteService and a self-hosted
+`http://` OSRM do not need TLS 1.3.
 
-**Production note:** the FOSSGIS servers ask for light use and promise no uptime.
-They suit the demo and early low traffic: only the top 5 walks per search are
-routed, and every route is cached. If traffic grows, add an ORS key or point
-`OSRM_DRIVING_URL` / `OSRM_WALKING_URL` at a self-hosted OSRM.
+## Public-server limits and deployment plan
+
+The FOSSGIS servers are a free community service: about **one request a second**,
+no uptime promise, no key, and a `User-Agent` that identifies the app (ParkSmart
+sends one). ParkSmart respects that limit like this:
+
+- **One shared throttle per process.** Every FOSSGIS request, from
+  `/recommendations` walking checks and from `/routes` directions alike, waits
+  for a slot in one throttle that starts requests at least 1 s apart
+  (`FOSSGIS_MIN_INTERVAL_SECONDS`), across both modes. A request whose slot is
+  more than 6 s away fails fast (`/routes` 502, recommendations keep
+  straight-line times) instead of queueing.
+- **Few calls per search.** A recommendation routes at most the top 5 locations,
+  then only the first choice and backup if they are not yet checked (at most 11
+  calls, in an 8 s budget per request; see `docs/recommendations.md`). Typical
+  searches use 5 to 7. Successful routes are cached, so repeat searches cost
+  nothing.
+- **Not shared between processes.** The throttle and cache live in memory. Two
+  uvicorn workers, or several concurrent Lambda instances, each have their own,
+  so together they could exceed one request a second.
+
+Deployment plan:
+
+1. **Demo and pilot (now):** public FOSSGIS, one backend process (or Lambda with
+   reserved concurrency 1). Searches during a busy minute may show
+   straight-line walking times, labeled as unchecked.
+2. **Before public launch:** switch off the public servers. Either set
+   `ORS_API_KEY` (OpenRouteService free plan: 2,000 directions/day, 40/min; set
+   `PARKSMART_ROUTING_PROVIDER=ors`), or run our own OSRM with OpenStreetMap
+   data for San Diego and set `OSRM_DRIVING_URL` / `OSRM_WALKING_URL` (no
+   throttle is applied to self-hosted servers). Self-hosting needs an always-on
+   server, which needs funded DS3 AWS access.
+3. **If neither is available:** `PARKSMART_ROUTING_PROVIDER=none`. The site keeps
+   working with straight-line walks and the "Open in Google Maps" link.
+
+## Lambda handoff
+
+For Daira's backend deployment. Nothing here needs code changes.
+
+| Topic | What to set or know |
+| --- | --- |
+| Python | 3.12 runtime (has OpenSSL 3 and TLS 1.3). Package `requirements.txt` as usual; `httpx` is the only routing dependency. |
+| Function timeout | At least **30 s**. Each provider call times out after 8 s (`PROVIDER_TIMEOUT_SECONDS`); a recommendation spends at most 8 s on walking routes (`WALK_ROUTING_BUDGET_SECONDS`) on top of ranking; the website gives up after 20 s. API Gateway caps integrations at about 30 s (29 s for REST APIs). |
+| Internet access | The function must reach `routing.openstreetmap.de` (or `api.openrouteservice.org`) over HTTPS. Outside a VPC this works by default. Inside a VPC it needs a NAT gateway, which costs money: do not enable it without funded DS3 access; use `PARKSMART_ROUTING_PROVIDER=none` instead. |
+| Concurrency | The FOSSGIS throttle is per instance. Set reserved concurrency to **1** while using the public servers, or switch provider (plan above). |
+| Cache | In memory only (1,024 routes). Lost on every cold start and not shared between instances, so a cold function routes again. Not a reason to add a database; it only saves provider calls. |
+| Environment | `PARKSMART_CORS_ORIGINS` (Amplify URL). Optional `ORS_API_KEY` as an encrypted variable or Secrets Manager value, never in Git or `VITE_` variables. `PARKSMART_ROUTING_PROVIDER=none` to turn routes off. |
+| Logs | CloudWatch shows one warning when routes are turned off (no TLS 1.3, bad configuration) and a warning, with the reasons, whenever every walking route in a recommendation's routing round failed. Provider errors are never returned to the browser. |
+| Attribution | Responses carry "Route data © OpenStreetMap contributors"; the website shows it with a "Fix the map" link to openstreetmap.org/fixthemap. Keep both if another client (the mobile app) shows routes. |
 
 ## `POST /routes` contract
 
@@ -109,14 +157,25 @@ Response (200):
 | Status | Meaning |
 | --- | --- |
 | 400 | Trip longer than the mode allows in a straight line (driving 150 km, walking 5 km), so the endpoint cannot be used as a general router that spends the project's quota. |
-| 404 | The provider found no road or path near a point. |
+| 404 | The provider found no road or path near a point, or had to move a point more than 150 m (walking) or 250 m (driving) to reach one. |
 | 422 | Invalid JSON, mode or coordinates. |
-| 502 | Provider failed, timed out (8 s) or answered unreadably. Details go to the server log, never to the client. |
-| 503 | Routing is not configured on this server. |
+| 502 | Provider failed, timed out (8 s), was too busy (throttle slot over 6 s away) or answered unreadably. Details go to the server log, never to the client. |
+| 503 | Routing is not configured on this server, or was turned off because this Python cannot use TLS 1.3 (see the server log). |
 
 Successful routes are cached in memory (1,024 trips, about 1 m coordinate
 precision). Failures are not cached. The website also keeps successful routes for
 the visit, so switching between first choice and backup does not repeat requests.
+
+## Snapping check (2026-11-05)
+
+Providers move ("snap") each requested point to the nearest mapped road or path.
+For all 46 supported registry locations, a walking route from the location to
+Geisel Library and a driving route from downtown San Diego to it moved the
+parking point at most **55 m** (walking) and **60 m** (driving); most moved under
+25 m. Routes that move a point more than 150 m (walking) or 250 m (driving)
+(`MAX_SNAP_METERS`) are rejected as no route, because they would not start or
+end where asked. They are not cached; ranking keeps the straight-line estimate
+and labels it unchecked.
 
 ## Parking end points (approximation)
 
@@ -146,8 +205,8 @@ Routed paths followed campus walkways and were 1.2–1.4× the straight line. Th
 estimate is within about a minute for short walks but underestimates long ones:
 Torrey Pines Center North to Geisel routes at 22.6 minutes, above the
 recommender's 20-minute walking limit, while the card said about 18. Ranking
-therefore now uses routed walking times for the top locations whenever routing is
-configured (see "Routed walks" in `docs/recommendations.md`): that location is
+therefore now uses routed walking times for the top locations, and then for the
+final picks, whenever routing is configured (see "Routed walks" in `docs/recommendations.md`): that location is
 dropped as over the limit, and the card and the directions box show the same
 routed time. A live check (S permit, Geisel Library, Tue 10 AM) took about 0.6 s
 with an empty route cache and about 0.02 s cached.

@@ -63,8 +63,10 @@ class FakeProvider:
         self.calls += 1
         if self.error:
             raise self.error
+        line = [[origin.longitude, origin.latitude],
+                [destination.longitude, destination.latitude]]
         return Route(mode=mode, distance_meters=812.4, duration_seconds=583.0,
-                     geometry=LINE, provider=self.name)
+                     geometry=line, provider=self.name)
 
 
 # Providers ---------------------------------------------------------------
@@ -126,7 +128,7 @@ def test_ors_network_failure_raises_routing_error():
 
 def test_osrm_uses_one_server_per_mode_and_geojson():
     seen = []
-    provider = OsrmProvider(client=client_returning(200, osrm_body(), seen))
+    provider = OsrmProvider(client=client_returning(200, osrm_body(), seen), throttle=None)
     provider.route("walking", GILMAN, GEISEL)
     provider.route("driving", DOWNTOWN, GILMAN)
     walk, drive = seen
@@ -140,7 +142,7 @@ def test_osrm_uses_one_server_per_mode_and_geojson():
 
 
 def test_osrm_no_route():
-    provider = OsrmProvider(client=client_returning(400, {"code": "NoRoute"}))
+    provider = OsrmProvider(client=client_returning(400, {"code": "NoRoute"}), throttle=None)
     with pytest.raises(NoRouteFound):
         provider.route("walking", GILMAN, GEISEL)
 
@@ -152,7 +154,7 @@ def test_osrm_no_route():
     (200, osrm_body(distance=float("nan"))),
 ])
 def test_osrm_problems_raise_routing_error(status, body):
-    provider = OsrmProvider(client=client_returning(status, body))
+    provider = OsrmProvider(client=client_returning(status, body), throttle=None)
     with pytest.raises(RoutingError):
         provider.route("walking", GILMAN, GEISEL)
 
@@ -373,3 +375,184 @@ def test_recommendations_use_routed_walks_when_routing_is_on(tmp_path):
     assert data["first_choice"]["estimated_walking_minutes"] == 10
     assert "walking route" in data["first_choice"]["explanation"]
     assert 0 < provider.calls <= 5
+
+
+# Review fixes: TLS, throttling, snapping, budget, logging -----------------
+
+import logging  # noqa: E402
+import ssl  # noqa: E402
+
+from src import routing  # noqa: E402
+from src.routing import (  # noqa: E402
+    FOSSGIS_HOST, MAX_SNAP_METERS, RequestThrottle, TlsUnsupported,
+)
+
+
+class FakeClock:
+    """Monotonic clock whose sleep just advances time."""
+
+    def __init__(self):
+        self.now = 100.0
+        self.sleeps = []
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
+def test_throttle_spaces_request_starts():
+    clock = FakeClock()
+    throttle = RequestThrottle(1.0, max_wait=5, clock=clock, sleep=clock.sleep)
+    for _ in range(3):
+        throttle.acquire()
+    assert clock.sleeps == [1.0, 1.0]
+
+
+def test_throttle_fails_fast_when_queue_is_too_long():
+    clock = FakeClock()
+    throttle = RequestThrottle(1.0, max_wait=1.5, clock=clock, sleep=lambda s: None)
+    throttle.acquire()  # now
+    throttle.acquire()  # +1 s
+    with pytest.raises(RoutingError, match="busy"):
+        throttle.acquire()  # would be +2 s
+
+
+def test_public_osrm_shares_one_throttle_across_modes_and_providers():
+    first, second = OsrmProvider(), OsrmProvider()
+    throttles = {id(t) for p in (first, second) for t in p._throttles.values()}
+    assert len(throttles) == 1
+    assert first._throttles["walking"].min_interval == routing.FOSSGIS_MIN_INTERVAL_SECONDS
+
+
+def test_self_hosted_osrm_is_not_throttled():
+    provider = OsrmProvider({"driving": "http://osrm-car:5000",
+                             "walking": "http://osrm-foot:5000"})
+    assert provider._throttles == {"driving": None, "walking": None}
+    assert not provider.uses_public_servers
+
+
+def test_throttle_is_used_for_every_osrm_request():
+    acquired = []
+
+    class CountingThrottle:
+        def acquire(self):
+            acquired.append(1)
+
+    provider = OsrmProvider(client=client_returning(200, osrm_body()),
+                            throttle=CountingThrottle())
+    provider.route("walking", GILMAN, GEISEL)
+    provider.route("driving", DOWNTOWN, GILMAN)
+    assert len(acquired) == 2
+
+
+def test_public_osrm_without_tls13_turns_routing_off_with_warning(monkeypatch, caplog):
+    monkeypatch.setattr(routing, "tls13_supported", lambda: False)
+    with caplog.at_level(logging.WARNING, logger="src.routing"):
+        assert provider_from_env({}) is None
+    assert "TLS 1.3" in caplog.text and FOSSGIS_HOST in caplog.text
+    # Self-hosted OSRM and ORS do not need TLS 1.3
+    assert provider_from_env({"OSRM_DRIVING_URL": "http://a", "OSRM_WALKING_URL": "http://b",
+                              "PARKSMART_ROUTING_PROVIDER": "osrm"}) is not None
+    assert provider_from_env({"ORS_API_KEY": "k"}) is not None
+
+
+def _tls_failing_client():
+    def handler(request):
+        raise httpx.ConnectError("handshake failed") from ssl.SSLError(
+            "SSLV3_ALERT_HANDSHAKE_FAILURE")
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_tls_handshake_failure_is_recognized():
+    provider = OsrmProvider(client=_tls_failing_client(), throttle=None)
+    with pytest.raises(TlsUnsupported):
+        provider.route("walking", GILMAN, GEISEL)
+
+
+def test_tls_failure_turns_routing_off_once_instead_of_failing_repeatedly(caplog):
+    provider = OsrmProvider(client=_tls_failing_client(), throttle=None)
+    calls = []
+    original = provider.route
+    provider.route = lambda *args: calls.append(1) or original(*args)
+    service = RouteService(provider)
+    with caplog.at_level(logging.WARNING, logger="src.routing"):
+        for _ in range(3):
+            with pytest.raises(RuntimeError, match="TLS"):
+                service.route("walking", GILMAN, GEISEL)
+    assert len(calls) == 1
+    assert not service.enabled
+    assert caplog.text.count("Routes turned off") == 1
+
+
+def test_routes_endpoint_says_unavailable_after_tls_failure(tmp_path):
+    service = RouteService(OsrmProvider(client=_tls_failing_client(), throttle=None))
+    with api(service, tmp_path) as client:
+        first = client.post("/routes", json=trip())
+        second = client.post("/routes", json=trip())
+    assert first.status_code == second.status_code == 503
+    assert "SSL" not in first.text
+
+
+class SnappingProvider(FakeProvider):
+    """Provider whose route starts ``offset`` degrees of latitude off."""
+
+    def __init__(self, offset):
+        super().__init__()
+        self.offset = offset
+
+    def route(self, mode, origin, destination):
+        self.calls += 1
+        line = [[origin.longitude, origin.latitude + self.offset],
+                [destination.longitude, destination.latitude]]
+        return Route(mode=mode, distance_meters=900.0, duration_seconds=600.0,
+                     geometry=line, provider=self.name)
+
+
+def test_small_snapping_is_accepted():
+    service = RouteService(SnappingProvider(offset=0.0005))  # about 56 m
+    assert service.route("walking", GILMAN, GEISEL).duration_seconds == 600.0
+
+
+def test_excessive_snapping_is_rejected_and_not_cached():
+    provider = SnappingProvider(offset=0.005)  # about 556 m
+    service = RouteService(provider)
+    with pytest.raises(NoRouteFound, match=r"556 m from the start point"):
+        service.route("walking", GILMAN, GEISEL)
+    with pytest.raises(NoRouteFound):
+        service.route("walking", GILMAN, GEISEL)
+    assert provider.calls == 2
+    assert MAX_SNAP_METERS["walking"] < 556 < 1000
+
+
+def test_routes_endpoint_reports_excessive_snapping_as_no_route(tmp_path):
+    with api(RouteService(SnappingProvider(offset=0.005)), tmp_path) as client:
+        response = client.post("/routes", json=trip())
+    assert response.status_code == 404
+    assert "nearest mapped path" in response.json()["detail"]
+
+
+def test_walk_router_budget_is_shared_by_every_call():
+    route_walks = walk_router(RouteService(FakeProvider()), budget_seconds=0.2)
+    assert route_walks(ORIGINS, DEST) == {"gilman-ps": 10}
+    import time
+    time.sleep(0.25)
+    other = {"scholars": {"latitude": 32.8789, "longitude": -117.2416}}
+    assert route_walks(other, DEST) == {}
+
+
+def test_walk_router_warns_when_every_route_fails(caplog):
+    route_walks = walk_router(RouteService(FakeProvider(error=RoutingError("HTTP 500"))))
+    with caplog.at_level(logging.WARNING, logger="src.routing"):
+        assert route_walks(ORIGINS, DEST) == {}
+    assert "All 1 walking-route attempts failed" in caplog.text
+    assert "HTTP 500" in caplog.text
+
+
+def test_walk_router_does_not_warn_when_some_routes_work(caplog):
+    route_walks = walk_router(RouteService(FakeProvider()))
+    with caplog.at_level(logging.WARNING, logger="src.routing"):
+        route_walks(ORIGINS, DEST)
+    assert "walking-route attempts failed" not in caplog.text

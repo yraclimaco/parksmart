@@ -29,7 +29,7 @@ export interface AvailabilityStatus {
 }
 
 const STATUS: Record<AvailabilityLevel, AvailabilityStatus> = {
-  plenty: { level: 'plenty', label: 'Likely open', color: '#1E8E5A', textColor: '#136B42' },
+  plenty: { level: 'plenty', label: 'Usually open', color: '#1E8E5A', textColor: '#136B42' },
   filling: { level: 'filling', label: 'Getting tight', color: '#D98A00', textColor: '#835300' },
   nearlyFull: { level: 'nearlyFull', label: 'Usually full', color: '#C0392B', textColor: '#A12116' },
 };

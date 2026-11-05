@@ -9,7 +9,11 @@ directly, so provider keys stay on the server. Two providers are supported:
 * ``osrm``: any OSRM server. The default is the public FOSSGIS servers at
   routing.openstreetmap.de, which need no key but allow only light use
   (about one request a second) and offer no uptime guarantee. Fine for
-  development, demos and low traffic; the in-memory cache keeps calls down.
+  development, demos and low traffic. Every request to them, from
+  recommendations and POST /routes alike, goes through one shared
+  per-process throttle (FOSSGIS_MIN_INTERVAL_SECONDS), and the in-memory
+  cache keeps calls down. They accept TLS 1.3 only; a Python whose SSL
+  library lacks it turns routing off at startup with a warning.
 
 Routing works with no setup: without ``ORS_API_KEY`` the public OSRM servers
 are used. Override with ``PARKSMART_ROUTING_PROVIDER`` (``ors``, ``osrm`` or
@@ -24,11 +28,14 @@ from __future__ import annotations
 import logging
 import math
 import os
+import ssl
 import threading
+import time
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -50,12 +57,31 @@ CACHE_MAX_ENTRIES = 1024
 EARTH_RADIUS_KM = 6371.0088
 METERS_PER_MILE = 1609.344
 
-#: Total time recommendations wait for routed walking times before falling
-#: back to straight-line estimates, well inside the website's 20 s timeout.
-WALK_ROUTING_BUDGET_SECONDS = 6.0
-#: Parallel walking-route requests per recommendation. Kept low because the
-#: public OSRM servers ask for about one request a second.
+#: Furthest a provider may move ("snap") a requested point to reach the
+#: nearest mapped road or path. Registry points are building points, so some
+#: snapping is normal (the 2026-11-05 check of all 46 supported locations in
+#: docs/routing.md found at most 55 m walking and 60 m driving); further means
+#: the route does not really start or end where asked, so it is rejected as
+#: no route.
+MAX_SNAP_METERS: dict[str, float] = {"driving": 250.0, "walking": 150.0}
+
+#: Total time one recommendation request waits for routed walking times, over
+#: all its routing rounds, before keeping straight-line estimates. Inside the
+#: website's 20 s timeout; at one request a second it covers the first 5
+#: routes plus a check of the picks.
+WALK_ROUTING_BUDGET_SECONDS = 8.0
+#: Parallel walking-route requests per recommendation. The FOSSGIS throttle
+#: still spaces their starts one second apart; parallel requests only overlap
+#: network time.
 WALK_ROUTING_WORKERS = 3
+
+#: Minimum seconds between request starts to the public FOSSGIS servers,
+#: across both modes and all requests in this process (their usage policy
+#: asks for at most about one request a second).
+FOSSGIS_MIN_INTERVAL_SECONDS = 1.0
+#: A request that would wait longer than this for its throttle slot fails
+#: fast (as a provider error) rather than queueing behind a burst.
+THROTTLE_MAX_WAIT_SECONDS = 6.0
 
 ORS_BASE_URL = "https://api.openrouteservice.org"
 ORS_PROFILES = {"driving": "driving-car", "walking": "foot-walking"}
@@ -68,6 +94,13 @@ FOSSGIS_OSRM_URLS = {
 USER_AGENT = "ParkSmart/0.2 (UCSD DS3 student project; github.com/yraclimaco/parksmart)"
 
 PROVIDER_LABELS = {"ors": "OpenRouteService", "osrm": "OSRM (OpenStreetMap data)"}
+FOSSGIS_HOST = urlsplit(FOSSGIS_OSRM_URLS["walking"]).hostname
+TLS13_MISSING = (
+    "This Python's SSL library ({version}) has no TLS 1.3, which the public "
+    "OSRM servers at {host} require, so routes are turned off. Use Python 3.11+ "
+    "built with OpenSSL (see docs/backend.md), or set ORS_API_KEY or a "
+    "self-hosted OSRM_*_URL."
+)
 
 
 class RoutingError(Exception):
@@ -76,6 +109,77 @@ class RoutingError(Exception):
 
 class NoRouteFound(Exception):
     """The provider answered but found no route between the two points."""
+
+
+class TlsUnsupported(RoutingError):
+    """The TLS handshake failed: this Python cannot talk to the provider."""
+
+
+class RequestThrottle:
+    """Spaces request starts at least ``min_interval`` seconds apart.
+
+    Thread-safe; callers reserve the next free slot and sleep until it.
+
+    Args:
+        min_interval: seconds between request starts.
+        max_wait: longest a caller may wait for a slot.
+        clock, sleep: injectable for tests.
+    """
+
+    def __init__(self, min_interval: float,
+                 max_wait: float = THROTTLE_MAX_WAIT_SECONDS,
+                 clock=time.monotonic, sleep=time.sleep):
+        self.min_interval = min_interval
+        self.max_wait = max_wait
+        self._clock = clock
+        self._sleep = sleep
+        self._next_start = -math.inf
+        self._lock = threading.Lock()
+
+    def acquire(self) -> None:
+        """Wait for this caller's slot.
+
+        Raises:
+            RoutingError: the slot is more than ``max_wait`` seconds away.
+        """
+        with self._lock:
+            now = self._clock()
+            start = max(now, self._next_start)
+            if start - now > self.max_wait:
+                raise RoutingError(
+                    f"Routing provider is busy (next request slot in "
+                    f"{start - now:.1f} s).")
+            self._next_start = start + self.min_interval
+        if start > now:
+            self._sleep(start - now)
+
+
+_SHARED_THROTTLES: dict[str, RequestThrottle] = {}
+_SHARED_THROTTLES_LOCK = threading.Lock()
+
+
+def shared_throttle(host: str, min_interval: float) -> RequestThrottle:
+    """Return the one process-wide throttle for ``host``, creating it once."""
+    with _SHARED_THROTTLES_LOCK:
+        if host not in _SHARED_THROTTLES:
+            _SHARED_THROTTLES[host] = RequestThrottle(min_interval)
+        return _SHARED_THROTTLES[host]
+
+
+def tls13_supported() -> bool:
+    """True when this Python's SSL library can negotiate TLS 1.3."""
+    return bool(getattr(ssl, "HAS_TLSv1_3", False))
+
+
+def _is_tls_error(error: BaseException) -> bool:
+    """True when an httpx error was caused by an SSL handshake failure."""
+    seen = set()
+    while error is not None and id(error) not in seen:
+        if isinstance(error, ssl.SSLError):
+            return True
+        seen.add(id(error))
+        error = error.__cause__ or error.__context__
+    return False
 
 
 @dataclass(frozen=True)
@@ -177,6 +281,9 @@ class OpenRouteServiceProvider:
                 "Accept": "application/geo+json, application/json",
             })
         except httpx.HTTPError as error:
+            if _is_tls_error(error):
+                raise TlsUnsupported(
+                    f"TLS handshake with OpenRouteService failed: {error!r}") from error
             raise RoutingError(f"OpenRouteService request failed: {error!r}") from error
         if response.status_code == 404:
             # ORS answers 404 (error code 2010) when a point is far from any road
@@ -207,21 +314,40 @@ class OsrmProvider:
         base_urls: server root per mode; each must serve
             ``/route/v1/driving/{lon},{lat};{lon},{lat}``.
         client: optional httpx.Client (tests pass a mock transport).
+        throttle: ``"auto"`` (default) applies the shared FOSSGIS throttle to
+            requests for the public servers and none to other hosts; or pass
+            a RequestThrottle, or None for no throttling.
     """
 
     name = "osrm"
 
     def __init__(self, base_urls: dict[str, str] | None = None,
-                 client: httpx.Client | None = None):
+                 client: httpx.Client | None = None, throttle="auto"):
         urls = base_urls or FOSSGIS_OSRM_URLS
         self._urls = {mode: urls[mode].rstrip("/") for mode in TRAVEL_MODES}
         self._client = client or httpx.Client(timeout=PROVIDER_TIMEOUT_SECONDS)
+        self._throttles = {}
+        for mode, url in self._urls.items():
+            if throttle == "auto":
+                public = urlsplit(url).hostname == FOSSGIS_HOST
+                self._throttles[mode] = (shared_throttle(
+                    FOSSGIS_HOST, FOSSGIS_MIN_INTERVAL_SECONDS) if public else None)
+            else:
+                self._throttles[mode] = throttle
+
+    @property
+    def uses_public_servers(self) -> bool:
+        """True when any mode is served by the public FOSSGIS servers."""
+        return any(urlsplit(url).hostname == FOSSGIS_HOST
+                   for url in self._urls.values())
 
     def route(self, mode: TravelMode, origin: Point, destination: Point) -> Route:
         """Request one route; see RoutingProvider.route."""
         points = (f"{origin.longitude},{origin.latitude};"
                   f"{destination.longitude},{destination.latitude}")
         url = f"{self._urls[mode]}/route/v1/driving/{points}"
+        if self._throttles[mode] is not None:
+            self._throttles[mode].acquire()
         try:
             response = self._client.get(
                 url, params={"overview": "full", "geometries": "geojson"},
@@ -229,6 +355,10 @@ class OsrmProvider:
             )
             data = response.json()
         except httpx.HTTPError as error:
+            if _is_tls_error(error):
+                raise TlsUnsupported(
+                    f"TLS handshake with {url.split('/route/')[0]} failed: "
+                    f"{error!r}") from error
             raise RoutingError(f"OSRM request failed: {error!r}") from error
         except ValueError as error:
             raise RoutingError(f"OSRM returned HTTP {response.status_code}.") from error
@@ -262,6 +392,8 @@ class RouteService:
     def __init__(self, provider: RoutingProvider | None,
                  max_entries: int = CACHE_MAX_ENTRIES):
         self.provider = provider
+        #: Why routing was turned off after startup (TLS failure), else None.
+        self.disabled_reason: str | None = None
         self._cache: OrderedDict[tuple, Route] = OrderedDict()
         self._max_entries = max_entries
         self._lock = threading.Lock()
@@ -276,8 +408,11 @@ class RouteService:
 
         Raises:
             ValueError: unknown mode or a trip longer than MAX_TRIP_KM.
-            RuntimeError: routing is not configured.
-            NoRouteFound / RoutingError: from the provider (not cached).
+            RuntimeError: routing is not configured, or was turned off after
+                a TLS handshake failure (logged once as a warning).
+            NoRouteFound: no route, or the provider moved a point more than
+                MAX_SNAP_METERS to reach a road or path.
+            RoutingError: the provider failed (not cached).
         """
         if mode not in TRAVEL_MODES:
             raise ValueError(f"Unknown travel mode {mode!r}.")
@@ -287,22 +422,58 @@ class RouteService:
                 f"{mode.capitalize()} routes are limited to {limit:g} km "
                 "in a straight line."
             )
-        if self.provider is None:
-            raise RuntimeError("Routing is not configured on this server.")
+        provider = self.provider
+        if provider is None:
+            raise RuntimeError(self.disabled_reason
+                               or "Routing is not configured on this server.")
         coordinates = (origin.latitude, origin.longitude,
                        destination.latitude, destination.longitude)
-        key = (mode, *(round(value, CACHE_COORDINATE_DECIMALS) for value in coordinates))
+        key = (mode, *(round(value, CACHE_COORDINATE_DECIMALS)
+                       for value in coordinates))
         with self._lock:
             if key in self._cache:
                 self._cache.move_to_end(key)
                 return self._cache[key]
-        route = self.provider.route(mode, origin, destination)
+        try:
+            route = provider.route(mode, origin, destination)
+        except TlsUnsupported as error:
+            self._disable(f"Routes turned off: {error}. Use Python 3.11+ built "
+                          "with OpenSSL (see docs/backend.md).")
+            raise RuntimeError(self.disabled_reason) from error
+        _check_snapping(route, origin, destination)
         with self._lock:
             self._cache[key] = route
             self._cache.move_to_end(key)
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
         return route
+
+    def _disable(self, reason: str) -> None:
+        """Turn routing off for this process and warn once."""
+        with self._lock:
+            if self.provider is None:
+                return
+            self.provider = None
+            self.disabled_reason = reason
+        LOGGER.warning(reason)
+
+
+def _check_snapping(route: Route, origin: Point, destination: Point) -> None:
+    """Reject a route whose ends were moved too far from the requested points.
+
+    Raises:
+        NoRouteFound: an end is more than MAX_SNAP_METERS[route.mode] away.
+    """
+    limit = MAX_SNAP_METERS[route.mode]
+    ends = (("start", origin, route.geometry[0]),
+            ("end", destination, route.geometry[-1]))
+    for label, requested, (longitude, latitude) in ends:
+        meters = straight_line_km(requested, Point(latitude, longitude)) * 1000
+        if meters > limit:
+            path = "road" if route.mode == "driving" else "path"
+            raise NoRouteFound(
+                f"The nearest mapped {path} is {meters:.0f} m from the {label} "
+                f"point (limit {limit:g} m), so no route was returned.")
 
 
 def provider_from_env(environ: dict[str, str] | None = None) -> RoutingProvider | None:
@@ -311,9 +482,11 @@ def provider_from_env(environ: dict[str, str] | None = None) -> RoutingProvider 
     Args:
         environ: mapping to read (defaults to os.environ).
     Returns:
-        A provider, or None for ``none`` or when ``ors`` has no key (logged).
-        Unset means ``ors`` when ORS_API_KEY is present, else ``osrm`` (the
-        public servers), so routes work with no configuration.
+        A provider, or None for ``none``, when ``ors`` has no key, or when
+        ``osrm`` would use the public servers from a Python without TLS 1.3
+        (both logged as warnings). Unset means ``ors`` when ORS_API_KEY is
+        present, else ``osrm`` (the public servers), so routes work with no
+        configuration.
     Raises:
         ValueError: unknown provider name.
     """
@@ -334,47 +507,78 @@ def provider_from_env(environ: dict[str, str] | None = None) -> RoutingProvider 
         urls = {mode: (env.get(f"OSRM_{mode.upper()}_URL", "").strip()
                        or FOSSGIS_OSRM_URLS[mode])
                 for mode in TRAVEL_MODES}
-        return OsrmProvider(urls)
+        provider = OsrmProvider(urls)
+        if provider.uses_public_servers and not tls13_supported():
+            LOGGER.warning(TLS13_MISSING.format(version=ssl.OPENSSL_VERSION,
+                                                host=FOSSGIS_HOST))
+            return None
+        return provider
     raise ValueError(
         f"Unknown PARKSMART_ROUTING_PROVIDER {name!r}; use ors, osrm or none.")
 
 
-def walk_router(service: RouteService, budget_seconds: float = WALK_ROUTING_BUDGET_SECONDS,
+def walk_router(service: RouteService,
+                budget_seconds: float = WALK_ROUTING_BUDGET_SECONDS,
                 workers: int = WALK_ROUTING_WORKERS):
     """Build the ``walk_router`` callable that ``src.ranking.recommend`` accepts.
 
+    Build one per recommendation request: the budget is shared by every call
+    the ranking makes (it routes the top locations, then checks the picks).
+
     Args:
         service: RouteService; None or disabled returns None (no routing).
-        budget_seconds: total wait for all routes of one request; routes not
-            finished by then are treated as unavailable.
-        workers: parallel requests.
+        budget_seconds: total wait for all routes of one request, starting at
+            the first call; routes not finished by then are treated as
+            unavailable, and later calls return nothing.
+        workers: parallel requests per call.
     Returns:
         ``route_walks(origins, destination) -> {location_id: minutes}`` with
         whole minutes rounded up (matching the website's directions box), or
-        None when routing is off. Failed or too-long trips are left out.
+        None when routing is off. Failed or too-long trips are left out; when
+        every route in a call fails, one warning is logged.
     """
     if service is None or not service.enabled:
         return None
+    deadline = None
 
     def route_walks(origins: dict, destination: dict) -> dict:
+        """Route each origin to the destination within the remaining budget."""
+        nonlocal deadline
+        if not origins:
+            return {}
+        now = time.monotonic()
+        if deadline is None:
+            deadline = now + budget_seconds
+        remaining = deadline - now
+        if remaining <= 0:
+            LOGGER.warning("Walking-route budget (%g s) used up; %d location(s) keep "
+                           "straight-line estimates.", budget_seconds, len(origins))
+            return {}
         end = Point(destination["latitude"], destination["longitude"])
-        pool = ThreadPoolExecutor(max_workers=max(1, min(workers, len(origins) or 1)))
+        pool = ThreadPoolExecutor(max_workers=max(1, min(workers, len(origins))))
         futures = {
             pool.submit(service.route, "walking",
                         Point(start["latitude"], start["longitude"]), end): location_id
             for location_id, start in origins.items()
         }
-        done, _ = wait(futures, timeout=budget_seconds)
+        done, pending = wait(futures, timeout=remaining)
         # Never block the request on stragglers; they finish (and are cached) later
         pool.shutdown(wait=False, cancel_futures=True)
-        minutes = {}
+        minutes, problems = {}, []
         for future in done:
             try:
                 route = future.result()
             except (ValueError, RuntimeError, NoRouteFound, RoutingError) as error:
-                LOGGER.info("Walking route unavailable for %s: %s", futures[future], error)
+                LOGGER.info("Walking route unavailable for %s: %s",
+                            futures[future], error)
+                problems.append(f"{futures[future]}: {error}")
                 continue
             minutes[futures[future]] = math.ceil(route.duration_seconds / 60)
+        if pending:
+            problems.append(f"{len(pending)} not finished within {budget_seconds:g} s")
+        if not minutes:
+            LOGGER.warning("All %d walking-route attempts failed; using straight-line "
+                           "estimates (%s).", len(origins), "; ".join(problems))
         return minutes
 
     return route_walks
