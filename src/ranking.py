@@ -230,10 +230,12 @@ def check_settings(preference, max_walk_minutes):
                          f"{', '.join(PREFERENCES)}.")
     if max_walk_minutes is None:
         return MAX_WALK_MINUTES
-    if not MIN_WALK_LIMIT_MINUTES <= max_walk_minutes <= MAX_WALK_MINUTES:
-        raise ValueError(f"max_walk_minutes must be {MIN_WALK_LIMIT_MINUTES} "
-                         f"to {MAX_WALK_MINUTES}.")
-    return int(max_walk_minutes)
+    whole = (isinstance(max_walk_minutes, int)
+             and not isinstance(max_walk_minutes, bool))
+    if not whole or not MIN_WALK_LIMIT_MINUTES <= max_walk_minutes <= MAX_WALK_MINUTES:
+        raise ValueError(f"max_walk_minutes must be a whole number from "
+                         f"{MIN_WALK_LIMIT_MINUTES} to {MAX_WALK_MINUTES}.")
+    return max_walk_minutes
 
 
 def recommend(candidates, locations, permit, arrival, destination=None,
@@ -365,8 +367,9 @@ def recommend(candidates, locations, permit, arrival, destination=None,
         choice.rank = position
         choice.explanation = _explain(choice, permit,
                                       first if position == 2 else None)
-        choice.fit_reason = _fit_reason(choice, options, preference,
-                                        walking_known)
+    for choice, reason in zip(options, _fit_reasons(options, preference,
+                                                    walking_known)):
+        choice.fit_reason = reason
     _note_walking_sources(limitations, [("First choice", first),
                                         ("Backup", backup)], counts,
                           walk_limit)
@@ -483,52 +486,81 @@ def _note_walking_sources(limitations, picks, counts,
                            "mapped path and not recommended.")
 
 
-def _fit_reason(choice, options, preference, walking_known):
-    """Say in one short sentence why ``choice`` ranks where it does.
+def _fit_reasons(options, preference, walking_known):
+    """One short sentence per ranked option saying why it ranks where it does.
 
-    Compares it with the closest and the most open of the ranked ``options``,
-    on the factor the user prioritized. Percentages are shares of spaces open
-    in past surveys, never a chance of finding a space. At most
-    MAX_TEXT_LENGTH characters.
+    Each option is compared, on the factor the user prioritized, with the
+    closest and the most open of the ranked ``options``. Walking times are only
+    compared within the same kind (mapped path vs straight-line estimate), so a
+    routed walk is never called longer than an unchecked straight-line guess.
+    Best and tied-best use exact values, not rounded percents. Percentages are
+    shares of spaces open in past surveys, never a chance of finding a space.
+
+    Returns:
+        List of strings (at most MAX_TEXT_LENGTH characters), in option order.
     """
+    most_open = max(o.estimated_available_fraction for o in options)
+    open_ties = sum(o.estimated_available_fraction == most_open for o in options)
+    best_open = max(options, key=lambda o: (o.estimated_available_fraction,
+                                            o.location["location_id"]))
+    pools = {}
+    for option in options:
+        if option.estimated_walking_minutes is not None:
+            pools.setdefault(option.walking_source == WALK_ROUTED, []).append(option)
+    reasons = []
+    for choice in options:
+        text = _fit_reason(choice, pools, best_open, most_open, open_ties,
+                           len(options), preference, walking_known)
+        reasons.append(text if len(text) <= MAX_TEXT_LENGTH
+                       else text[:MAX_TEXT_LENGTH - 1] + "\u2026")
+    return reasons
+
+
+def _fit_reason(choice, pools, best_open, most_open, open_ties, count,
+                preference, walking_known):
+    """Fit sentence for one option; see _fit_reasons for the rules."""
     percent = _percent(choice)
     walk = choice.estimated_walking_minutes
-    if not walking_known or walk is None:
+    if not walking_known:
         return (f"Ranked on past availability only (about {percent}% of spaces "
-                "open); no walking time was available.")
-    walkable = [o for o in options if o.estimated_walking_minutes is not None]
-    closest = min(walkable, key=lambda o: (o.estimated_walking_minutes,
-                                           o.location["location_id"]))
-    most_open = max(options, key=lambda o: (o.estimated_available_fraction,
-                                            o.location["location_id"]))
+                "open); no destination was given.")
+    if walk is None:
+        return (f"No walking time for this location, so its walk scored 0; "
+                f"about {percent}% open in past surveys.")
+    pool = pools[choice.walking_source == WALK_ROUTED]
+    shortest = min(o.estimated_walking_minutes for o in pool)
+    closest = min(pool, key=lambda o: (o.estimated_walking_minutes,
+                                       o.location["location_id"]))
+    kind = "" if choice.walking_source == WALK_ROUTED else " (straight-line)"
+    is_most_open = choice.estimated_available_fraction == most_open
     if preference == SHORTER_WALK:
-        extra = walk - closest.estimated_walking_minutes
+        extra = walk - shortest
         if extra <= 0:
-            text = f"Shortest walk of your {len(options)} options ({walk} min)."
-        elif percent > _percent(closest):
-            text = (f"{extra:g} min longer walk than {_name(closest)}, but more "
-                    f"space in past surveys ({percent}% vs {_percent(closest)}% "
-                    "open).")
-        else:
-            text = (f"{extra:g} min longer walk than {_name(closest)}; ranked "
-                    "lower for a shorter walk.")
-    elif preference == MORE_AVAILABILITY:
-        top = _percent(most_open)
-        if percent >= top:
-            text = (f"Most space in past surveys of your {len(options)} "
-                    f"options (about {percent}% open).")
-        elif walk < most_open.estimated_walking_minutes:
-            text = (f"Less space than {_name(most_open)} ({percent}% vs {top}% "
-                    f"open), but a shorter walk ({walk:g} min).")
-        else:
-            text = (f"Less space than {_name(most_open)} ({percent}% vs {top}% "
-                    "open); ranked lower for more space.")
-    else:
-        shortest = closest.estimated_walking_minutes
-        text = (f"Balances a {walk:g}-min walk (shortest {shortest:g}) "
-                f"with about {percent}% open in past surveys (most "
-                f"{_percent(most_open)}%).")
-    return text if len(text) <= MAX_TEXT_LENGTH else text[:MAX_TEXT_LENGTH - 1] + "…"
+            ties = sum(o.estimated_walking_minutes == shortest for o in pool)
+            lead = "Tied for the shortest walk" if ties > 1 else "Shortest walk"
+            return f"{lead} of your {count} options ({walk:g} min{kind})."
+        if choice.estimated_available_fraction > closest.estimated_available_fraction:
+            return (f"{extra:g} min longer walk{kind} than {_name(closest)}, but "
+                    f"more space in past surveys ({percent}% vs "
+                    f"{_percent(closest)}% open).")
+        return (f"{extra:g} min longer walk{kind} than {_name(closest)}; ranked "
+                "lower for a shorter walk.")
+    if preference == MORE_AVAILABILITY:
+        if is_most_open:
+            lead = "Tied for the most space" if open_ties > 1 else "Most space"
+            return (f"{lead} in past surveys of your {count} options "
+                    f"(about {percent}% open).")
+        compared = f"Less space than {_name(best_open)} ({percent}% vs " \
+                   f"{_percent(best_open)}% open)"
+        other_walk = best_open.estimated_walking_minutes
+        same_kind = (best_open.walking_source == WALK_ROUTED) == (
+            choice.walking_source == WALK_ROUTED)
+        if other_walk is not None and same_kind and walk < other_walk:
+            return f"{compared}, but a shorter walk ({walk:g} min{kind})."
+        return f"{compared}; ranked lower for more space."
+    return (f"Balances a {walk:g}-min walk{kind} (shortest {shortest:g}) with "
+            f"about {percent}% open in past surveys (most "
+            f"{round(most_open * 100)}%).")
 
 
 def _percent(choice):

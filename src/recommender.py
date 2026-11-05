@@ -21,7 +21,7 @@ from .availability import AvailabilityEstimator
 from .location_registry import (DEFAULT_DATASET, DEFAULT_REGISTRY,
                                 current_groups, load_registry)
 from .parking_benchmarks import load_analysis_dataset
-from .ranking import recommend
+from .ranking import BALANCED, recommend
 
 
 class Recommender:
@@ -68,7 +68,7 @@ class Recommender:
                    estimator)
 
     def recommend(self, permit, arrival, destination=None, departure=None,
-                  walk_router=None, preference="balanced", max_walk_minutes=None):
+                  walk_router=None, preference=BALANCED, max_walk_minutes=None):
         """Rank parking for one request.
 
         Args:

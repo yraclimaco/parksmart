@@ -671,3 +671,66 @@ def test_unavailable_results_have_no_options():
 def test_schema_preferences_match_ranking():
     from src.api.schemas import Preference
     assert set(get_args(Preference)) == set(ranking.PREFERENCES)
+
+
+# Preference review fixes ------------------------------------------------------
+
+def test_more_space_with_a_location_lacking_coordinates_does_not_crash():
+    # Review case: the most open location has no walking time (no coordinates)
+    no_pin = _location("nopin", 32.8805)
+    no_pin["coordinates"] = None
+    result = recommend(_candidates([("near", "S", "", 0.5), ("nopin", "S", "", 0.95)]),
+                       [*LOCATIONS, no_pin], "S", WEEKDAY_MORNING, DESTINATION,
+                       preference=ranking.MORE_AVAILABILITY)
+    reasons = {o.location["location_id"]: o.fit_reason for o in result.options}
+    assert reasons["nopin"].startswith("No walking time for this location")
+    assert "Less space than NOPIN (50% vs 95% open); ranked lower" in reasons["near"]
+
+
+@pytest.mark.parametrize("limit", [5.9, 10.0, True, "10"])
+def test_walk_limit_must_be_a_whole_number(limit):
+    with pytest.raises(ValueError, match="whole number"):
+        ranking.check_settings(ranking.BALANCED, limit)
+
+
+def test_exact_ties_say_tied_and_rounding_never_makes_two_winners():
+    tied = _pick(ranking.MORE_AVAILABILITY,
+                 [("near", "S", "", 0.6), ("mid", "S", "", 0.6)])
+    assert all(o.fit_reason.startswith("Tied for the most space") for o in tied.options)
+    close = _pick(ranking.MORE_AVAILABILITY,
+                  [("near", "S", "", 0.534), ("mid", "S", "", 0.536)])
+    winners = [o for o in close.options if o.fit_reason.startswith("Most space")]
+    assert [o.location["location_id"] for o in winners] == ["mid"]
+
+
+def test_routed_walks_are_not_compared_with_straight_line_guesses():
+    # lot0 is routed (8 min); lot6 stays an unchecked straight-line estimate
+    lots, candidates = _row_of_lots(7)
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       preference=ranking.SHORTER_WALK,
+                       walk_router=_router({f"lot{i}": 8 + i for i in range(5)}))
+    routed = [o for o in result.options if o.walking_source == ranking.WALK_ROUTED]
+    unchecked = [o for o in result.options
+                 if o.walking_source == ranking.WALK_UNCHECKED]
+    assert routed and unchecked
+    assert routed[0].fit_reason.startswith("Shortest walk")
+    for option in unchecked:
+        assert "(straight-line)" in option.fit_reason
+        assert not any(o.location["name"] in option.fit_reason for o in routed)
+
+
+def test_website_priority_weights_match_the_backend():
+    text = Path("frontend/src/constants.ts").read_text()
+    block = text[text.index("export const PRIORITY_OPTIONS"):]
+    block = block[:block.index("];")]
+    website = {}
+    for value, availability, walking in re.findall(
+            r"value: '(\w+)'.*?availabilityWeight: ([\w.]+),\s*walkingWeight: ([\w.]+)",
+            block, re.S):
+        website[value] = (availability, walking)
+    assert set(website) == set(ranking.PREFERENCES)
+    for key, (availability, walking) in website.items():
+        if key == ranking.BALANCED:  # written as the shared SCORING_WEIGHTS
+            assert "SCORING_WEIGHTS" in availability
+            continue
+        assert (float(availability), float(walking)) == ranking.PREFERENCE_WEIGHTS[key]
