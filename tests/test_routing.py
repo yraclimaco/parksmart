@@ -59,7 +59,7 @@ class FakeProvider:
         self.calls = 0
         self.error = error
 
-    def route(self, mode, origin, destination):
+    def route(self, mode, origin, destination, deadline=None):
         self.calls += 1
         if self.error:
             raise self.error
@@ -349,7 +349,7 @@ def test_walk_router_gives_up_after_budget():
     release = threading.Event()
 
     class SlowProvider(FakeProvider):
-        def route(self, mode, origin, destination):
+        def route(self, mode, origin, destination, deadline=None):
             release.wait(5)
             return super().route(mode, origin, destination)
 
@@ -438,7 +438,7 @@ def test_throttle_is_used_for_every_osrm_request():
     acquired = []
 
     class CountingThrottle:
-        def acquire(self):
+        def acquire(self, deadline=None):
             acquired.append(1)
 
     provider = OsrmProvider(client=client_returning(200, osrm_body()),
@@ -459,10 +459,17 @@ def test_public_osrm_without_tls13_turns_routing_off_with_warning(monkeypatch, c
     assert provider_from_env({"ORS_API_KEY": "k"}) is not None
 
 
-def _tls_failing_client():
+def _ssl_error(reason, cls=ssl.SSLError):
+    """An SSL error like OpenSSL raises, with ``reason`` set."""
+    error = cls(1, f"[SSL: {reason}] {reason.lower()} (_ssl.c:1000)")
+    error.reason = reason
+    return error
+
+
+def _tls_failing_client(reason="TLSV1_ALERT_PROTOCOL_VERSION", cls=ssl.SSLError):
+    """httpx client whose every request fails with this SSL error."""
     def handler(request):
-        raise httpx.ConnectError("handshake failed") from ssl.SSLError(
-            "SSLV3_ALERT_HANDSHAKE_FAILURE")
+        raise httpx.ConnectError("TLS failed") from _ssl_error(reason, cls)
     return httpx.Client(transport=httpx.MockTransport(handler))
 
 
@@ -476,7 +483,7 @@ def test_tls_failure_turns_routing_off_once_instead_of_failing_repeatedly(caplog
     provider = OsrmProvider(client=_tls_failing_client(), throttle=None)
     calls = []
     original = provider.route
-    provider.route = lambda *args: calls.append(1) or original(*args)
+    provider.route = lambda *args, **kwargs: calls.append(1) or original(*args, **kwargs)
     service = RouteService(provider)
     with caplog.at_level(logging.WARNING, logger="src.routing"):
         for _ in range(3):
@@ -503,7 +510,7 @@ class SnappingProvider(FakeProvider):
         super().__init__()
         self.offset = offset
 
-    def route(self, mode, origin, destination):
+    def route(self, mode, origin, destination, deadline=None):
         self.calls += 1
         line = [[origin.longitude, origin.latitude + self.offset],
                 [destination.longitude, destination.latitude]]
@@ -556,3 +563,179 @@ def test_walk_router_does_not_warn_when_some_routes_work(caplog):
     with caplog.at_level(logging.WARNING, logger="src.routing"):
         route_walks(ORIGINS, DEST)
     assert "walking-route attempts failed" not in caplog.text
+
+
+# Second review: request deadlines, SSL classification, geometry, snapping ---
+
+import time  # noqa: E402
+
+from src.routing import (  # noqa: E402
+    ROUTE_REQUEST_BUDGET_SECONDS, DeadlineExceeded, tls_problem,
+)
+
+
+def test_throttle_refuses_slots_after_the_deadline_without_reserving_them():
+    clock = FakeClock()
+    throttle = RequestThrottle(1.0, max_wait=10, clock=clock, sleep=lambda s: None)
+    throttle.acquire()                       # slot at t
+    with pytest.raises(DeadlineExceeded):
+        throttle.acquire(deadline=clock.now + 0.5)  # next slot t+1 is too late
+    throttle.acquire()                       # the refused call reserved nothing
+    assert throttle._next_start == pytest.approx(clock.now + 2.0)
+
+
+def _timed_osrm(starts, interval):
+    """OSRM provider on a mock server that records when each request starts."""
+    def handler(request):
+        starts.append(time.monotonic())
+        return httpx.Response(200, text=json.dumps(osrm_body(line=[
+            [GILMAN.longitude, GILMAN.latitude], [GEISEL.longitude, GEISEL.latitude]])))
+    return OsrmProvider(client=httpx.Client(transport=httpx.MockTransport(handler)),
+                        throttle=RequestThrottle(interval))
+
+
+def test_queued_walking_routes_never_start_after_the_request_deadline():
+    # Reproduces the review: a 0.8 s budget with a 0.5 s throttle used to keep
+    # starting queued calls after the request had returned.
+    starts = []
+    provider = _timed_osrm(starts, interval=0.5)
+    service = RouteService(provider)
+    origins = {f"lot{i}": {"latitude": GILMAN.latitude + i * 0.0005,
+                           "longitude": GILMAN.longitude} for i in range(5)}
+    began = time.monotonic()
+    walk_router(service, budget_seconds=0.8, workers=3)(origins, DEST)
+    deadline = began + 0.8
+    time.sleep(1.5)  # give any straggler time to (wrongly) start
+    assert starts and all(start < deadline for start in starts)
+    assert len(starts) == 2  # slots at 0 and 0.5 s; 1.0 s is past the deadline
+    # Expired work reserved nothing: the next search's slot is right after the last
+    throttle = provider._throttles["walking"]
+    assert throttle._next_start <= max(starts) + 0.5 + 0.05
+
+
+def test_provider_timeout_is_capped_by_the_deadline():
+    seen = []
+    provider = OsrmProvider(client=client_returning(200, osrm_body(), seen), throttle=None)
+    provider.route("walking", GILMAN, GEISEL, deadline=time.monotonic() + 2.0)
+    assert seen[0].extensions["timeout"]["read"] <= 2.0
+    provider.route("walking", GILMAN, GEISEL)
+    assert seen[1].extensions["timeout"]["read"] == routing.PROVIDER_TIMEOUT_SECONDS
+
+
+def test_expired_deadline_sends_nothing():
+    seen = []
+    provider = OsrmProvider(client=client_returning(200, osrm_body(), seen),
+                            throttle=RequestThrottle(1.0))
+    with pytest.raises(DeadlineExceeded):
+        provider.route("walking", GILMAN, GEISEL, deadline=time.monotonic() - 0.1)
+    assert seen == []
+
+
+def test_routes_endpoint_gives_each_route_a_bounded_deadline(tmp_path):
+    deadlines = []
+
+    class DeadlineProvider(FakeProvider):
+        def route(self, mode, origin, destination, deadline=None):
+            deadlines.append(deadline - time.monotonic())
+            return super().route(mode, origin, destination)
+
+    with api(RouteService(DeadlineProvider()), tmp_path) as client:
+        assert client.post("/routes", json=trip()).status_code == 200
+    assert 0 < deadlines[0] <= ROUTE_REQUEST_BUDGET_SECONDS
+    # Within the website's 12 s route timeout (frontend/src/api/routes.ts)
+    assert ROUTE_REQUEST_BUDGET_SECONDS < 12
+
+
+def _flaky_client(first_error):
+    """Fails the first request with ``first_error``, then answers normally."""
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        if len(calls) == 1:
+            raise httpx.ConnectError("TLS failed") from first_error
+        return httpx.Response(200, text=json.dumps(osrm_body(line=[
+            [GILMAN.longitude, GILMAN.latitude], [GEISEL.longitude, GEISEL.latitude]])))
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+@pytest.mark.parametrize("error, wording", [
+    (_ssl_error("CERTIFICATE_VERIFY_FAILED", ssl.SSLCertVerificationError),
+     "certificate check failed"),
+    (_ssl_error("DECRYPTION_FAILED_OR_BAD_RECORD_MAC"), "TLS connection failed"),
+    (_ssl_error("SSLV3_ALERT_HANDSHAKE_FAILURE"), "TLS connection failed"),
+])
+def test_certificate_and_temporary_ssl_errors_keep_routing_on(error, wording, caplog):
+    service = RouteService(OsrmProvider(client=_flaky_client(error), throttle=None))
+    with caplog.at_level(logging.WARNING, logger="src.routing"):
+        with pytest.raises(RoutingError, match=wording) as raised:
+            service.route("walking", GILMAN, GEISEL)
+    assert not isinstance(raised.value, TlsUnsupported)
+    assert "Python" not in str(raised.value)  # no "upgrade Python" advice
+    assert service.enabled
+    assert "Routes turned off" not in caplog.text
+    # The next request works
+    assert service.route("walking", GILMAN, GEISEL).duration_seconds == 583.0
+
+
+def test_routes_endpoint_recovers_after_a_certificate_error(tmp_path):
+    error = _ssl_error("CERTIFICATE_VERIFY_FAILED", ssl.SSLCertVerificationError)
+    service = RouteService(OsrmProvider(client=_flaky_client(error), throttle=None))
+    with api(service, tmp_path) as client:
+        assert client.post("/routes", json=trip()).status_code == 502
+        assert client.post("/routes", json=trip()).status_code == 200
+
+
+def test_handshake_failure_only_counts_as_unsupported_without_tls13(monkeypatch):
+    failure = httpx.ConnectError("x")
+    failure.__cause__ = _ssl_error("SSLV3_ALERT_HANDSHAKE_FAILURE")
+    assert tls_problem(failure) == "other"
+    monkeypatch.setattr(routing, "tls13_supported", lambda: False)
+    assert tls_problem(failure) == "unsupported"
+
+
+def test_tls_problem_classes():
+    def wrapped(cause):
+        error = httpx.ConnectError("x")
+        error.__cause__ = cause
+        return error
+    assert tls_problem(httpx.ConnectError("no ssl")) is None
+    assert tls_problem(wrapped(_ssl_error("UNSUPPORTED_PROTOCOL"))) == "unsupported"
+    assert tls_problem(wrapped(_ssl_error(
+        "CERTIFICATE_VERIFY_FAILED", ssl.SSLCertVerificationError))) == "certificate"
+
+
+def test_certificates_are_always_verified():
+    # Providers never build clients with verification turned off
+    import inspect
+    assert "verify=False" not in inspect.getsource(routing)
+
+
+@pytest.mark.parametrize("line", [
+    [[GILMAN.longitude, GILMAN.latitude], [float("nan"), GEISEL.latitude]],
+    [[GILMAN.longitude, GILMAN.latitude], [GEISEL.longitude, float("inf")]],
+    [[GILMAN.longitude, GILMAN.latitude], [200.0, GEISEL.latitude]],
+    [[GILMAN.longitude, GILMAN.latitude], [GEISEL.longitude]],
+    [[GILMAN.longitude, GILMAN.latitude], "not a pair"],
+    [[GILMAN.longitude, GILMAN.latitude], [None, GEISEL.latitude]],
+])
+def test_malformed_or_non_finite_geometry_is_rejected(line):
+    body = json.dumps(osrm_body(line=line)).replace("NaN", "NaN")
+    provider = OsrmProvider(client=client_returning(200, body), throttle=None)
+    with pytest.raises(RoutingError, match="geometry"):
+        provider.route("walking", GILMAN, GEISEL)
+
+
+METERS_PER_DEGREE_LATITUDE = 111_195
+
+
+@pytest.mark.parametrize("mode", ["walking", "driving"])
+@pytest.mark.parametrize("margin, accepted", [(-5, True), (5, False)])
+def test_snapping_limit_boundary_for_each_mode(mode, margin, accepted):
+    offset = (MAX_SNAP_METERS[mode] + margin) / METERS_PER_DEGREE_LATITUDE
+    service = RouteService(SnappingProvider(offset=offset))
+    if accepted:
+        assert service.route(mode, GILMAN, GEISEL)
+    else:
+        with pytest.raises(NoRouteFound, match="nearest mapped"):
+            service.route(mode, GILMAN, GEISEL)

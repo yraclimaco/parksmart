@@ -524,8 +524,10 @@ Trips are capped (driving 150 km, walking 5 km straight line), successes are
 cached in memory, and provider errors are logged, not returned. Parking ends are
 registry building points, not verified entrances; responses say so. Never call
 travel times traffic-aware. FOSSGIS needs TLS 1.3; without it (macOS Xcode
-Python 3.9) startup logs a warning and turns routes off (503), and a run-time
-TLS failure turns them off once. Contract, configuration, public-server limits,
+Python 3.9) startup logs a warning and turns routes off (503). At run time only a
+confirmed unsupported-TLS error turns them off; certificate and other SSL errors
+are provider errors and routing stays on. Provider calls never start after their
+request's deadline (8 s per recommendation, 10 s per `/routes` call). Contract, configuration, public-server limits,
 deployment plan, Lambda handoff and pilot results: `docs/routing.md`. The
 website's "Fix the map" OSM link lives in ParkSmart-Website (synced);
 copyable JSON is in `docs/examples/backend/route_*.json` (validated by

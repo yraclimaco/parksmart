@@ -66,11 +66,16 @@ off; recommendations and `/health` keep working.
 Python 3.9 (LibreSSL 2.8.3) has none. At startup, if the public servers would be
 used and `ssl.HAS_TLSv1_3` is false, the backend logs one warning naming the SSL
 library and turns routes off (`/routes` answers 503; recommendations keep
-straight-line walks). If a handshake still fails at run time (`ssl.SSLError`
-under the request error), routes are turned off for that process after the first
-failure, with one warning, instead of failing every request. Fix: use Python
-3.11+ built with OpenSSL (`docs/backend.md`). OpenRouteService and a self-hosted
-`http://` OSRM do not need TLS 1.3.
+straight-line walks). At run time routes are turned off only for a **confirmed**
+unsupported setup: an OpenSSL protocol-version reason (`UNSUPPORTED_PROTOCOL`,
+`TLSV1_ALERT_PROTOCOL_VERSION`, ...), or a handshake failure on a Python without
+TLS 1.3 (`TLS_PROTOCOL_REASONS`, `tls_problem()` in `src/routing.py`). That logs
+one warning and recommends Python 3.11+ built with OpenSSL (`docs/backend.md`).
+Every other SSL failure is an ordinary provider error (502, or a straight-line
+walk) and routing stays on for the next request: a failed certificate check says
+"TLS certificate check failed", anything else "TLS connection failed".
+Certificates are always verified. OpenRouteService and a self-hosted `http://`
+OSRM do not need TLS 1.3.
 
 ## Public-server limits and deployment plan
 
@@ -89,6 +94,20 @@ sends one). ParkSmart respects that limit like this:
   calls, in an 8 s budget per request; see `docs/recommendations.md`). Typical
   searches use 5 to 7. Successful routes are cached, so repeat searches cost
   nothing.
+- **Request deadlines.** Each recommendation's walking routes share one
+  deadline (its 8 s budget); each `/routes` call gets 10 s
+  (`ROUTE_REQUEST_BUDGET_SECONDS`, under the website's 12 s route timeout). The
+  throttle refuses a slot at or after the deadline without reserving it, the
+  deadline is checked again right before the request is sent, and the provider
+  timeout is capped at the time left. Queued work that was never started is
+  cancelled. So once a request's budget is over, it starts no new provider
+  calls and takes no slots from later searches.
+- **Already-started calls.** A call already sent when the budget runs out is
+  not aborted; it ends by the deadline at the latest (its timeout was capped),
+  and a route that arrives is cached for the next search. On Lambda the
+  response returns at the budget and the instance freezes; a call still open is
+  dropped or finishes when the instance next thaws, and it can never start a new
+  request then, because the deadline check happens before sending.
 - **Not shared between processes.** The throttle and cache live in memory. Two
   uvicorn workers, or several concurrent Lambda instances, each have their own,
   so together they could exceed one request a second.
@@ -114,7 +133,7 @@ For Daira's backend deployment. Nothing here needs code changes.
 | Topic | What to set or know |
 | --- | --- |
 | Python | 3.12 runtime (has OpenSSL 3 and TLS 1.3). Package `requirements.txt` as usual; `httpx` is the only routing dependency. |
-| Function timeout | At least **30 s**. Each provider call times out after 8 s (`PROVIDER_TIMEOUT_SECONDS`); a recommendation spends at most 8 s on walking routes (`WALK_ROUTING_BUDGET_SECONDS`) on top of ranking; the website gives up after 20 s. API Gateway caps integrations at about 30 s (29 s for REST APIs). |
+| Function timeout | At least **30 s**. Routing work stops at each request's deadline (see "Request deadlines" above). Each provider call times out after 8 s (`PROVIDER_TIMEOUT_SECONDS`); a recommendation spends at most 8 s on walking routes (`WALK_ROUTING_BUDGET_SECONDS`) on top of ranking; the website gives up after 20 s. API Gateway caps integrations at about 30 s (29 s for REST APIs). |
 | Internet access | The function must reach `routing.openstreetmap.de` (or `api.openrouteservice.org`) over HTTPS. Outside a VPC this works by default. Inside a VPC it needs a NAT gateway, which costs money: do not enable it without funded DS3 access; use `PARKSMART_ROUTING_PROVIDER=none` instead. |
 | Concurrency | The FOSSGIS throttle is per instance. Set reserved concurrency to **1** while using the public servers, or switch provider (plan above). |
 | Cache | In memory only (1,024 routes). Lost on every cold start and not shared between instances, so a cold function routes again. Not a reason to add a database; it only saves provider calls. |
@@ -159,7 +178,7 @@ Response (200):
 | 400 | Trip longer than the mode allows in a straight line (driving 150 km, walking 5 km), so the endpoint cannot be used as a general router that spends the project's quota. |
 | 404 | The provider found no road or path near a point, or had to move a point more than 150 m (walking) or 250 m (driving) to reach one. |
 | 422 | Invalid JSON, mode or coordinates. |
-| 502 | Provider failed, timed out (8 s), was too busy (throttle slot over 6 s away) or answered unreadably. Details go to the server log, never to the client. |
+| 502 | Provider failed, timed out (8 s, or less when the 10 s request budget is nearly used), was too busy (throttle slot over 6 s away or after the request deadline), had a certificate or temporary TLS error, or answered unreadable or invalid geometry. Details go to the server log, never to the client. |
 | 503 | Routing is not configured on this server, or was turned off because this Python cannot use TLS 1.3 (see the server log). |
 
 Successful routes are cached in memory (1,024 trips, about 1 m coordinate

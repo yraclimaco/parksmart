@@ -2,6 +2,7 @@
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -11,8 +12,8 @@ from src.location_registry import DEFAULT_DATASET, DEFAULT_REGISTRY, load_regist
 from src.parking_benchmarks import load_analysis_dataset
 from src.recommender import Recommender
 from src.routing import (
-    PROVIDER_LABELS, METERS_PER_MILE, NoRouteFound, Point, RouteService, RoutingError,
-    provider_from_env, walk_router,
+    PROVIDER_LABELS, METERS_PER_MILE, ROUTE_REQUEST_BUDGET_SECONDS, NoRouteFound, Point,
+    RouteService, RoutingError, provider_from_env, walk_router,
 )
 
 from .locations import get_locations
@@ -196,9 +197,12 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
         origin = Point(request.origin.latitude, request.origin.longitude)
         destination = Point(request.destination.latitude, request.destination.longitude)
         try:
-            route = service.route(request.mode, origin, destination)
+            # Throttle wait plus provider call stay inside the website's route timeout
+            deadline = time.monotonic() + ROUTE_REQUEST_BUDGET_SECONDS
+            route = service.route(request.mode, origin, destination,
+                                  deadline=deadline)
         except RuntimeError as error:
-            # Routing was turned off after a TLS failure; the reason is logged once
+            # Routing was turned off after a confirmed unsupported-TLS failure
             raise HTTPException(503, ROUTING_OFF) from error
         except ValueError as error:
             raise HTTPException(400, str(error)) from error

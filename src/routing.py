@@ -82,6 +82,16 @@ FOSSGIS_MIN_INTERVAL_SECONDS = 1.0
 #: A request that would wait longer than this for its throttle slot fails
 #: fast (as a provider error) rather than queueing behind a burst.
 THROTTLE_MAX_WAIT_SECONDS = 6.0
+#: Total time POST /routes may spend on one route (throttle wait plus
+#: provider call), kept under the website's 12 s route timeout
+#: (ROUTE_TIMEOUT_MS in frontend/src/api/routes.ts).
+ROUTE_REQUEST_BUDGET_SECONDS = 10.0
+#: OpenSSL reasons that mean the client and server share no TLS version, so
+#: retrying cannot help. Certificate and other SSL failures are not here.
+TLS_PROTOCOL_REASONS = frozenset({
+    "UNSUPPORTED_PROTOCOL", "TLSV1_ALERT_PROTOCOL_VERSION",
+    "NO_PROTOCOLS_AVAILABLE", "WRONG_SSL_VERSION", "VERSION_TOO_LOW",
+})
 
 ORS_BASE_URL = "https://api.openrouteservice.org"
 ORS_PROFILES = {"driving": "driving-car", "walking": "foot-walking"}
@@ -112,7 +122,11 @@ class NoRouteFound(Exception):
 
 
 class TlsUnsupported(RoutingError):
-    """The TLS handshake failed: this Python cannot talk to the provider."""
+    """Confirmed: this Python and the provider share no TLS version."""
+
+
+class DeadlineExceeded(RoutingError):
+    """The request's time budget ran out before the provider was contacted."""
 
 
 class RequestThrottle:
@@ -136,15 +150,24 @@ class RequestThrottle:
         self._next_start = -math.inf
         self._lock = threading.Lock()
 
-    def acquire(self) -> None:
+    def acquire(self, deadline: float | None = None) -> None:
         """Wait for this caller's slot.
 
+        Args:
+            deadline: optional time (same clock) by which the request must
+                start; a slot at or after it is refused without being
+                reserved, so expired work never delays later searches.
         Raises:
+            DeadlineExceeded: the next slot is at or after ``deadline``.
             RoutingError: the slot is more than ``max_wait`` seconds away.
         """
         with self._lock:
             now = self._clock()
             start = max(now, self._next_start)
+            if deadline is not None and start >= deadline:
+                raise DeadlineExceeded(
+                    f"Next routing slot is {start - now:.1f} s away, after this "
+                    "request's deadline.")
             if start - now > self.max_wait:
                 raise RoutingError(
                     f"Routing provider is busy (next request slot in "
@@ -171,15 +194,71 @@ def tls13_supported() -> bool:
     return bool(getattr(ssl, "HAS_TLSv1_3", False))
 
 
-def _is_tls_error(error: BaseException) -> bool:
-    """True when an httpx error was caused by an SSL handshake failure."""
+def _ssl_cause(error: BaseException) -> ssl.SSLError | None:
+    """The ssl.SSLError behind an httpx error, if any."""
     seen = set()
     while error is not None and id(error) not in seen:
         if isinstance(error, ssl.SSLError):
-            return True
+            return error
         seen.add(id(error))
         error = error.__cause__ or error.__context__
-    return False
+    return None
+
+
+def tls_problem(error: BaseException) -> str | None:
+    """Classify an SSL failure behind a request error.
+
+    Returns:
+        ``"unsupported"`` only when the client and server confirmably share
+        no TLS version (a protocol-version reason, or a handshake failure on
+        a Python without TLS 1.3); ``"certificate"`` for a failed certificate
+        check; ``"other"`` for any other SSL error, which may be temporary;
+        None when SSL was not involved.
+    """
+    cause = _ssl_cause(error)
+    if cause is None:
+        return None
+    if isinstance(cause, ssl.SSLCertVerificationError):
+        return "certificate"
+    text = f"{getattr(cause, 'reason', '') or ''} {cause}".upper()
+    if any(reason in text for reason in TLS_PROTOCOL_REASONS):
+        return "unsupported"
+    if "HANDSHAKE_FAILURE" in text and not tls13_supported():
+        return "unsupported"
+    return "other"
+
+
+def _request_error(error: httpx.HTTPError, provider: str) -> RoutingError:
+    """Turn an httpx failure into the matching RoutingError, naming the cause.
+
+    Certificates are always verified; a certificate failure is reported as
+    such and never retried without verification.
+    """
+    problem = tls_problem(error)
+    if problem == "unsupported":
+        return TlsUnsupported(
+            f"{provider} and this Python's SSL library ({ssl.OPENSSL_VERSION}) "
+            f"share no TLS version: {error!r}")
+    if problem == "certificate":
+        return RoutingError(f"{provider} TLS certificate check failed: {error!r}")
+    if problem == "other":
+        return RoutingError(f"{provider} TLS connection failed: {error!r}")
+    return RoutingError(f"{provider} request failed: {error!r}")
+
+
+def _time_left(deadline: float | None) -> float:
+    """Provider timeout for a request: PROVIDER_TIMEOUT_SECONDS, capped by
+    the time left before ``deadline`` (a time.monotonic() value).
+
+    Raises:
+        DeadlineExceeded: the deadline has passed.
+    """
+    if deadline is None:
+        return PROVIDER_TIMEOUT_SECONDS
+    left = deadline - time.monotonic()
+    if left <= 0:
+        raise DeadlineExceeded("This request's routing time budget has run out.")
+    return min(PROVIDER_TIMEOUT_SECONDS, left)
 
 
 @dataclass(frozen=True)
@@ -215,8 +294,13 @@ class RoutingProvider(Protocol):
 
     name: str
 
-    def route(self, mode: TravelMode, origin: Point, destination: Point) -> Route:
-        """Return a route, or raise NoRouteFound or RoutingError."""
+    def route(self, mode: TravelMode, origin: Point, destination: Point,
+              deadline: float | None = None) -> Route:
+        """Return a route, or raise NoRouteFound or RoutingError.
+
+        ``deadline`` is an optional time.monotonic() value: no request may
+        start after it, and the provider timeout is capped by it.
+        """
         ...
 
 
@@ -231,13 +315,26 @@ def straight_line_km(origin: Point, destination: Point) -> float:
 
 
 def _check_geometry(raw) -> list[list[float]]:
-    """Validate a GeoJSON LineString coordinate list from a provider."""
+    """Validate a GeoJSON LineString coordinate list from a provider.
+
+    Every point must be a ``[longitude, latitude]`` pair of finite numbers in
+    range; anything else is a provider error, never drawn on the map.
+    """
     if not isinstance(raw, list) or len(raw) < 2:
         raise RoutingError("Route geometry is missing.")
-    try:
-        return [[float(pair[0]), float(pair[1])] for pair in raw]
-    except (TypeError, ValueError, IndexError) as error:
-        raise RoutingError("Route geometry is unreadable.") from error
+    line = []
+    for pair in raw:
+        if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+            raise RoutingError("Route geometry is unreadable.")
+        try:
+            longitude, latitude = float(pair[0]), float(pair[1])
+        except (TypeError, ValueError) as error:
+            raise RoutingError("Route geometry is unreadable.") from error
+        if not (math.isfinite(longitude) and math.isfinite(latitude)
+                and -180 <= longitude <= 180 and -90 <= latitude <= 90):
+            raise RoutingError("Route geometry has an invalid coordinate.")
+        line.append([longitude, latitude])
+    return line
 
 
 def _number(value, label: str) -> float:
@@ -270,7 +367,8 @@ class OpenRouteServiceProvider:
         self._client = client or httpx.Client(timeout=PROVIDER_TIMEOUT_SECONDS)
         self._base_url = base_url.rstrip("/")
 
-    def route(self, mode: TravelMode, origin: Point, destination: Point) -> Route:
+    def route(self, mode: TravelMode, origin: Point, destination: Point,
+              deadline: float | None = None) -> Route:
         """Request one route; see RoutingProvider.route."""
         url = f"{self._base_url}/v2/directions/{ORS_PROFILES[mode]}/geojson"
         body = {"coordinates": [[origin.longitude, origin.latitude],
@@ -279,12 +377,9 @@ class OpenRouteServiceProvider:
             response = self._client.post(url, json=body, headers={
                 "Authorization": self._key, "User-Agent": USER_AGENT,
                 "Accept": "application/geo+json, application/json",
-            })
+            }, timeout=_time_left(deadline))
         except httpx.HTTPError as error:
-            if _is_tls_error(error):
-                raise TlsUnsupported(
-                    f"TLS handshake with OpenRouteService failed: {error!r}") from error
-            raise RoutingError(f"OpenRouteService request failed: {error!r}") from error
+            raise _request_error(error, "OpenRouteService") from error
         if response.status_code == 404:
             # ORS answers 404 (error code 2010) when a point is far from any road
             raise NoRouteFound("No road or path was found near one of the points.")
@@ -341,25 +436,29 @@ class OsrmProvider:
         return any(urlsplit(url).hostname == FOSSGIS_HOST
                    for url in self._urls.values())
 
-    def route(self, mode: TravelMode, origin: Point, destination: Point) -> Route:
-        """Request one route; see RoutingProvider.route."""
+    def route(self, mode: TravelMode, origin: Point, destination: Point,
+              deadline: float | None = None) -> Route:
+        """Request one route; see RoutingProvider.route.
+
+        With a deadline, the throttle refuses slots at or after it, the
+        deadline is checked again right before the request is sent, and the
+        provider timeout never runs past it.
+        """
         points = (f"{origin.longitude},{origin.latitude};"
                   f"{destination.longitude},{destination.latitude}")
         url = f"{self._urls[mode]}/route/v1/driving/{points}"
+        _time_left(deadline)  # fail fast before taking a throttle slot
         if self._throttles[mode] is not None:
-            self._throttles[mode].acquire()
+            self._throttles[mode].acquire(deadline)
+        timeout = _time_left(deadline)  # recheck after waiting for the slot
         try:
             response = self._client.get(
                 url, params={"overview": "full", "geometries": "geojson"},
-                headers={"User-Agent": USER_AGENT},
+                headers={"User-Agent": USER_AGENT}, timeout=timeout,
             )
             data = response.json()
         except httpx.HTTPError as error:
-            if _is_tls_error(error):
-                raise TlsUnsupported(
-                    f"TLS handshake with {url.split('/route/')[0]} failed: "
-                    f"{error!r}") from error
-            raise RoutingError(f"OSRM request failed: {error!r}") from error
+            raise _request_error(error, f"OSRM ({urlsplit(url).hostname})") from error
         except ValueError as error:
             raise RoutingError(f"OSRM returned HTTP {response.status_code}.") from error
         code = data.get("code") if isinstance(data, dict) else None
@@ -403,13 +502,20 @@ class RouteService:
         """True when a provider is configured."""
         return self.provider is not None
 
-    def route(self, mode: TravelMode, origin: Point, destination: Point) -> Route:
+    def route(self, mode: TravelMode, origin: Point, destination: Point,
+              deadline: float | None = None) -> Route:
         """Return a (possibly cached) route.
+
+        Args:
+            mode, origin, destination: the trip.
+            deadline: optional time.monotonic() value; cached routes are
+                returned regardless, but no provider request starts after it.
 
         Raises:
             ValueError: unknown mode or a trip longer than MAX_TRIP_KM.
             RuntimeError: routing is not configured, or was turned off after
-                a TLS handshake failure (logged once as a warning).
+                a confirmed unsupported-TLS failure (logged once). Certificate
+                and other SSL errors are RoutingError and leave routing on.
             NoRouteFound: no route, or the provider moved a point more than
                 MAX_SNAP_METERS to reach a road or path.
             RoutingError: the provider failed (not cached).
@@ -435,7 +541,7 @@ class RouteService:
                 self._cache.move_to_end(key)
                 return self._cache[key]
         try:
-            route = provider.route(mode, origin, destination)
+            route = provider.route(mode, origin, destination, deadline=deadline)
         except TlsUnsupported as error:
             self._disable(f"Routes turned off: {error}. Use Python 3.11+ built "
                           "with OpenSSL (see docs/backend.md).")
@@ -558,11 +664,15 @@ def walk_router(service: RouteService,
         pool = ThreadPoolExecutor(max_workers=max(1, min(workers, len(origins))))
         futures = {
             pool.submit(service.route, "walking",
-                        Point(start["latitude"], start["longitude"]), end): location_id
+                        Point(start["latitude"], start["longitude"]), end,
+                        deadline=deadline): location_id
             for location_id, start in origins.items()
         }
         done, pending = wait(futures, timeout=remaining)
-        # Never block the request on stragglers; they finish (and are cached) later
+        # Never block the request on stragglers. Queued ones are cancelled; a
+        # worker already waiting for a throttle slot rechecks the deadline and
+        # gives up, and an in-flight call times out by the deadline (its route
+        # is still cached if it arrives in time).
         pool.shutdown(wait=False, cancel_futures=True)
         minutes, problems = {}, []
         for future in done:
