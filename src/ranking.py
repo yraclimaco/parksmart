@@ -21,12 +21,33 @@ from .ucsd_calendar import VERIFIED_END, VERIFIED_START, is_verified
 
 LOGGER = logging.getLogger(__name__)
 
-# Same weights as the website prototype (frontend/src/constants.ts).
+# Same weights as the website prototype (frontend/src/constants.ts). These are
+# the "balanced" preference and the default.
 AVAILABILITY_WEIGHT = 0.65
 WALKING_WEIGHT = 0.35
 # Walking score falls linearly from 1 at 0 min to 0 at this many minutes;
 # locations farther than this are not recommended.
 MAX_WALK_MINUTES = 20
+# What the user cares about most (Yra's review of the website, 2026-11-05).
+# Each maps to (availability weight, walking weight). "balanced" keeps the
+# original prototype weights; the other two are starting points to revisit
+# with the experts, not tuned values.
+SHORTER_WALK = "shorter_walk"
+BALANCED = "balanced"
+MORE_AVAILABILITY = "more_availability"
+PREFERENCE_WEIGHTS = {
+    SHORTER_WALK: (0.20, 0.80),
+    BALANCED: (AVAILABILITY_WEIGHT, WALKING_WEIGHT),
+    MORE_AVAILABILITY: (0.85, 0.15),
+}
+PREFERENCES = tuple(PREFERENCE_WEIGHTS)
+PREFERENCE_LABELS = {SHORTER_WALK: "shorter walk first", BALANCED: "balanced",
+                     MORE_AVAILABILITY: "more space first"}
+# A user's own walking limit may be shorter than MAX_WALK_MINUTES, never
+# longer, and not below the shortest straight-line estimate.
+MIN_WALK_LIMIT_MINUTES = 3
+# Ranked locations returned for map markers and detail cards, best first.
+MAX_RANKED_OPTIONS = 12
 # Straight-line walking estimate, matching the website: about 13 min per km
 # plus a 2-minute buffer, never below 3 minutes. Not a routed path.
 WALK_MINUTES_PER_KM = 13
@@ -100,14 +121,20 @@ class Choice:
     estimate_survey_time: Optional[str] = None
     estimate_note: Optional[str] = None
     walking_source: str = WALK_STRAIGHT_LINE
+    fit_reason: Optional[str] = None
+    rank: Optional[int] = None
 
     def to_api(self):
         """Return fields matching src.api.schemas.ParkingChoice."""
+        walking_known = self.estimated_walking_minutes is not None
         return {
             "location": self.location,
             "estimated_available_fraction": self.estimated_available_fraction,
             "estimated_walking_minutes": self.estimated_walking_minutes,
+            "walking_time_source": self.walking_source if walking_known else None,
             "explanation": self.explanation,
+            "fit_reason": self.fit_reason,
+            "rank": self.rank,
         }
 
 
@@ -127,13 +154,19 @@ class RecommendationResult:
     explanation: str
     limitations: List[str]
     counts: dict = field(default_factory=dict)
+    options: List[Choice] = field(default_factory=list)
+    preference: str = BALANCED
+    max_walk_minutes: int = MAX_WALK_MINUTES
 
     def to_api(self):
-        """Return status, choices, explanation and limitations for the API."""
+        """Return status, choices, ranked options, settings and notes for the API."""
         return {
             "status": self.status,
+            "preference": self.preference,
+            "max_walk_minutes": self.max_walk_minutes,
             "first_choice": self.first_choice and self.first_choice.to_api(),
             "backup_choice": self.backup_choice and self.backup_choice.to_api(),
+            "options": [choice.to_api() for choice in self.options],
             "explanation": self.explanation,
             "limitations": self.limitations,
         }
@@ -159,7 +192,7 @@ def walking_minutes(origin, destination):
                + WALK_BUFFER_MINUTES)
 
 
-def score(fraction, walk_minutes, walking_known):
+def score(fraction, walk_minutes, walking_known, preference=BALANCED):
     """Score one option from 0 to 1.
 
     Args:
@@ -167,18 +200,45 @@ def score(fraction, walk_minutes, walking_known):
         walk_minutes: estimated minutes, or None.
         walking_known: whether any candidate has a walking estimate. If none
             do, availability alone decides; if some do, unknown walks score 0.
+        preference: key of PREFERENCE_WEIGHTS.
     Returns:
-        Weighted score.
+        Weighted score. The walking part always scales against
+        MAX_WALK_MINUTES, so scores stay comparable across walking limits.
     """
     if not walking_known:
         return fraction
+    availability_weight, walking_weight = PREFERENCE_WEIGHTS[preference]
     walk_score = 0.0 if walk_minutes is None else max(
         0.0, min(1.0, (MAX_WALK_MINUTES - walk_minutes) / MAX_WALK_MINUTES))
-    return AVAILABILITY_WEIGHT * fraction + WALKING_WEIGHT * walk_score
+    return availability_weight * fraction + walking_weight * walk_score
+
+
+def check_settings(preference, max_walk_minutes):
+    """Validate a preference and walking limit.
+
+    Args:
+        preference: one of PREFERENCES.
+        max_walk_minutes: None for MAX_WALK_MINUTES, or whole minutes from
+            MIN_WALK_LIMIT_MINUTES to MAX_WALK_MINUTES.
+    Returns:
+        The walking limit to apply, in minutes.
+    Raises:
+        ValueError: unknown preference or a limit out of range.
+    """
+    if preference not in PREFERENCE_WEIGHTS:
+        raise ValueError(f"Unknown preference {preference!r}; use "
+                         f"{', '.join(PREFERENCES)}.")
+    if max_walk_minutes is None:
+        return MAX_WALK_MINUTES
+    if not MIN_WALK_LIMIT_MINUTES <= max_walk_minutes <= MAX_WALK_MINUTES:
+        raise ValueError(f"max_walk_minutes must be {MIN_WALK_LIMIT_MINUTES} "
+                         f"to {MAX_WALK_MINUTES}.")
+    return int(max_walk_minutes)
 
 
 def recommend(candidates, locations, permit, arrival, destination=None,
-              departure=None, walk_router=None):
+              departure=None, walk_router=None, preference=BALANCED,
+              max_walk_minutes=None):
     """Pick a first choice and a distinct backup for one request.
 
     Args:
@@ -202,11 +262,17 @@ def recommend(candidates, locations, permit, arrival, destination=None,
             MAX_WALK_MINUTES are dropped and the rest are rescored. A pick
             whose route failed or was not reached keeps its straight-line
             estimate and is labeled unchecked. See src.routing.walk_router.
+        preference: PREFERENCES key setting the walking/availability weights.
+        max_walk_minutes: optional personal walking limit (see
+            check_settings); locations over it are not recommended.
     Returns:
-        RecommendationResult.
+        RecommendationResult; ``options`` lists up to MAX_RANKED_OPTIONS
+        ranked locations, each with a ``fit_reason``.
     Raises:
-        ValueError: missing columns, unknown permit, or invalid times.
+        ValueError: missing columns, unknown permit or preference, invalid
+            walking limit, or invalid times.
     """
+    walk_limit = check_settings(preference, max_walk_minutes)
     missing = set(REQUIRED_COLUMNS) - set(candidates.columns)
     if missing:
         raise ValueError(f"Missing candidate columns: {sorted(missing)}")
@@ -236,7 +302,7 @@ def recommend(candidates, locations, permit, arrival, destination=None,
             counts[key] += 1
             continue
         walk = walks[row.location_id]
-        if walk is not None and walk > MAX_WALK_MINUTES:
+        if walk is not None and walk > walk_limit:
             counts["too_far"] += 1
             continue
         fraction = row.estimated_available_fraction
@@ -256,7 +322,7 @@ def recommend(candidates, locations, permit, arrival, destination=None,
             estimate_basis=getattr(row, "estimate_basis", None),
             estimated_walking_minutes=walk,
             walking_is_approximate=location["coordinate_status"] != "verified",
-            score=score(fraction, walk, walking_known),
+            score=score(fraction, walk, walking_known, preference),
             eligibility_reason=result.reason,
             allowed_until=result.allowed_until,
             estimate_survey_time=_optional(row, "estimate_survey_time"),
@@ -269,51 +335,64 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     ranked = sorted(best.values(), key=_sort_key)
     if walk_router is not None and walking_known and ranked:
         ranked = _apply_routed_walks(ranked, registry, destination, walk_router,
-                                     counts)
+                                     counts, walk_limit, preference)
     limitations = _limitations(counts, walking_known, arrival, departure)
+    if walk_limit != MAX_WALK_MINUTES:
+        limitations.append(f"Only parking within your {walk_limit}-minute "
+                           "walking limit was considered.")
+    settings = {"preference": preference, "max_walk_minutes": walk_limit}
 
     if not ranked:
         # Describe walking sources and locations dropped by routed walk (no
         # picks); only blame missing estimates when nothing was even scored
-        _note_walking_sources(limitations, [], counts)
+        _note_walking_sources(limitations, [], counts, walk_limit)
         if counts["missing_estimate"] and not counts["scored"]:
             return RecommendationResult(
                 PREDICTIONS_UNAVAILABLE, None, None,
                 "Your permit can use some nearby parking, but no availability "
-                "estimate exists for it at this time.", limitations, counts)
+                "estimate exists for it at this time.", limitations, counts,
+                **settings)
         return RecommendationResult(
             NO_SUITABLE_LOCATION, None, None,
             "No supported parking matched your permit, arrival time and "
             "walking limit. This does not mean parking is full.",
-            limitations, counts)
+            limitations, counts, **settings)
 
-    first = ranked[0]
-    backup = ranked[1] if len(ranked) > 1 else None
-    first.explanation = _explain(first, permit, None)
-    if backup:
-        backup.explanation = _explain(backup, permit, first)
+    options = ranked[:MAX_RANKED_OPTIONS]
+    first = options[0]
+    backup = options[1] if len(options) > 1 else None
+    for position, choice in enumerate(options, start=1):
+        choice.rank = position
+        choice.explanation = _explain(choice, permit,
+                                      first if position == 2 else None)
+        choice.fit_reason = _fit_reason(choice, options, preference,
+                                        walking_known)
     _note_walking_sources(limitations, [("First choice", first),
-                                        ("Backup", backup)], counts)
+                                        ("Backup", backup)], counts,
+                          walk_limit)
     for label, choice in (("First choice", first), ("Backup", backup)):
         if choice is not None and choice.estimate_note:
             limitations.append(f"{label} estimate is limited: "
                                f"{choice.estimate_note}.")
     summary = (f"{first.location['name']} scored highest on expected "
-               "availability and walking distance.")
+               "availability and walking distance "
+               f"({PREFERENCE_LABELS[preference]}).")
     if backup is None:
         summary += " No second suitable location was found."
     return RecommendationResult(READY, first, backup, summary, limitations,
-                                counts)
+                                counts, options, **settings)
 
 
-def _apply_routed_walks(ranked, registry, destination, walk_router, counts):
+def _apply_routed_walks(ranked, registry, destination, walk_router, counts,
+                        walk_limit=MAX_WALK_MINUTES, preference=BALANCED):
     """Replace straight-line walks with routed ones until both picks are checked.
 
     The first round routes the top ROUTED_WALK_CANDIDATES locations; each later
     round routes whichever of the current first choice and backup are not yet
     checked, until both are checked, MAX_ROUTING_ROUNDS is reached or the router
     (which owns the request's time budget) returns nothing more. Locations whose
-    route is over MAX_WALK_MINUTES are removed and routed ones are rescored.
+    route is over ``walk_limit`` are removed and routed ones are rescored with
+    the ``preference`` weights.
     Every other location keeps its straight-line estimate, labeled
     WALK_UNCHECKED.
     """
@@ -337,14 +416,14 @@ def _apply_routed_walks(ranked, registry, destination, walk_router, counts):
                 # Counts only locations actually sent to the router
                 if registry[location_id]["coordinates"]:
                     counts["route_unavailable"] += 1
-            elif routed > MAX_WALK_MINUTES:
+            elif routed > walk_limit:
                 counts["too_far_routed"] += 1
                 dropped.add(location_id)
             else:
                 choice.estimated_walking_minutes = routed
                 choice.walking_source = WALK_ROUTED
                 choice.score = score(choice.estimated_available_fraction, routed,
-                                     True)
+                                     True, preference)
         ranked = sorted((choice for choice in ranked
                          if choice.location["location_id"] not in dropped),
                         key=_sort_key)
@@ -369,13 +448,15 @@ def _route_walks(batch, registry, destination, walk_router):
         return {}
 
 
-def _note_walking_sources(limitations, picks, counts):
+def _note_walking_sources(limitations, picks, counts,
+                          walk_limit=MAX_WALK_MINUTES):
     """Describe where the picks' walking times came from.
 
     Args:
         limitations: list to update in place.
         picks: (label, Choice or None) pairs for the first choice and backup.
         counts: ranking counts (``too_far_routed``).
+        walk_limit: walking limit applied to this request, in minutes.
     """
     sources = {choice.walking_source for _, choice in picks if choice is not None
                and choice.estimated_walking_minutes is not None}
@@ -392,14 +473,72 @@ def _note_walking_sources(limitations, picks, counts):
         if choice is not None and choice.walking_source == WALK_UNCHECKED:
             limitations.append(
                 f"{label} walking time is a straight-line estimate; its mapped "
-                f"path was not checked against the {MAX_WALK_MINUTES}-minute "
+                f"path was not checked against the {walk_limit}-minute "
                 "limit.")
     if counts["too_far_routed"]:
         count = counts["too_far_routed"]
         subject = ("1 parking location was" if count == 1
                    else f"{count} parking locations were")
-        limitations.append(f"{subject} over a {MAX_WALK_MINUTES}-minute walk by "
+        limitations.append(f"{subject} over a {walk_limit}-minute walk by "
                            "mapped path and not recommended.")
+
+
+def _fit_reason(choice, options, preference, walking_known):
+    """Say in one short sentence why ``choice`` ranks where it does.
+
+    Compares it with the closest and the most open of the ranked ``options``,
+    on the factor the user prioritized. Percentages are shares of spaces open
+    in past surveys, never a chance of finding a space. At most
+    MAX_TEXT_LENGTH characters.
+    """
+    percent = _percent(choice)
+    walk = choice.estimated_walking_minutes
+    if not walking_known or walk is None:
+        return (f"Ranked on past availability only (about {percent}% of spaces "
+                "open); no walking time was available.")
+    walkable = [o for o in options if o.estimated_walking_minutes is not None]
+    closest = min(walkable, key=lambda o: (o.estimated_walking_minutes,
+                                           o.location["location_id"]))
+    most_open = max(options, key=lambda o: (o.estimated_available_fraction,
+                                            o.location["location_id"]))
+    if preference == SHORTER_WALK:
+        extra = walk - closest.estimated_walking_minutes
+        if extra <= 0:
+            text = f"Shortest walk of your {len(options)} options ({walk} min)."
+        elif percent > _percent(closest):
+            text = (f"{extra:g} min longer walk than {_name(closest)}, but more "
+                    f"space in past surveys ({percent}% vs {_percent(closest)}% "
+                    "open).")
+        else:
+            text = (f"{extra:g} min longer walk than {_name(closest)}; ranked "
+                    "lower for a shorter walk.")
+    elif preference == MORE_AVAILABILITY:
+        top = _percent(most_open)
+        if percent >= top:
+            text = (f"Most space in past surveys of your {len(options)} "
+                    f"options (about {percent}% open).")
+        elif walk < most_open.estimated_walking_minutes:
+            text = (f"Less space than {_name(most_open)} ({percent}% vs {top}% "
+                    f"open), but a shorter walk ({walk:g} min).")
+        else:
+            text = (f"Less space than {_name(most_open)} ({percent}% vs {top}% "
+                    "open); ranked lower for more space.")
+    else:
+        shortest = closest.estimated_walking_minutes
+        text = (f"Balances a {walk:g}-min walk (shortest {shortest:g}) "
+                f"with about {percent}% open in past surveys (most "
+                f"{_percent(most_open)}%).")
+    return text if len(text) <= MAX_TEXT_LENGTH else text[:MAX_TEXT_LENGTH - 1] + "…"
+
+
+def _percent(choice):
+    """Whole-number percent of spaces open in past surveys."""
+    return round(choice.estimated_available_fraction * 100)
+
+
+def _name(choice):
+    """Location display name for fit reasons."""
+    return choice.location["name"]
 
 
 def _sort_key(choice):

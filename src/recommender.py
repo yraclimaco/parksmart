@@ -68,7 +68,7 @@ class Recommender:
                    estimator)
 
     def recommend(self, permit, arrival, destination=None, departure=None,
-                  walk_router=None):
+                  walk_router=None, preference="balanced", max_walk_minutes=None):
         """Rank parking for one request.
 
         Args:
@@ -79,16 +79,21 @@ class Recommender:
             walk_router: optional routed-walking callable for the top
                 choices (``src.routing.walk_router``); None keeps
                 straight-line walking estimates.
+            preference: ``shorter_walk``, ``balanced`` or
+                ``more_availability`` (``src.ranking.PREFERENCES``).
+            max_walk_minutes: optional personal walking limit.
         Returns:
             ``src.ranking.RecommendationResult``; ``to_api()`` gives the
             response fields.
         Raises:
-            ValueError: unknown permit or invalid times.
+            ValueError: unknown permit or preference, an invalid walking
+                limit, or invalid times.
         """
         groups = self.estimator.attach(self.candidates, arrival)
         return recommend(groups, self.locations, permit, arrival,
                          destination=destination, departure=departure,
-                         walk_router=walk_router)
+                         walk_router=walk_router, preference=preference,
+                         max_walk_minutes=max_walk_minutes)
 
 
 def main(argv=None):

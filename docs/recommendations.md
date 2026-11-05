@@ -106,23 +106,34 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    (`current_groups`). Older groups (e.g. 2018 level-by-level splits) may not
    match today's allocation.
 2. **Filter:** registry status `supported`, eligibility `allowed`, walk at most
-   20 minutes, and an availability estimate present. Skipped counts are in
-   `result.counts` for debugging and notebooks (not part of the API response):
-   `not_supported`, `not_allowed`, `needs_verification`, `too_far`,
-   `missing_estimate`, `scored`, and with routing `too_far_routed` and
-   `route_unavailable` (locations sent to the router that got no route).
-   Missing estimates are never filled in.
+   20 minutes (or the user's `max_walk_minutes`, 3–20), and an availability
+   estimate present. Skipped counts are in `result.counts` for debugging and
+   notebooks (not part of the API response): `not_supported`, `not_allowed`,
+   `needs_verification`, `too_far`, `missing_estimate`, `scored`, and with
+   routing `too_far_routed` and `route_unavailable` (locations sent to the
+   router that got no route). Missing estimates are never filled in.
 3. **Walking time:** straight-line distance × 13 min/km + 2 min, minimum
    3 min — the website's formula. It is an approximation, not a routed path.
    Unknown when the destination has no coordinates. Pins marked approximate
    (Gliderport) are labeled in the explanation.
 4. **Score** (0-1), same weights as the website:
-   `0.65 × availability + 0.35 × walk score`, where walk score is
-   `(20 − minutes) / 20` clipped to 0-1. With no destination, availability alone
+   `a × availability + w × walk score`, where walk score is
+   `(20 − minutes) / 20` clipped to 0-1 and `(a, w)` comes from the request's
+   `preference` (`PREFERENCE_WEIGHTS`): `balanced` (default) 0.65/0.35, the
+   original prototype weights; `shorter_walk` 0.20/0.80; `more_availability`
+   0.85/0.15. The walk score always scales against 20 minutes, even with a
+   shorter personal limit. With no destination, availability alone
    is the score. If only some candidates have walking times, unknown walks
    score 0.
 5. **One group per location:** the location's best-scoring eligible group
    represents it. First choice and backup are always different locations.
+   The response's `options` lists up to 12 ranked locations (first choice and
+   backup included) with `rank`, `walking_time_source` and a `fit_reason`, so
+   the website can show any ranked pin's estimate. A fit reason compares the
+   location with the closest and the most open options on the chosen
+   priority (for example "7 min longer walk than Pangea Parking Structure, but
+   more space in past surveys (53% vs 9% open)"). Percentages are shares of
+   spaces open in past surveys, never a chance of finding a space.
    **Routed walks (Issue #25):** when the backend has routing configured, the
    top 5 locations by this straight-line score get mapped walking routes
    (`walk_router` in `src/routing.py`, in parallel, through the shared FOSSGIS
@@ -178,4 +189,7 @@ dropped; the limitation always has the full note.
 - Permit rules are simplified from official pages and can be overridden by
   posted signs, closures and events.
 - Weights (65/35) and the 20-minute limit are product choices carried over
-  from the prototype, not tuned against user data.
+  from the prototype, not tuned against user data. The `shorter_walk`
+  (20/80) and `more_availability` (85/15) weights were added after Yra's
+  website review (2026-11-05) as starting points; how to present the
+  tradeoff is being reviewed with the experts.

@@ -11,10 +11,13 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.eligibility import PERMIT_TYPES
+from src.ranking import BALANCED, MAX_WALK_MINUTES, MIN_WALK_LIMIT_MINUTES
 
 UCSD_TIME_ZONE = "America/Los_Angeles"
 LOCAL_ZONE = ZoneInfo(UCSD_TIME_ZONE)
 Text = Annotated[str, Field(min_length=1, max_length=200)]
+#: What the user prioritizes; must match src.ranking.PREFERENCE_WEIGHTS.
+Preference = Literal["shorter_walk", "balanced", "more_availability"]
 
 
 class APIModel(BaseModel):
@@ -92,6 +95,16 @@ class RecommendationRequest(APIModel):
     starting_location: Optional[PlaceInput] = Field(
         default=None, description="Accepted but not used for routing or ranking yet."
     )
+    preference: Preference = Field(
+        default=BALANCED,
+        description="shorter_walk, balanced (default; the original weights) or "
+        "more_availability: how walking time and past availability are weighed.",
+    )
+    max_walk_minutes: Optional[int] = Field(
+        default=None, ge=MIN_WALK_LIMIT_MINUTES, le=MAX_WALK_MINUTES,
+        description=f"Personal walking limit in minutes; null means the "
+        f"{MAX_WALK_MINUTES}-minute default.",
+    )
 
     @field_validator("permit_type")
     @classmethod
@@ -143,7 +156,18 @@ class ParkingChoice(APIModel):
     estimated_walking_minutes: Optional[float] = Field(
         default=None, ge=0, allow_inf_nan=False
     )
+    walking_time_source: Optional[Literal[
+        "routed", "straight_line", "straight_line_unchecked"]] = Field(
+        default=None, description="routed: mapped walking path. straight_line: "
+        "estimate (routing off). straight_line_unchecked: routing was on but "
+        "this path was not checked. Null when there is no walking time."
+    )
     explanation: Text
+    fit_reason: Optional[Text] = Field(
+        default=None, description="Why this location ranks where it does for "
+        "the chosen preference. Percentages are past survey shares, not a chance."
+    )
+    rank: Optional[int] = Field(default=None, ge=1)
 
 
 class RecommendationResponse(APIModel):
@@ -157,8 +181,13 @@ class RecommendationResponse(APIModel):
     is_example: bool
     arrival_time: datetime
     time_zone: Literal["America/Los_Angeles"] = UCSD_TIME_ZONE
+    preference: Preference = BALANCED
+    max_walk_minutes: int = Field(default=MAX_WALK_MINUTES, ge=1)
     first_choice: Optional[ParkingChoice] = None
     backup_choice: Optional[ParkingChoice] = None
+    options: List[ParkingChoice] = Field(
+        default_factory=list, description="Ranked locations, best first, "
+        "including the first choice and backup; empty unless ready.")
     explanation: Text
     limitations: List[Text]
 
@@ -174,6 +203,8 @@ class RecommendationResponse(APIModel):
             self.first_choice is not None or self.backup_choice is not None
         ):
             raise ValueError("Unavailable results cannot contain parking choices")
+        if self.status != "ready" and self.options:
+            raise ValueError("Unavailable results cannot contain ranked options")
         if self.backup_choice and (
             self.backup_choice.location.location_id
             == self.first_choice.location.location_id
