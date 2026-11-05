@@ -34,8 +34,10 @@ registry verification rules. `GET /locations` omits restricted, unresolved and
 excluded entries and explains this in its limitations. Catalog support is not
 proof that the location is currently open or eligible for a user's permit.
 
-Destination coordinates determine straight-line walking estimates. Destination
-name is display-only. Starting location is accepted but unused, explicitly
+Destination coordinates determine walking times: mapped walking routes for the
+top locations when routing is available (Issue #25), otherwise straight-line
+estimates; the explanation and limitations say which. Destination
+name is display-only. Starting location is accepted but unused for ranking, explicitly
 reported in response limitations when supplied. Eligibility checks arrival only.
 Historical fallback basis, outside-survey-hours requests and calendar limitations
 come from the reusable recommender, not endpoint guesses.

@@ -21,8 +21,9 @@ recommendations use the existing pipeline dataset and baseline, loaded once at
 startup. Missing resources return explicit 503s; no sample prediction fallback
 is used. The API never builds the dataset or runs notebooks per request.
 
-`POST /routes` returns driving and walking routes when a routing provider is
-configured; see [routes](docs/routing.md). Website hosting on AWS Amplify is
+`POST /routes` returns driving and walking routes (free public OSRM servers by
+default, no key needed), and recommendations use mapped walking routes for the
+top picks; see [routes](docs/routing.md). Website hosting on AWS Amplify is
 prepared in [frontend deployment](docs/frontend_deployment.md).
 
 See [backend setup, learning walkthrough, and interface contract](docs/backend.md)
