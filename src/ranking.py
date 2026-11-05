@@ -273,8 +273,8 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     limitations = _limitations(counts, walking_known, arrival, departure)
 
     if not ranked:
-        # Mention locations dropped for their routed walk, and only blame
-        # missing estimates when no group with an estimate was even scored
+        # Describe walking sources and locations dropped by routed walk (no
+        # picks); only blame missing estimates when nothing was even scored
         _note_walking_sources(limitations, [], counts)
         if counts["missing_estimate"] and not counts["scored"]:
             return RecommendationResult(
@@ -379,14 +379,15 @@ def _note_walking_sources(limitations, picks, counts):
     """
     sources = {choice.walking_source for _, choice in picks if choice is not None
                and choice.estimated_walking_minutes is not None}
-    if STRAIGHT_LINE_NOTE in limitations and (
-            not any(choice for _, choice in picks) and counts["too_far_routed"]):
-        # Nothing to recommend, but some walks were checked by mapped path
-        limitations[limitations.index(STRAIGHT_LINE_NOTE)] = MIXED_ROUTED_NOTE
-    if WALK_ROUTED in sources and STRAIGHT_LINE_NOTE in limitations:
+    # Mapped paths were used if a pick was routed or a location was dropped by
+    # its routed walk; straight-line times remain if a pick has one, or (with
+    # no picks) if some location was filtered by its straight-line estimate.
+    routed_any = WALK_ROUTED in sources or counts["too_far_routed"] > 0
+    straight_any = (bool(sources - {WALK_ROUTED}) if sources
+                    else counts["too_far"] > 0)
+    if routed_any and STRAIGHT_LINE_NOTE in limitations:
         index = limitations.index(STRAIGHT_LINE_NOTE)
-        limitations[index] = (ROUTED_NOTE if sources == {WALK_ROUTED}
-                              else MIXED_ROUTED_NOTE)
+        limitations[index] = MIXED_ROUTED_NOTE if straight_any else ROUTED_NOTE
     for label, choice in picks:
         if choice is not None and choice.walking_source == WALK_UNCHECKED:
             limitations.append(

@@ -86,6 +86,12 @@ def _browser_origin(origin: str, raw: str) -> str:
     host = parts.hostname.lower()
     if ":" in host:  # IPv6 literal
         host = f"[{host}]"
+    else:
+        try:  # browsers send internationalized hosts in punycode
+            host = host.encode("idna").decode("ascii")
+        except UnicodeError as error:
+            raise ValueError(
+                f"{CORS_ORIGINS_ENV} entry has an invalid host: {raw!r}") from error
     keep_port = port is not None and port != DEFAULT_PORTS[scheme]
     return f"{scheme}://{host}" + (f":{port}" if keep_port else "")
 
@@ -237,7 +243,8 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             route = service.route(request.mode, origin, destination,
                                   deadline=deadline,
                                   gate=(application.state.routes_gate
-                                        if service.rate_limited else None))
+                                        if service.rate_limited_for(request.mode)
+                                        else None))
         except RuntimeError as error:
             # Routing was turned off after a confirmed unsupported-TLS failure
             raise HTTPException(503, ROUTING_OFF) from error

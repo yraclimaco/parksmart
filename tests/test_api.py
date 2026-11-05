@@ -273,6 +273,7 @@ def test_cors_origin_with_trailing_slash_or_port_is_accepted():
     ("HTTP://site.example:80/", "http://site.example"),
     ("https://site.example:8443", "https://site.example:8443"),
     ("http://[::1]:3000", "http://[::1]:3000"),
+    ("https://bücher.example", "https://xn--bcher-kva.example"),
 ])
 def test_cors_origins_are_normalized_like_browser_origins(value, expected):
     assert expected in main.allowed_origins({main.CORS_ORIGINS_ENV: value})
@@ -282,3 +283,8 @@ def test_cors_origins_are_normalized_like_browser_origins(value, expected):
 def test_cors_origins_reject_bad_ports(value):
     with pytest.raises(ValueError, match="port"):
         main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+
+
+def test_cors_origins_reject_invalid_hosts():
+    with pytest.raises(ValueError, match="host"):
+        main.allowed_origins({main.CORS_ORIGINS_ENV: "https://a..b"})

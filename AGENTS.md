@@ -528,8 +528,12 @@ Python 3.9) startup logs a warning and turns routes off (503). At run time only 
 confirmed unsupported-TLS error turns them off; certificate and other SSL errors
 are provider errors and routing stays on. Provider calls never start after their
 request's deadline (8 s per recommendation, 10 s per `/routes` call).
-`/routes` starts provider calls at most every 2 s so it cannot starve searches;
-ORS is throttled to its free quota; "no route" answers are cached for an hour.
+With a rate-limited provider (public FOSSGIS or ORS, per mode), `/routes` starts
+provider calls at most every 2 s so it cannot starve searches; self-hosted
+servers are not gated. ORS is spaced 1.6 s apart; only its error codes
+2009/2010 mean "no route" (other 404s are 502 config errors). "No route" answers
+are cached for an hour. `PARKSMART_CORS_ORIGINS` entries are normalized like
+browser Origin headers (lowercase, punycode, no default port).
 Card and directions minutes both come from `route_minutes`/`display_minutes`. Contract, configuration, public-server limits,
 deployment plan, Lambda handoff and pilot results: `docs/routing.md`. The
 website's "Fix the map" OSM link lives in ParkSmart-Website (synced);

@@ -827,7 +827,7 @@ def test_gate_is_only_taken_when_the_provider_is_called():
 def test_routes_endpoint_caps_its_share_of_provider_calls(tmp_path, monkeypatch):
     monkeypatch.setattr("src.api.main.ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS", 0.4)
     provider = FakeProvider()
-    provider.rate_limited = True  # like the public FOSSGIS servers
+    provider.rate_limited_for = lambda mode: True  # like the public FOSSGIS servers
     with api(RouteService(provider), tmp_path) as client:
         began = time.monotonic()
         for i in range(3):  # distinct, uncached trips
@@ -855,7 +855,8 @@ def test_ors_shares_a_quota_throttle_and_respects_the_deadline():
     assert seen == []
 
 
-@pytest.mark.parametrize("summary", [None, "oops", 5, 0, ""])
+@pytest.mark.parametrize("summary", [None, "oops", 5, 0, "", {}, {"distance": 900.0},
+                                     {"duration": 600.0}])
 def test_ors_missing_or_odd_summary_between_different_points_is_an_error(summary):
     body = ors_body()
     body["features"][0]["properties"]["summary"] = summary
@@ -918,9 +919,13 @@ def test_unthrottled_providers_skip_the_routes_gate(tmp_path, monkeypatch):
     selfhosted = OsrmProvider({"driving": "http://osrm-car:5000",
                                "walking": "http://osrm-foot:5000"},
                               client=client_returning(200, osrm_body()))
-    assert not selfhosted.rate_limited
-    assert OsrmProvider(client=client_returning(200, osrm_body())).rate_limited
-    assert OpenRouteServiceProvider("k", client_returning(200, ors_body())).rate_limited
+    assert not selfhosted.rate_limited_for("driving")
+    assert OsrmProvider(client=client_returning(200, osrm_body())).rate_limited_for("walking")
+    assert OpenRouteServiceProvider("k", client_returning(200, ors_body())).rate_limited_for(
+        "driving")
+    mixed = OsrmProvider({"driving": "http://osrm-car:5000",
+                          "walking": FOSSGIS_OSRM_URLS["walking"]})
+    assert not mixed.rate_limited_for("driving") and mixed.rate_limited_for("walking")
     with api(RouteService(FakeProvider()), tmp_path) as client:
         began = time.monotonic()
         for i in range(3):
@@ -942,35 +947,10 @@ def test_gate_leaves_time_for_the_call():
     assert taken == [pytest.approx(deadline - routing.MIN_PROVIDER_SECONDS)]
 
 
-def test_identical_requests_at_once_share_one_provider_call():
-    import threading
-    release = threading.Event()
-
-    class SlowProvider(FakeProvider):
-        def route(self, mode, origin, destination, deadline=None):
-            release.wait(2)
-            return super().route(mode, origin, destination)
-
-    provider = SlowProvider()
-    service = RouteService(provider)
-    results = []
-    threads = [threading.Thread(target=lambda: results.append(
-        service.route("walking", GILMAN, GEISEL, deadline=time.monotonic() + 3)))
-        for _ in range(3)]
-    for thread in threads:
-        thread.start()
-    time.sleep(0.2)
-    release.set()
-    for thread in threads:
-        thread.join()
-    assert provider.calls == 1 and len(results) == 3
-
-
-def test_failed_in_flight_request_lets_the_next_one_try():
+def test_a_failed_request_lets_the_next_one_try():
     provider = FakeProvider(error=RoutingError("HTTP 500"))
     service = RouteService(provider)
     with pytest.raises(RoutingError):
         service.route("walking", GILMAN, GEISEL)
     provider.error = None
     assert service.route("walking", GILMAN, GEISEL)
-    assert service._in_flight == {}

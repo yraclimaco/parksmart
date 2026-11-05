@@ -94,7 +94,8 @@ sends one). ParkSmart respects that limit like this:
   most every 2 s process-wide (`ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS`), so even
   a flood of `/routes` calls leaves at least half of the FOSSGIS slots for
   recommendation walking routes. Cached trips and self-hosted servers are not
-  limited. Identical requests arriving together share one provider call. For the deployed API, also set API Gateway
+  limited (the check is per mode, so a self-hosted driving server is not
+  gated when walking uses FOSSGIS). For the deployed API, also set API Gateway
   throttling (a per-route rate limit), since this backend does not identify
   clients.
 - **Few calls per search.** A recommendation routes at most the top 5 locations,

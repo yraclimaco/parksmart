@@ -112,9 +112,6 @@ ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS = 2.0
 #: How long "no route" answers (no path, or snapped too far) are remembered,
 #: so an impossible trip does not spend a provider call on every search.
 NO_ROUTE_CACHE_SECONDS = 3600.0
-#: Longest an identical request waits for one already in progress when it has
-#: no deadline of its own (throttle wait plus provider timeout).
-IN_FLIGHT_WAIT_SECONDS = THROTTLE_MAX_WAIT_SECONDS + PROVIDER_TIMEOUT_SECONDS
 #: Decimals of the route duration in minutes, shared by POST /routes and the
 #: walking minutes used in ranking so the card and directions box agree.
 ROUTE_MINUTES_DECIMALS = 1
@@ -445,8 +442,7 @@ class OpenRouteServiceProvider:
                                           ORS_MIN_INTERVAL_SECONDS)
                           if throttle == "auto" else throttle)
 
-    @property
-    def rate_limited(self) -> bool:
+    def rate_limited_for(self, mode: TravelMode) -> bool:
         """True when requests go through a throttle (always, by default)."""
         return self._throttle is not None
 
@@ -478,11 +474,14 @@ class OpenRouteServiceProvider:
             feature = response.json()["features"][0]
             summary = feature["properties"].get("summary")
             geometry = feature["geometry"]["coordinates"]
-            if summary is None and (straight_line_km(origin, destination) * 1000
-                                    <= SAME_POINT_METERS):
+            same_point = (straight_line_km(origin, destination) * 1000
+                          <= SAME_POINT_METERS)
+            if summary is None and same_point:
                 summary = {}  # ORS omits it when start and end coincide
             if not isinstance(summary, dict):
                 raise TypeError("summary is missing or not an object")
+            if not same_point and not {"distance", "duration"} <= summary.keys():
+                raise KeyError("summary lacks distance or duration")
         except (ValueError, KeyError, IndexError, TypeError, AttributeError) as error:
             raise RoutingError("OpenRouteService response is unreadable.") from error
         return Route(
@@ -523,10 +522,9 @@ class OsrmProvider:
             else:
                 self._throttles[mode] = throttle
 
-    @property
-    def rate_limited(self) -> bool:
-        """True when any mode goes through a throttle (the public servers)."""
-        return any(throttle is not None for throttle in self._throttles.values())
+    def rate_limited_for(self, mode: TravelMode) -> bool:
+        """True when ``mode``'s server is throttled (the public servers)."""
+        return self._throttles[mode] is not None
 
     @property
     def uses_public_servers(self) -> bool:
@@ -591,8 +589,6 @@ class RouteService:
         self._cache: OrderedDict[tuple, Route] = OrderedDict()
         #: "No route" answers by trip key: (expiry on time.monotonic, message)
         self._no_route: OrderedDict[tuple, tuple[float, str]] = OrderedDict()
-        #: Trips being fetched now; identical requests wait for the first one
-        self._in_flight: dict[tuple, threading.Event] = {}
         self._max_entries = max_entries
         self._lock = threading.Lock()
 
@@ -601,10 +597,10 @@ class RouteService:
         """True when a provider is configured."""
         return self.provider is not None
 
-    @property
-    def rate_limited(self) -> bool:
-        """True when the provider throttles its requests (FOSSGIS or ORS)."""
-        return bool(getattr(self.provider, "rate_limited", False))
+    def rate_limited_for(self, mode: TravelMode) -> bool:
+        """True when the provider throttles ``mode`` requests (FOSSGIS or ORS)."""
+        check = getattr(self.provider, "rate_limited_for", None)
+        return bool(check and check(mode))
 
     def route(self, mode: TravelMode, origin: Point, destination: Point,
               deadline: float | None = None,
@@ -644,27 +640,11 @@ class RouteService:
                        destination.latitude, destination.longitude)
         key = (mode, *(round(value, CACHE_COORDINATE_DECIMALS)
                        for value in coordinates))
-        while True:
-            with self._lock:
-                cached = self._cached(key)
-                if cached is not None:
-                    return cached
-                waiting = self._in_flight.get(key)
-                if waiting is None:
-                    done = self._in_flight[key] = threading.Event()
-                    break
-            # The same trip is being fetched; use its answer instead of a new call
-            wait_for = (IN_FLIGHT_WAIT_SECONDS if deadline is None
-                        else deadline - time.monotonic())
-            if wait_for <= 0 or not waiting.wait(wait_for):
-                raise DeadlineExceeded("The same route is still being fetched.")
-        try:
-            return self._fetch(provider, key, mode, origin, destination,
-                               deadline, gate)
-        finally:
-            with self._lock:
-                self._in_flight.pop(key, None)
-            done.set()
+        with self._lock:
+            cached = self._cached(key)
+        if cached is not None:
+            return cached
+        return self._fetch(provider, key, mode, origin, destination, deadline, gate)
 
     def _cached(self, key: tuple) -> Route | None:
         """Cached route, or raise a remembered NoRouteFound; call under _lock."""

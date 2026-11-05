@@ -423,8 +423,9 @@ def test_picks_not_reached_within_budget_are_labeled_unchecked():
         assert (f"{label} walking time is a straight-line estimate; its mapped "
                 f"path was not checked against the {ranking.MAX_WALK_MINUTES}"
                 "-minute limit.") in result.limitations
-    assert ranking.ROUTED_NOTE not in result.limitations
-    assert ranking.MIXED_ROUTED_NOTE not in result.limitations
+    # The dropped locations were checked by mapped path; the picks were not
+    assert ranking.MIXED_ROUTED_NOTE in result.limitations
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
     for note in result.limitations:
         assert len(note) <= ranking.MAX_TEXT_LENGTH
 
@@ -499,9 +500,9 @@ def test_every_location_too_far_by_path_is_not_called_missing_estimates():
     assert result.counts["missing_estimate"] == 1
     assert "2 parking locations were over a 20-minute walk by mapped path " \
         "and not recommended." in result.limitations
-    # No contradiction: walks were partly checked by mapped path
+    # No contradiction: every scored walk was checked by mapped path
     assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
-    assert ranking.MIXED_ROUTED_NOTE in result.limitations
+    assert ranking.ROUTED_NOTE in result.limitations
 
 
 def test_route_unavailable_counts_only_locations_sent_to_the_router():
@@ -511,3 +512,22 @@ def test_route_unavailable_counts_only_locations_sent_to_the_router():
                        [*LOCATIONS, no_pin], "S", WEEKDAY_MORNING, DESTINATION,
                        walk_router=_router({}))
     assert result.counts["route_unavailable"] == 1  # "near" only
+
+
+
+@pytest.mark.parametrize("routes, picks, note", [
+    # every candidate routed and dropped: only mapped paths were used
+    ({"near": 25, "mid": 24}, None, ranking.ROUTED_NOTE),
+    # some dropped by path, the pick never routed (budget ran out)
+    ({"near": 25}, "mid", ranking.MIXED_ROUTED_NOTE),
+])
+def test_walking_note_matches_what_was_actually_used(routes, picks, note):
+    def router(origins, destination):
+        return {loc: routes[loc] for loc in origins if loc in routes}
+
+    result = recommend(_candidates([("near", "S", "", 0.5), ("mid", "S", "", 0.6)]),
+                       LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION, walk_router=router)
+    assert note in result.limitations
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
+    if picks:
+        assert result.first_choice.location["location_id"] == picks
