@@ -171,3 +171,35 @@ class RecommendationResponse(APIModel):
         ):
             raise ValueError("Backup must differ from first choice")
         return self
+
+
+class RouteRequest(APIModel):
+    """One driving or walking trip between two coordinates.
+
+    The website asks for two routes per parking choice: driving from the
+    user's start to the parking location, and walking from the parking
+    location to the destination. Parking ends use registry coordinates.
+    """
+
+    mode: Literal["driving", "walking"]
+    origin: Coordinates
+    destination: Coordinates
+
+
+class RouteResponse(APIModel):
+    """A routed path for drawing on a map, with distance and typical duration.
+
+    ``geometry`` is GeoJSON LineString order: ``[longitude, latitude]`` pairs.
+    Durations come from road/path speeds, not live traffic.
+    """
+
+    schema_version: Literal["0.1"] = "0.1"
+    mode: Literal["driving", "walking"]
+    distance_meters: float = Field(ge=0, allow_inf_nan=False)
+    distance_miles: float = Field(ge=0, allow_inf_nan=False)
+    duration_minutes: float = Field(ge=0, allow_inf_nan=False)
+    geometry: List[List[float]] = Field(min_length=2)
+    traffic_aware: Literal[False] = False
+    provider: Text
+    attribution: Text
+    limitations: List[Text]

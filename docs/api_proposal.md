@@ -17,6 +17,7 @@ website walkthrough have not been recorded. Record feedback and outcomes below.
 | Recommender | `.recommend(permit, arrival, destination=coordinates)`; `.to_api()` returns choices, status, explanation and limitations |
 | Result | `ready`, `no_suitable_location`, `predictions_unavailable`; null backup when only one location qualifies |
 | Units | Availability fraction 0–1; walking minutes; null for unknown values |
+| Routes (Issue #25) | `POST /routes` with `mode` (`driving`/`walking`), `origin`, `destination`; returns GeoJSON `[lon, lat]` `geometry`, meters, miles, minutes, `traffic_aware: false`. Examples: `docs/examples/backend/route_*.json`; details: `docs/routing.md` |
 
 FastAPI loads the registry and existing dataset once at startup. The current
 baseline is fitted once, never per request. A ready `AvailabilityEstimator`
@@ -59,6 +60,11 @@ for the request/response details and local website commands.
   mode, survey-time metadata and support labels are stored. The saved-model
   entrypoint returns no estimate for unseen groups, while normal baseline startup
   keeps its original behavior. No joint saved-model website walkthrough is claimed.
+- Routes (Issue #25, proposed for Daira's review): the website calls `POST /routes`
+  twice per selected choice — driving from the user's start to the parking
+  location, walking from it to the destination. The app can make the same two
+  calls; 503 means routing is off and should be shown as "directions not set up",
+  not as an error. Open points are listed at the end of `docs/routing.md`.
 - Hanrong's app can use the same HTTP contract. No additional app confirmation
   is recorded here; live-data research is a separate task.
 - [x] API integration and generated-fixture endpoint tests implemented.

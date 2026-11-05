@@ -72,7 +72,20 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 
 ## Directions
 
-After **Select this spot**, **Open in Google Maps** opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free, no API key, and ParkSmart never asks for or stores the user's location.
+**In API mode**, the selected result (the first choice after a search, or whichever card or pin is picked) gets a **Directions** box and route lines on the map (`src/components/DirectionsPanel.tsx`, `src/hooks/useRoutes.ts`):
+
+- **Walk** (dashed gold line): from the parking location to the destination.
+- **Drive** (navy line): from the starting point to the parking location. It appears after **Use my location**; without a starting point the box says so and still shows the walk.
+- Each leg shows distance and a typical travel time. Times are never described as traffic-aware: the routing provider has no live traffic.
+- Routes come from the backend's `POST /routes` (`src/api/routes.ts`), which holds any provider key. The website never calls a routing provider directly.
+- Parking ends use the lot's map point (a UCSD GIS building point), which may not be its vehicle entrance or pedestrian exit; the box says so.
+- Successful routes are kept for the visit, so switching between first choice and backup does not repeat requests. Changing the selection cancels requests for the old one.
+- If the backend has routing turned off (503), the box says directions are not set up and points to Google Maps. Route failures show the reason and **Try directions again**.
+- The browser location is requested only when **Use my location** is pressed, is sent only to the ParkSmart backend to compute the route, and is never saved.
+
+Sample mode has no backend, so it shows no routes.
+
+After **Select this spot**, **Open in Google Maps** opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free and no API key.
 
 ## Scoring Formula
 
@@ -152,9 +165,16 @@ VITE_RECOMMENDATION_SOURCE=api npm run dev
   they are historical estimates. A null value shows as "Unavailable", never 0.
 - `no_suitable_location`, `predictions_unavailable` and `not_implemented` show the
   backend's explanation and say this does not mean parking is full.
-- Errors (backend down, CORS, 404 while the endpoint is not built yet, 422
-  invalid input, unreadable responses) show a message with Try again. API mode
-  never falls back to sample data.
+- Errors (backend down, 404, 422 invalid input, 5xx, unreadable responses) show a
+  plain message with Try again; technical details (backend URL, CORS hint) go to
+  the browser console. A search that takes longer than 20 seconds
+  (`REQUEST_TIMEOUT_MS`, generous for AWS Lambda cold starts) stops with a
+  "taking too long" message instead of loading forever. API mode never falls back
+  to sample data.
+- Selecting a spot ("Select this spot") also selects its card and map pin, so the
+  highlighted card, the pin and the route always describe the same lot.
+- Availability labels: **Likely open** at 75% open or more, **Usually full** at 10%
+  or less (the backend's "Often nearly full" cutoff), **Getting tight** between.
 - Sample-only features are hidden in API mode: pin availability dots, the Time
   tool, the "Your usual" instant answer, and the lot card's sample availability and
   permit hours. The lot card shows the backend's estimate only for recommended lots.

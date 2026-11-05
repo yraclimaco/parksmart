@@ -119,6 +119,16 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    score 0.
 5. **One group per location:** the location's best-scoring eligible group
    represents it. First choice and backup are always different locations.
+   **Routed walks (Issue #25):** when the backend has routing configured, the
+   top 5 locations by this straight-line score get mapped walking routes
+   (`walk_router` in `src/routing.py`, in parallel, 6-second total budget).
+   Routes over 20 minutes are dropped; the rest are rescored with the routed
+   minutes (rounded up) and re-sorted, and their explanations say "walking
+   route". Straight-line times are close to a lower bound on routed times, so
+   locations outside the top 5 are very unlikely to beat a routed pick; any that
+   do keep their straight-line label. A failed or slow route keeps the
+   straight-line estimate. Limitations state which kind each pick used. Without
+   routing, behavior is unchanged.
 6. **Ties:** higher score, then higher availability, then shorter walk, then
    `location_id` alphabetically, so results are deterministic.
 

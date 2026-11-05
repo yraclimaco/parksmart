@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Clock, MapPin, MapPinOff } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
+import { ROUTE_COLORS } from './DirectionsPanel.tsx';
 // MapLibre draws tiles in a background Web Worker. Vite bundles the main library
 // but does not copy the worker file, so the default worker URL 404s and the map
 // renders blank. `?url` makes Vite emit the worker as an asset and give us its URL.
@@ -142,6 +143,53 @@ interface MapContainerProps {
    * results come from the backend, so the map never shows sample numbers beside them.
    */
   showSampleAvailability?: boolean;
+  /** Route lines for the selected result, as [longitude, latitude] pairs (API mode). */
+  routeLines?: { driving: number[][] | null; walking: number[][] | null };
+  /** Where driving directions start, marked on the map while routes show. */
+  startPoint?: { latitude: number; longitude: number } | null;
+}
+
+const ROUTE_MODES = ['driving', 'walking'] as const;
+
+/** GeoJSON for one route line; an empty collection hides it. */
+function routeData(coordinates: number[][] | null | undefined): maplibregl.GeoJSONSourceSpecification["data"] {
+  return {
+    type: 'FeatureCollection',
+    features: coordinates
+      ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } }]
+      : [],
+  };
+}
+
+/**
+ * Adds or refreshes the route sources and line layers. Runs after every style load,
+ * because switching Map/Satellite (setStyle) drops custom layers.
+ */
+function drawRouteLines(map: maplibregl.Map, lines: MapContainerProps['routeLines']) {
+  for (const mode of ROUTE_MODES) {
+    const id = `ps-route-${mode}`;
+    const data = routeData(lines?.[mode]);
+    const source = map.getSource(id) as maplibregl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(data);
+      continue;
+    }
+    map.addSource(id, { type: 'geojson', data });
+    const layout = { 'line-join': 'round', 'line-cap': 'round' } as const;
+    // White casing keeps the navy driving line readable on satellite imagery
+    map.addLayer({ id: `${id}-casing`, type: 'line', source: id, layout, paint: { 'line-color': '#FFFFFF', 'line-width': 8, 'line-opacity': 0.85 } });
+    map.addLayer({
+      id,
+      type: 'line',
+      source: id,
+      layout,
+      paint: {
+        'line-color': ROUTE_COLORS[mode],
+        'line-width': 4.5,
+        ...(mode === 'walking' ? { 'line-dasharray': [1, 1.5] } : {}),
+      },
+    });
+  }
 }
 
 /**
@@ -165,7 +213,11 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   rankedLotIds,
   availabilityTime,
   showSampleAvailability = true,
+  routeLines,
+  startPoint = null,
 }) => {
+  const routeLinesRef = useRef(routeLines);
+  routeLinesRef.current = routeLines;
   const availabilityTimeRef = useRef(availabilityTime);
   availabilityTimeRef.current = availabilityTime;
   const showSampleAvailabilityRef = useRef(showSampleAvailability);
@@ -361,6 +413,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     map.once('idle', () => setIsMapReady(true));
     const readyTimer = window.setTimeout(() => setIsMapReady(true), 6000);
+
+    // Route layers live in the style, so redraw them whenever a style finishes loading
+    map.on('style.load', () => drawRouteLines(map, routeLinesRef.current));
 
     // On initial map style load, fit bounds to all lots plus the destination
     map.on('load', () => {
@@ -615,6 +670,39 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     const timer = window.setTimeout(() => setPinMessage(null), 3500);
     return () => window.clearTimeout(timer);
   }, [pinMessage]);
+
+  // Route lines follow the selected result
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoadedRef.current) return;
+    // isStyleLoaded() is false while tiles are still loading; draw once the map is
+    // idle instead of dropping the route (the ref always holds the latest lines)
+    const draw = () => drawRouteLines(map, routeLinesRef.current);
+    if (map.isStyleLoaded()) {
+      draw();
+      return;
+    }
+    map.once('idle', draw);
+    return () => {
+      map.off('idle', draw);
+    };
+  }, [routeLines?.driving, routeLines?.walking]);
+
+  // Starting point marker for driving directions
+  const startMarkerRef = useRef<maplibregl.Marker | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    startMarkerRef.current?.remove();
+    startMarkerRef.current = null;
+    if (!map || !startPoint) return;
+    const el = document.createElement('div');
+    el.className = 'ps-start-marker';
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', 'Your starting point');
+    startMarkerRef.current = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([startPoint.longitude, startPoint.latitude])
+      .addTo(map);
+  }, [startPoint?.latitude, startPoint?.longitude]);
 
   // Swap basemap when the toggle changes. DOM markers are unaffected by setStyle.
   useEffect(() => {

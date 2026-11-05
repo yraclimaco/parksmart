@@ -15,11 +15,15 @@ repository root:
 python -m uvicorn src.api.main:app --reload
 ```
 
-Open <http://127.0.0.1:8000/docs> to try GET `/health`, GET `/locations`, and
-POST `/recommendations`. Locations use the shared real registry. Historical
+Open <http://127.0.0.1:8000/docs> to try GET `/health`, GET `/locations`,
+POST `/recommendations` and POST `/routes`. Locations use the shared real registry. Historical
 recommendations use the existing pipeline dataset and baseline, loaded once at
 startup. Missing resources return explicit 503s; no sample prediction fallback
 is used. The API never builds the dataset or runs notebooks per request.
+
+`POST /routes` returns driving and walking routes when a routing provider is
+configured; see [routes](docs/routing.md). Website hosting on AWS Amplify is
+prepared in [frontend deployment](docs/frontend_deployment.md).
 
 See [backend setup, learning walkthrough, and interface contract](docs/backend.md)
 for examples and [the short Dylan/Hanrong proposal](docs/api_proposal.md).

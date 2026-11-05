@@ -67,7 +67,8 @@ class Recommender:
         return cls(load_analysis_dataset(dataset), load_registry(registry),
                    estimator)
 
-    def recommend(self, permit, arrival, destination=None, departure=None):
+    def recommend(self, permit, arrival, destination=None, departure=None,
+                  walk_router=None):
         """Rank parking for one request.
 
         Args:
@@ -75,6 +76,9 @@ class Recommender:
             arrival: datetime; naive values are UCSD local time.
             destination: optional {"latitude", "longitude"} dict.
             departure: optional datetime; checks the whole stay.
+            walk_router: optional routed-walking callable for the top
+                choices (``src.routing.walk_router``); None keeps
+                straight-line walking estimates.
         Returns:
             ``src.ranking.RecommendationResult``; ``to_api()`` gives the
             response fields.
@@ -83,7 +87,8 @@ class Recommender:
         """
         groups = self.estimator.attach(self.candidates, arrival)
         return recommend(groups, self.locations, permit, arrival,
-                         destination=destination, departure=departure)
+                         destination=destination, departure=departure,
+                         walk_router=walk_router)
 
 
 def main(argv=None):

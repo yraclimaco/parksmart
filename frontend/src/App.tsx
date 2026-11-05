@@ -23,6 +23,8 @@ import { parseArrival } from './utils/permitRules.ts';
 import { SAMPLE_LOTS, getSampleRecommendations } from './data/sampleRecommendations.ts';
 import { RECOMMENDATION_SOURCE } from './config.ts';
 import { fetchRecommendations } from './api/recommendations.ts';
+import { DirectionsPanel } from './components/DirectionsPanel.tsx';
+import { useRoutes } from './hooks/useRoutes.ts';
 import type { ResultInfo } from './components/ResultsList.tsx';
 import {
   ParkingPlannerRequest,
@@ -141,8 +143,15 @@ export default function App() {
   const [searchedRequest, setSearchedRequest] = useState<ParkingPlannerRequest | null>(null);
   const searchedRequestRef = useRef<ParkingPlannerRequest | null>(null);
 
-  // Lot the user confirmed with "Select this spot" (routing will hook in here later)
+  // Lot the user confirmed with "Select this spot"
   const [confirmedLotId, setConfirmedLotId] = useState<string | null>(null);
+
+  // Starting point for driving directions (browser location). Only sent to the
+  // ParkSmart backend to compute a route; never saved.
+  const [startPoint, setStartPoint] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+  const [routeRetry, setRouteRetry] = useState(0);
 
   // Lot detail card (opened by clicking a pin on the map)
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
@@ -454,8 +463,35 @@ export default function App() {
     };
   }, [recommendations, isStale, devState]);
 
+  // Confirming a spot also selects it, so the highlighted card, the map pin and
+  // the route always point at the same lot. Undoing keeps the selection.
   const handleConfirmLot = useCallback((locationId: string) => {
     setConfirmedLotId((prev) => (prev === locationId ? null : locationId));
+    setSelectedLocationId(locationId);
+  }, []);
+
+  const handleUseMyLocation = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setLocateError('This browser cannot share your location.');
+      return;
+    }
+    setIsLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false);
+        setStartPoint({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+      },
+      (error) => {
+        setIsLocating(false);
+        setLocateError(
+          error.code === error.PERMISSION_DENIED
+            ? 'Location permission is off. Allow it in your browser to see driving directions.'
+            : "Couldn't find your location. Try again."
+        );
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 }
+    );
   }, []);
 
   // Derive active rendering state based on normal computation or dev simulator
@@ -466,6 +502,22 @@ export default function App() {
     if (devState === 'error' || devState === 'loading') return [];
     return recommendations;
   }, [devState, recommendations]);
+
+  // Routes follow the selected result (first choice after a search, or whichever card
+  // or pin the user picks). Only real backend results have routes; stale results and
+  // sample data do not.
+  const routedRecommendation =
+    USE_API && !isStale && devState === 'normal'
+      ? activeRecommendations.find((rec) => rec.lot.locationId === selectedLocationId) ?? null
+      : null;
+  const routedDestination = searchedRequest ? findDestination(searchedRequest.destinationId) ?? null : null;
+  const routeLegs = useRoutes(
+    routedRecommendation !== null,
+    routedRecommendation ? routedRecommendation.lot : null,
+    routedDestination,
+    startPoint,
+    routeRetry
+  );
 
   return (
     // reducedMotion="user" turns off Motion animations for people who ask their OS for less motion
@@ -499,6 +551,11 @@ export default function App() {
         rankedLotIds={rankedLotIds}
         availabilityTime={previewTime}
         showSampleAvailability={!USE_API}
+        routeLines={{
+          driving: routeLegs.driving.status === 'ok' ? routeLegs.driving.route.geometry : null,
+          walking: routeLegs.walking.status === 'ok' ? routeLegs.walking.route.geometry : null,
+        }}
+        startPoint={routedRecommendation ? startPoint : null}
       />
 
       {/* Hamburger toggle: stays in the top-left whether the panel is open or closed */}
@@ -624,6 +681,24 @@ export default function App() {
                 onResetFilters={handleResetFilters}
                 errorMessage={devState === 'normal' ? errorMessage : null}
                 resultInfo={devState === 'normal' ? resultInfo : null}
+                directions={
+                  routedRecommendation && routedDestination ? (
+                    <DirectionsPanel
+                      lotName={routedRecommendation.lot.name}
+                      destinationName={routedDestination.name}
+                      legs={routeLegs}
+                      startLabel={startPoint ? 'your location' : null}
+                      isLocating={isLocating}
+                      locateError={locateError}
+                      onUseMyLocation={handleUseMyLocation}
+                      onClearStart={() => {
+                        setStartPoint(null);
+                        setLocateError(null);
+                      }}
+                      onRetry={() => setRouteRetry((n) => n + 1)}
+                    />
+                  ) : null
+                }
               />
             </section>
           </div>

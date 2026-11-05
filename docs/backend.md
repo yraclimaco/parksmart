@@ -113,7 +113,8 @@ are complete numeric WGS84 `latitude`/`longitude` pairs, within [-90,90] and
 verification of catalog pins. Destination name is display text, not geocoded.
 Null destination coordinates are allowed: walking time is unavailable and the
 recommender explains that ranking uses availability alone. A supplied starting
-location adds an explicit limitation because no driving route is calculated.
+location adds an explicit limitation because it does not affect ranking; driving
+and walking routes come from `POST /routes` (`docs/routing.md`).
 
 Arrival is normalized to `America/Los_Angeles`, with daylight saving. An offset
 or `Z` identifies an instant and is converted to UCSD time. No offset means UCSD
@@ -178,7 +179,9 @@ VITE_RECOMMENDATION_SOURCE=api VITE_API_BASE_URL=http://127.0.0.1:8000 npm run d
 ```
 
 Open http://localhost:3000. The explicit CORS allowlist covers localhost and
-127.0.0.1 on ports 3000 and 5173, GET/POST, and Content-Type. API mode does not fall
+127.0.0.1 on ports 3000 and 5173, GET/POST, and Content-Type. Deployed sites
+(for example the Amplify URL) are added with `PARKSMART_CORS_ORIGINS`, a
+comma-separated list of exact origins. API mode does not fall
 back to sample recommendations. An HTTP 503 currently produces the website's
 service-error message; evaluated unavailable estimates use its empty state.
 Without the API flag the prototype still uses labeled samples.

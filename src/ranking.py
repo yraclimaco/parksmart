@@ -8,6 +8,7 @@ Scoring weights, walking assumptions and tie-breaking are documented in
 docs/recommendations.md.
 """
 
+import logging
 import math
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -17,6 +18,8 @@ import pandas as pd
 from .eligibility import (ALLOWED, NEEDS_VERIFICATION, check_eligibility,
                           clock, to_ucsd_time)
 from .ucsd_calendar import VERIFIED_END, VERIFIED_START, is_verified
+
+LOGGER = logging.getLogger(__name__)
 
 # Same weights as the website prototype (frontend/src/constants.ts).
 AVAILABILITY_WEIGHT = 0.65
@@ -32,6 +35,19 @@ MIN_WALK_MINUTES = 3
 EARTH_RADIUS_KM = 6371.0
 # Matches the near-full threshold in src/parking_benchmarks.py (10% open).
 NEAR_FULL_FRACTION = 0.10
+# Routed walking (Issue #25): only the best few locations by straight-line
+# score are routed, so one request costs at most this many provider calls
+# (fewer once routes are cached). Straight-line times are close to a lower
+# bound on routed times, so they are a safe first filter.
+ROUTED_WALK_CANDIDATES = 5
+WALK_STRAIGHT_LINE = "straight_line"
+WALK_ROUTED = "routed"
+STRAIGHT_LINE_NOTE = ("Walking times are straight-line estimates, not routed "
+                      "walking paths.")
+ROUTED_NOTE = ("Walking times follow mapped walking paths from each parking "
+               "location's map point; check signs for closures.")
+MIXED_ROUTED_NOTE = ("Walking times follow mapped walking paths where available; "
+                     "others are straight-line estimates.")
 # API Text fields (explanations, limitations) allow at most 200 characters.
 MAX_TEXT_LENGTH = 200
 
@@ -44,7 +60,7 @@ REQUIRED_COLUMNS = ["location_id", "facility", "category", "subtype", "level",
 BASE_LIMITATIONS = [
     "Availability is an estimate from historical surveys, not live occupancy "
     "or a guaranteed space.",
-    "Walking times are straight-line estimates, not routed walking paths.",
+    STRAIGHT_LINE_NOTE,
     "Check posted signs: closures, events and reserved areas can override "
     "permit rules.",
 ]
@@ -66,6 +82,7 @@ class Choice:
     explanation: str = ""
     estimate_survey_time: Optional[str] = None
     estimate_note: Optional[str] = None
+    walking_source: str = WALK_STRAIGHT_LINE
 
     def to_api(self):
         """Return fields matching src.api.schemas.ParkingChoice."""
@@ -144,7 +161,7 @@ def score(fraction, walk_minutes, walking_known):
 
 
 def recommend(candidates, locations, permit, arrival, destination=None,
-              departure=None):
+              departure=None, walk_router=None):
     """Pick a first choice and a distinct backup for one request.
 
     Args:
@@ -159,6 +176,13 @@ def recommend(candidates, locations, permit, arrival, destination=None,
         arrival: datetime; naive values are UCSD local time.
         destination: optional coordinate dict for walking estimates.
         departure: optional datetime to check the whole stay.
+        walk_router: optional callable ``(origins, destination) -> minutes``
+            where ``origins`` maps location IDs to coordinate dicts and the
+            result maps location IDs to routed walking minutes (missing or
+            None when a route is unavailable). Only the best
+            ROUTED_WALK_CANDIDATES locations are routed; routes over
+            MAX_WALK_MINUTES are dropped and the rest are rescored. Failures
+            keep the straight-line estimate. See src.routing.walk_router.
     Returns:
         RecommendationResult.
     Raises:
@@ -176,7 +200,8 @@ def recommend(candidates, locations, permit, arrival, destination=None,
 
     counts = {"candidate_groups": len(candidates), "not_supported": 0,
               "not_allowed": 0, "needs_verification": 0, "too_far": 0,
-              "missing_estimate": 0, "scored": 0}
+              "missing_estimate": 0, "scored": 0, "too_far_routed": 0,
+              "route_unavailable": 0}
     scored = []
     for row in candidates.itertuples(index=False):
         location = registry.get(row.location_id)
@@ -223,6 +248,9 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     for choice in sorted(scored, key=_sort_key):
         best.setdefault(choice.location["location_id"], choice)
     ranked = sorted(best.values(), key=_sort_key)
+    if walk_router is not None and walking_known and ranked:
+        ranked = _apply_routed_walks(ranked, registry, destination, walk_router,
+                                     counts)
     limitations = _limitations(counts, walking_known, arrival, departure)
 
     if not ranked:
@@ -242,6 +270,7 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     first.explanation = _explain(first, permit, None)
     if backup:
         backup.explanation = _explain(backup, permit, first)
+    _note_walking_sources(limitations, [first, backup], counts)
     for label, choice in (("First choice", first), ("Backup", backup)):
         if choice is not None and choice.estimate_note:
             limitations.append(f"{label} estimate is limited: "
@@ -252,6 +281,58 @@ def recommend(candidates, locations, permit, arrival, destination=None,
         summary += " No second suitable location was found."
     return RecommendationResult(READY, first, backup, summary, limitations,
                                 counts)
+
+
+def _apply_routed_walks(ranked, registry, destination, walk_router, counts):
+    """Replace straight-line walks of the top locations with routed ones.
+
+    Locations whose route is over MAX_WALK_MINUTES are removed; routed ones
+    are rescored. Locations beyond ROUTED_WALK_CANDIDATES, and any whose route
+    failed, keep their straight-line estimate and label.
+    """
+    top = ranked[:ROUTED_WALK_CANDIDATES]
+    origins = {}
+    for choice in top:
+        location_id = choice.location["location_id"]
+        coordinates = registry[location_id]["coordinates"]
+        if coordinates:
+            origins[location_id] = coordinates
+    try:
+        minutes = walk_router(origins, destination) or {}
+    except Exception as error:  # a routing outage must not break recommendations
+        LOGGER.warning("Routed walking times unavailable: %s", error)
+        minutes = {}
+    kept = []
+    for choice in top:
+        routed = minutes.get(choice.location["location_id"])
+        if routed is None:
+            counts["route_unavailable"] += 1
+            kept.append(choice)
+            continue
+        if routed > MAX_WALK_MINUTES:
+            counts["too_far_routed"] += 1
+            continue
+        choice.estimated_walking_minutes = routed
+        choice.walking_source = WALK_ROUTED
+        choice.score = score(choice.estimated_available_fraction, routed, True)
+        kept.append(choice)
+    return sorted(kept + ranked[ROUTED_WALK_CANDIDATES:], key=_sort_key)
+
+
+def _note_walking_sources(limitations, picks, counts):
+    """Describe where the picks' walking times came from."""
+    sources = {choice.walking_source for choice in picks if choice is not None
+               and choice.estimated_walking_minutes is not None}
+    if WALK_ROUTED in sources and STRAIGHT_LINE_NOTE in limitations:
+        index = limitations.index(STRAIGHT_LINE_NOTE)
+        limitations[index] = (ROUTED_NOTE if sources == {WALK_ROUTED}
+                              else MIXED_ROUTED_NOTE)
+    if counts["too_far_routed"]:
+        count = counts["too_far_routed"]
+        subject = ("1 parking location was" if count == 1
+                   else f"{count} parking locations were")
+        limitations.append(f"{subject} over a {MAX_WALK_MINUTES}-minute walk by "
+                           "mapped path and not recommended.")
 
 
 def _sort_key(choice):
@@ -313,7 +394,9 @@ def _explanation_text(choice, permit, first, note):
         parts.append("Often nearly full.")
     if choice.estimated_walking_minutes is not None:
         approx = " (approximate pin)" if choice.walking_is_approximate else ""
-        parts.append(f"About {choice.estimated_walking_minutes} min walk{approx}.")
+        kind = "walking route" if choice.walking_source == WALK_ROUTED else "walk"
+        parts.append(
+            f"About {choice.estimated_walking_minutes} min {kind}{approx}.")
     if first is not None:
         parts.append(_compare(choice, first))
     return " ".join(parts)
