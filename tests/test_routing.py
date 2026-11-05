@@ -214,8 +214,10 @@ def test_service_without_provider():
 
 # Configuration -----------------------------------------------------------
 
-def test_provider_from_env_defaults_off_without_key():
-    assert provider_from_env({}) is None
+def test_provider_from_env_defaults_to_public_osrm_without_key():
+    provider = provider_from_env({})
+    assert isinstance(provider, OsrmProvider)
+    assert provider._urls == FOSSGIS_OSRM_URLS
 
 
 def test_provider_from_env_uses_ors_when_key_present():
@@ -300,8 +302,7 @@ def test_provider_errors_are_not_leaked(tmp_path):
 
 
 def test_app_reads_routing_config_from_environment(tmp_path, monkeypatch):
-    monkeypatch.delenv("ORS_API_KEY", raising=False)
-    monkeypatch.delenv("PARKSMART_ROUTING_PROVIDER", raising=False)
+    monkeypatch.setenv("PARKSMART_ROUTING_PROVIDER", "none")
     app = create_app(dataset_path=tmp_path / "missing.csv")
     with TestClient(app) as client:
         assert client.post("/routes", json=trip()).status_code == 503

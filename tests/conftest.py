@@ -10,6 +10,7 @@ def no_real_routing(monkeypatch):
     create_app() reads routing settings from the environment; tests that need
     routes pass a RouteService (or set the variables) explicitly.
     """
-    for name in ("ORS_API_KEY", "PARKSMART_ROUTING_PROVIDER",
-                 "OSRM_DRIVING_URL", "OSRM_WALKING_URL"):
+    for name in ("ORS_API_KEY", "OSRM_DRIVING_URL", "OSRM_WALKING_URL"):
         monkeypatch.delenv(name, raising=False)
+    # Unset would mean the public OSRM servers; tests must stay offline
+    monkeypatch.setenv("PARKSMART_ROUTING_PROVIDER", "none")

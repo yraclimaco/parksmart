@@ -8,10 +8,12 @@ directly, so provider keys stay on the server. Two providers are supported:
   day and 40 a minute (checked 2026-11-04 on its plans page).
 * ``osrm``: any OSRM server. The default is the public FOSSGIS servers at
   routing.openstreetmap.de, which need no key but allow only light use
-  (about one request a second) and offer no uptime guarantee. Good for local
-  development and the route pilot, not for production traffic.
+  (about one request a second) and offer no uptime guarantee. Fine for
+  development, demos and low traffic; the in-memory cache keeps calls down.
 
-Choose with ``PARKSMART_ROUTING_PROVIDER`` (``ors``, ``osrm`` or ``none``).
+Routing works with no setup: without ``ORS_API_KEY`` the public OSRM servers
+are used. Override with ``PARKSMART_ROUTING_PROVIDER`` (``ors``, ``osrm`` or
+``none`` to turn routes off).
 Neither provider uses live traffic, so durations are typical travel times and
 are never described as traffic-aware. Routes are cached in memory so repeated
 requests for the same trip do not use provider quota.
@@ -310,15 +312,15 @@ def provider_from_env(environ: dict[str, str] | None = None) -> RoutingProvider 
         environ: mapping to read (defaults to os.environ).
     Returns:
         A provider, or None for ``none`` or when ``ors`` has no key (logged).
-        Unset means ``ors`` when ORS_API_KEY is present, else routing is off:
-        the public OSRM servers are only used when chosen explicitly.
+        Unset means ``ors`` when ORS_API_KEY is present, else ``osrm`` (the
+        public servers), so routes work with no configuration.
     Raises:
         ValueError: unknown provider name.
     """
     env = os.environ if environ is None else environ
     key = env.get("ORS_API_KEY", "").strip()
     name = env.get("PARKSMART_ROUTING_PROVIDER", "").strip().lower()
-    name = name or ("ors" if key else "none")
+    name = name or ("ors" if key else "osrm")
     if name == "none":
         return None
     if name == "ors":

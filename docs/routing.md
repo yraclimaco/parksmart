@@ -21,11 +21,12 @@ reaches a real provider).
   `docs/examples/backend/route_request.json` and `route_response.json`. The
   website's client is `frontend/src/api/routes.ts`.
 - **Backend / Lambda:** nothing extra to deploy. `/routes` is part of the same
-  FastAPI app. Set `ORS_API_KEY` (as a secret) and, for the deployed website,
-  `PARKSMART_CORS_ORIGINS` in the Lambda environment. Without a key, `/routes`
-  answers 503 and everything else works.
-- **Trying it locally without a key:** `PARKSMART_ROUTING_PROVIDER=osrm` (needs
-  Python 3.11+; see the note below).
+  FastAPI app. Routes work with no configuration (public OSRM servers). For
+  the deployed website set `PARKSMART_CORS_ORIGINS`, and optionally
+  `ORS_API_KEY` (as a secret) for a provider with a published daily quota.
+  `PARKSMART_ROUTING_PROVIDER=none` turns routes off (503).
+- **Locally:** nothing to set; just start the backend (Python 3.11+; see the
+  note below).
 
 ## Provider choice
 
@@ -47,17 +48,17 @@ loader; export them in the shell or in the Lambda configuration):
 
 | Variable | Meaning |
 | --- | --- |
-| `PARKSMART_ROUTING_PROVIDER` | `ors`, `osrm` or `none`. Unset: `ors` if `ORS_API_KEY` is set, otherwise routing is **off**. The public OSRM servers are only used when chosen explicitly. |
+| `PARKSMART_ROUTING_PROVIDER` | `ors`, `osrm` or `none`. Unset: `ors` if `ORS_API_KEY` is set, otherwise `osrm` on the public FOSSGIS servers, so routes work with no setup. `none` turns routes off. |
 | `ORS_API_KEY` | OpenRouteService key. Secret: never commit it, never put it in a `VITE_` variable. |
 | `OSRM_DRIVING_URL`, `OSRM_WALKING_URL` | Optional self-hosted OSRM servers; default to `routing.openstreetmap.de`. |
 
 ```bash
-# Local development with OpenRouteService
-export ORS_API_KEY=...            # from openrouteservice.org, never committed
+# Default: public OSRM servers, no key needed
 python -m uvicorn src.api.saved_model:create_saved_app --factory
 
-# Local development without a key (light use only)
-PARKSMART_ROUTING_PROVIDER=osrm python -m uvicorn src.api.main:app --reload
+# Optional: OpenRouteService (openrouteservice.org was offline on 2026-11-04)
+export ORS_API_KEY=...            # never committed
+python -m uvicorn src.api.saved_model:create_saved_app --factory
 ```
 
 An unknown provider name or `ors` without a key logs a warning and turns routes
@@ -66,7 +67,12 @@ off; recommendations and `/health` keep working.
 **Local Python note:** the FOSSGIS servers accept only TLS 1.3. The macOS
 system/Xcode Python 3.9 (LibreSSL 2.8.3) cannot connect to them and reports
 `SSLV3_ALERT_HANDSHAKE_FAILURE`; the route endpoint then returns 502. Use a newer
-Python (3.11+, as on AWS Lambda) for `osrm`. OpenRouteService works with either.
+Python (3.11+, as on AWS Lambda). OpenRouteService works with either.
+
+**Production note:** the FOSSGIS servers ask for light use and promise no uptime.
+They suit the demo and early low traffic: only the top 5 walks per search are
+routed, and every route is cached. If traffic grows, add an ORS key or point
+`OSRM_DRIVING_URL` / `OSRM_WALKING_URL` at a self-hosted OSRM.
 
 ## `POST /routes` contract
 
@@ -153,6 +159,6 @@ A driving check from downtown San Diego to Hopkins Parking Structure returned
 
 - Confirm `POST /routes` with Daira so the mobile app can reuse it, and whether it
   stays a separate Lambda route or joins the main FastAPI handler.
-- Sign up for an OpenRouteService key under a DS3-owned account and store it as a
-  Lambda environment variable or secret, never in the repository.
+- Optional: an OpenRouteService key under a DS3-owned account once
+  openrouteservice.org is back online, stored as a Lambda secret.
 - Verified vehicle entrances and pedestrian exits per location.

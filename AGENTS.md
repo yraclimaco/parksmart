@@ -506,13 +506,14 @@ synced; `--source` syncs a local clone's committed `HEAD` for testing.
 `POST /routes` returns one driving or walking route (GeoJSON `[lon, lat]`
 geometry, meters, miles, minutes, `traffic_aware: false`) between two coordinates.
 Providers live in `src/routing.py`: OpenRouteService (`ORS_API_KEY`) or OSRM
-(`PARKSMART_ROUTING_PROVIDER=osrm`, public FOSSGIS servers, light use only).
-Unset means `ors` with a key, otherwise routing is off (503); recommendations
-keep working. Keys stay on the backend, never in `VITE_` variables or Git.
+(public FOSSGIS servers, light use only). Unset means `ors` with a key, otherwise
+`osrm`, so routes work with no setup; `PARKSMART_ROUTING_PROVIDER=none` turns them
+off (503) and recommendations keep working. Keys stay on the backend, never in `VITE_` variables or Git.
 When routing is on, `/recommendations` also routes the top 5 locations' walks
 (`walk_router`, 6 s budget), drops routes over 20 minutes and rescores; failures
-keep straight-line estimates (see `docs/recommendations.md`). Tests set no
-routing environment (`tests/conftest.py`), so they never call a provider.
+keep straight-line estimates (see `docs/recommendations.md`). Tests set
+`PARKSMART_ROUTING_PROVIDER=none` (`tests/conftest.py`), so they never call a
+provider.
 Trips are capped (driving 150 km, walking 5 km straight line), successes are
 cached in memory, and provider errors are logged, not returned. Parking ends are
 registry building points, not verified entrances; responses say so. Never call
