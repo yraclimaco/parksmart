@@ -67,8 +67,8 @@ def _browser_origin(origin: str, raw: str) -> str:
     CORS matching is exact, so entries are normalized to that form.
 
     Raises:
-        ValueError: a wildcard, path, query, credentials or a bad port, which
-            could never match.
+        ValueError: a wildcard, path, query, credentials, a bad port or an
+            invalid or non-ASCII host, which could never match.
     """
     parts = urlsplit(origin)
     try:
@@ -84,14 +84,14 @@ def _browser_origin(origin: str, raw: str) -> str:
             f"{CORS_ORIGINS_ENV} entries must be exact http(s) origins "
             f"(scheme://host[:port], no path): {raw!r}")
     host = parts.hostname.lower()
+    if not host.isascii() or ".." in host or host.startswith("."):
+        # Browsers send internationalized hosts as punycode (xn--...); Python's
+        # converter differs from browsers for some names, so ask for that form
+        raise ValueError(
+            f"{CORS_ORIGINS_ENV} entry has an invalid or non-ASCII host; use the "
+            f"punycode (xn--) form: {raw!r}")
     if ":" in host:  # IPv6 literal
         host = f"[{host}]"
-    else:
-        try:  # browsers send internationalized hosts in punycode
-            host = host.encode("idna").decode("ascii")
-        except UnicodeError as error:
-            raise ValueError(
-                f"{CORS_ORIGINS_ENV} entry has an invalid host: {raw!r}") from error
     keep_port = port is not None and port != DEFAULT_PORTS[scheme]
     return f"{scheme}://{host}" + (f":{port}" if keep_port else "")
 
@@ -104,7 +104,9 @@ def allowed_origins(environ=None) -> list:
     Returns:
         Origins without trailing slashes, local ones first, no duplicates.
     Raises:
-        ValueError: an entry is a wildcard or lacks an http(s) scheme.
+        ValueError: an entry is not an exact http(s) origin (see
+            _browser_origin: wildcard, path, query, credentials, bad port, or
+            invalid or non-ASCII host).
     """
     env = os.environ if environ is None else environ
     extra = []

@@ -99,9 +99,9 @@ ORS_MIN_INTERVAL_SECONDS = 1.6
 #: 2009 route not found, 2010 no routable point near a coordinate. Any other
 #: 404 is a configuration problem (wrong base URL or profile).
 ORS_NO_ROUTE_CODES = frozenset({2009, 2010})
-#: ORS omits the route summary only when start and end are the same point;
-#: within this distance a missing summary means a 0 m route.
-SAME_POINT_METERS = 1.0
+#: ORS leaves zero values out of the route summary, so a missing summary (or
+#: missing distance/duration) is only accepted as a 0 m route when the
+#: returned path itself has zero length (all points equal).
 #: POST /routes may start a provider call at most this often (process-wide)
 #: when the provider is rate limited (public FOSSGIS or ORS). It shares the
 #: provider's throttle with recommendations, so this keeps at least half of
@@ -336,6 +336,15 @@ class RoutingProvider(Protocol):
         """
         ...
 
+    def rate_limited_for(self, mode: TravelMode) -> bool:
+        """True when ``mode`` requests share a rate limit (FOSSGIS, ORS).
+
+        POST /routes then takes its own gate so it cannot starve
+        recommendations. A provider without this method is treated as rate
+        limited.
+        """
+        ...
+
 
 def straight_line_km(origin: Point, destination: Point) -> float:
     """Great-circle (haversine) distance in kilometres between two points."""
@@ -474,19 +483,19 @@ class OpenRouteServiceProvider:
             feature = response.json()["features"][0]
             summary = feature["properties"].get("summary")
             geometry = feature["geometry"]["coordinates"]
-            same_point = (straight_line_km(origin, destination) * 1000
-                          <= SAME_POINT_METERS)
-            if summary is None and same_point:
-                summary = {}  # ORS omits it when start and end coincide
+            zero_length = (isinstance(geometry, list) and len(geometry) >= 2
+                           and all(point == geometry[0] for point in geometry))
+            if summary is None and zero_length:
+                summary = {}  # ORS leaves out zero values
             if not isinstance(summary, dict):
                 raise TypeError("summary is missing or not an object")
-            if not same_point and not {"distance", "duration"} <= summary.keys():
+            if not zero_length and not {"distance", "duration"} <= summary.keys():
                 raise KeyError("summary lacks distance or duration")
         except (ValueError, KeyError, IndexError, TypeError, AttributeError) as error:
             raise RoutingError("OpenRouteService response is unreadable.") from error
         return Route(
             mode=mode,
-            # ORS omits distance/duration when origin and destination coincide
+            # ORS omits distance/duration for a zero-length route
             distance_meters=_number(summary.get("distance", 0), "distance"),
             duration_seconds=_number(summary.get("duration", 0), "duration"),
             geometry=_check_geometry(geometry),
@@ -598,9 +607,13 @@ class RouteService:
         return self.provider is not None
 
     def rate_limited_for(self, mode: TravelMode) -> bool:
-        """True when the provider throttles ``mode`` requests (FOSSGIS or ORS)."""
+        """True when the provider throttles ``mode`` requests (FOSSGIS or ORS).
+
+        A provider that does not say is assumed to be rate limited, so the
+        /routes gate stays on (the safe default).
+        """
         check = getattr(self.provider, "rate_limited_for", None)
-        return bool(check and check(mode))
+        return True if check is None else bool(check(mode))
 
     def route(self, mode: TravelMode, origin: Point, destination: Point,
               deadline: float | None = None,

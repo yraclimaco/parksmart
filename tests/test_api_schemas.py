@@ -184,8 +184,10 @@ def test_missing_required_request_fields():
 
 def test_route_examples():
     """Shared /routes examples for the website and mobile app stay valid."""
-    request = RouteRequest.model_validate_json((EXAMPLES / "route_request.json").read_text())
-    response = RouteResponse.model_validate_json((EXAMPLES / "route_response.json").read_text())
+    request = RouteRequest.model_validate_json(
+        (EXAMPLES / "route_request.json").read_text())
+    response = RouteResponse.model_validate_json(
+        (EXAMPLES / "route_response.json").read_text())
     assert response.mode == request.mode
     assert response.traffic_aware is False
     # GeoJSON order: the path starts near the request origin as [longitude, latitude]

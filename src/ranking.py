@@ -380,11 +380,11 @@ def _note_walking_sources(limitations, picks, counts):
     sources = {choice.walking_source for _, choice in picks if choice is not None
                and choice.estimated_walking_minutes is not None}
     # Mapped paths were used if a pick was routed or a location was dropped by
-    # its routed walk; straight-line times remain if a pick has one, or (with
-    # no picks) if some location was filtered by its straight-line estimate.
+    # its routed walk; straight-line estimates were used if a pick has one or a
+    # location was filtered by its straight-line time (same rule with or
+    # without picks).
     routed_any = WALK_ROUTED in sources or counts["too_far_routed"] > 0
-    straight_any = (bool(sources - {WALK_ROUTED}) if sources
-                    else counts["too_far"] > 0)
+    straight_any = bool(sources - {WALK_ROUTED}) or counts["too_far"] > 0
     if routed_any and STRAIGHT_LINE_NOTE in limitations:
         index = limitations.index(STRAIGHT_LINE_NOTE)
         limitations[index] = MIXED_ROUTED_NOTE if straight_any else ROUTED_NOTE

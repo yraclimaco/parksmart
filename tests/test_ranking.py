@@ -465,7 +465,6 @@ def test_longest_unchecked_explanation_fits_api_limit():
     assert len(text) <= ranking.MAX_TEXT_LENGTH, text
 
 
-
 # Code review fixes ----------------------------------------------------------
 
 @pytest.mark.parametrize("source", [ranking.WALK_STRAIGHT_LINE, ranking.WALK_ROUTED,
@@ -479,7 +478,8 @@ def test_worst_case_explanation_always_fits_the_api_limit(source):
                        LOCATIONS, "V", WEEKDAY_MORNING, DESTINATION,
                        WEEKDAY_MORNING.replace(hour=11)).first_choice
     choice.estimate_basis = "model"
-    choice.estimate_note = "2:00 PM surveys; none cover 10:00 PM, using a broader average"
+    choice.estimate_note = ("2:00 PM surveys; none cover 10:00 PM, using a broader "
+                            "average")
     choice.allowed_until = datetime(2026, 10, 28, 7, 30)
     choice.estimated_walking_minutes = 19
     choice.walking_source = source
@@ -514,20 +514,31 @@ def test_route_unavailable_counts_only_locations_sent_to_the_router():
     assert result.counts["route_unavailable"] == 1  # "near" only
 
 
-
-@pytest.mark.parametrize("routes, picks, note", [
+@pytest.mark.parametrize("routes, first_choice, note", [
     # every candidate routed and dropped: only mapped paths were used
     ({"near": 25, "mid": 24}, None, ranking.ROUTED_NOTE),
-    # some dropped by path, the pick never routed (budget ran out)
+    # one dropped by path; the pick's route failed, so it is straight-line
     ({"near": 25}, "mid", ranking.MIXED_ROUTED_NOTE),
+    # both picks routed, but "far" was filtered by its straight-line time
+    ({"near": 4, "mid": 9}, "near", ranking.MIXED_ROUTED_NOTE),
 ])
-def test_walking_note_matches_what_was_actually_used(routes, picks, note):
-    def router(origins, destination):
-        return {loc: routes[loc] for loc in origins if loc in routes}
-
-    result = recommend(_candidates([("near", "S", "", 0.5), ("mid", "S", "", 0.6)]),
-                       LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION, walk_router=router)
+def test_walking_note_matches_what_was_actually_used(routes, first_choice, note):
+    rows = [("near", "S", "", 0.5), ("mid", "S", "", 0.6)]
+    if first_choice == "near":
+        rows.append(("far", "S", "", 0.9))
+    result = recommend(_candidates(rows), LOCATIONS, "S", WEEKDAY_MORNING,
+                       DESTINATION, walk_router=_router(routes))
     assert note in result.limitations
     assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
-    if picks:
-        assert result.first_choice.location["location_id"] == picks
+    if first_choice:
+        assert result.first_choice.location["location_id"] == first_choice
+
+
+def test_unchecked_picks_after_the_budget_runs_out_get_the_mixed_note():
+    # First round answers (all over the limit), later rounds get nothing
+    lots, candidates = _row_of_lots(7)
+    answers = [{f"lot{i}": ranking.MAX_WALK_MINUTES + 5 for i in range(5)}]
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=lambda o, d: answers.pop() if answers else {})
+    assert result.first_choice.walking_source == ranking.WALK_UNCHECKED
+    assert ranking.MIXED_ROUTED_NOTE in result.limitations
