@@ -527,7 +527,10 @@ travel times traffic-aware. FOSSGIS needs TLS 1.3; without it (macOS Xcode
 Python 3.9) startup logs a warning and turns routes off (503). At run time only a
 confirmed unsupported-TLS error turns them off; certificate and other SSL errors
 are provider errors and routing stays on. Provider calls never start after their
-request's deadline (8 s per recommendation, 10 s per `/routes` call). Contract, configuration, public-server limits,
+request's deadline (8 s per recommendation, 10 s per `/routes` call).
+`/routes` starts provider calls at most every 2 s so it cannot starve searches;
+ORS is throttled to its free quota; "no route" answers are cached for an hour.
+Card and directions minutes both come from `route_minutes`/`display_minutes`. Contract, configuration, public-server limits,
 deployment plan, Lambda handoff and pilot results: `docs/routing.md`. The
 website's "Fix the map" OSM link lives in ParkSmart-Website (synced);
 copyable JSON is in `docs/examples/backend/route_*.json` (validated by

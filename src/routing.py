@@ -89,6 +89,20 @@ ROUTE_REQUEST_BUDGET_SECONDS = 10.0
 #: A provider call is only started with at least this much budget left; a
 #: shorter call would almost surely time out and just spend a FOSSGIS slot.
 MIN_PROVIDER_SECONDS = 0.25
+#: Minimum seconds between OpenRouteService requests in this process: its free
+#: plan allows 40 directions a minute (checked 2026-11-04), so 1.5 s stays under.
+ORS_MIN_INTERVAL_SECONDS = 1.5
+#: POST /routes may start a provider call at most this often (process-wide).
+#: It shares the provider's throttle with recommendations, so this keeps at
+#: least half of the FOSSGIS capacity for recommendation walking routes even
+#: if someone floods /routes. Cached routes are not limited.
+ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS = 2.0
+#: How long "no route" answers (no path, or snapped too far) are remembered,
+#: so an impossible trip does not spend a provider call on every search.
+NO_ROUTE_CACHE_SECONDS = 3600.0
+#: Decimals of the route duration in minutes, shared by POST /routes and the
+#: walking minutes used in ranking so the card and directions box agree.
+ROUTE_MINUTES_DECIMALS = 1
 #: OpenSSL reasons that mean the client and server share no TLS version, so
 #: retrying cannot help. Certificate and other SSL failures are not here.
 TLS_PROTOCOL_REASONS = frozenset({
@@ -355,6 +369,33 @@ def _number(value, label: str) -> float:
     return number
 
 
+def _wait_for_slot(throttle: RequestThrottle | None, deadline: float | None) -> float:
+    """Take a throttle slot (if any) within the deadline; return the timeout.
+
+    Checks the deadline before taking a slot, only takes a slot that leaves
+    MIN_PROVIDER_SECONDS, and checks again right before the caller sends.
+
+    Raises:
+        DeadlineExceeded: not enough budget left.
+        RoutingError: the throttle is too busy.
+    """
+    _time_left(deadline)
+    if throttle is not None:
+        throttle.acquire(None if deadline is None else deadline - MIN_PROVIDER_SECONDS)
+    return _time_left(deadline)
+
+
+def route_minutes(route: Route) -> float:
+    """Route duration in minutes, as POST /routes reports it."""
+    return round(route.duration_seconds / 60, ROUTE_MINUTES_DECIMALS)
+
+
+def display_minutes(route: Route) -> int:
+    """Whole walking minutes, rounded up with a 1-minute floor, exactly as the
+    website's directions box shows ``route_minutes`` (formatDuration)."""
+    return max(1, math.ceil(route_minutes(route)))
+
+
 class OpenRouteServiceProvider:
     """OpenRouteService directions (GeoJSON endpoint).
 
@@ -362,17 +403,23 @@ class OpenRouteServiceProvider:
         api_key: ORS key; sent only in the Authorization header.
         client: optional httpx.Client (tests pass a mock transport).
         base_url: API root, overridable for a self-hosted ORS.
+        throttle: ``"auto"`` (default) shares one throttle per ORS host,
+            ORS_MIN_INTERVAL_SECONDS apart, to stay under the free plan's
+            per-minute limit; or pass a RequestThrottle, or None.
     """
 
     name = "ors"
 
     def __init__(self, api_key: str, client: httpx.Client | None = None,
-                 base_url: str = ORS_BASE_URL):
+                 base_url: str = ORS_BASE_URL, throttle="auto"):
         if not api_key:
             raise ValueError("OpenRouteService needs an API key (ORS_API_KEY).")
         self._key = api_key
         self._client = client or httpx.Client(timeout=PROVIDER_TIMEOUT_SECONDS)
         self._base_url = base_url.rstrip("/")
+        self._throttle = (shared_throttle(urlsplit(self._base_url).hostname or "ors",
+                                          ORS_MIN_INTERVAL_SECONDS)
+                          if throttle == "auto" else throttle)
 
     def route(self, mode: TravelMode, origin: Point, destination: Point,
               deadline: float | None = None) -> Route:
@@ -380,11 +427,12 @@ class OpenRouteServiceProvider:
         url = f"{self._base_url}/v2/directions/{ORS_PROFILES[mode]}/geojson"
         body = {"coordinates": [[origin.longitude, origin.latitude],
                                 [destination.longitude, destination.latitude]]}
+        timeout = _wait_for_slot(self._throttle, deadline)
         try:
             response = self._client.post(url, json=body, headers={
                 "Authorization": self._key, "User-Agent": USER_AGENT,
                 "Accept": "application/geo+json, application/json",
-            }, timeout=_time_left(deadline))
+            }, timeout=timeout)
         except httpx.HTTPError as error:
             raise _request_error(error, "OpenRouteService") from error
         if response.status_code == 404:
@@ -395,9 +443,11 @@ class OpenRouteServiceProvider:
                 f"OpenRouteService returned HTTP {response.status_code}.")
         try:
             feature = response.json()["features"][0]
-            summary = feature["properties"]["summary"]
+            summary = feature["properties"].get("summary") or {}
             geometry = feature["geometry"]["coordinates"]
-        except (ValueError, KeyError, IndexError, TypeError) as error:
+            if not isinstance(summary, dict):
+                raise TypeError("summary is not an object")
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as error:
             raise RoutingError("OpenRouteService response is unreadable.") from error
         return Route(
             mode=mode,
@@ -454,12 +504,7 @@ class OsrmProvider:
         points = (f"{origin.longitude},{origin.latitude};"
                   f"{destination.longitude},{destination.latitude}")
         url = f"{self._urls[mode]}/route/v1/driving/{points}"
-        _time_left(deadline)  # fail fast before taking a throttle slot
-        if self._throttles[mode] is not None:
-            # Only take a slot that still leaves time for the call itself
-            self._throttles[mode].acquire(
-                None if deadline is None else deadline - MIN_PROVIDER_SECONDS)
-        timeout = _time_left(deadline)  # recheck after waiting for the slot
+        timeout = _wait_for_slot(self._throttles[mode], deadline)
         try:
             response = self._client.get(
                 url, params={"overview": "full", "geometries": "geojson"},
@@ -503,6 +548,8 @@ class RouteService:
         #: Why routing was turned off after startup (TLS failure), else None.
         self.disabled_reason: str | None = None
         self._cache: OrderedDict[tuple, Route] = OrderedDict()
+        #: "No route" answers by trip key: (expiry on time.monotonic, message)
+        self._no_route: OrderedDict[tuple, tuple[float, str]] = OrderedDict()
         self._max_entries = max_entries
         self._lock = threading.Lock()
 
@@ -512,13 +559,16 @@ class RouteService:
         return self.provider is not None
 
     def route(self, mode: TravelMode, origin: Point, destination: Point,
-              deadline: float | None = None) -> Route:
+              deadline: float | None = None,
+              gate: RequestThrottle | None = None) -> Route:
         """Return a (possibly cached) route.
 
         Args:
             mode, origin, destination: the trip.
             deadline: optional time.monotonic() value; cached routes are
                 returned regardless, but no provider request starts after it.
+            gate: optional extra throttle taken only when the provider must be
+                called (POST /routes uses it to cap its share of provider calls).
 
         Raises:
             ValueError: unknown mode or a trip longer than MAX_TRIP_KM.
@@ -526,7 +576,8 @@ class RouteService:
                 a confirmed unsupported-TLS failure (logged once). Certificate
                 and other SSL errors are RoutingError and leave routing on.
             NoRouteFound: no route, or the provider moved a point more than
-                MAX_SNAP_METERS to reach a road or path.
+                MAX_SNAP_METERS to reach a road or path (remembered for
+                NO_ROUTE_CACHE_SECONDS).
             RoutingError: the provider failed (not cached).
         """
         if mode not in TRAVEL_MODES:
@@ -549,13 +600,27 @@ class RouteService:
             if key in self._cache:
                 self._cache.move_to_end(key)
                 return self._cache[key]
+            known = self._no_route.get(key)
+            if known is not None:
+                if known[0] > time.monotonic():
+                    raise NoRouteFound(known[1])
+                del self._no_route[key]
+        if gate is not None:
+            gate.acquire(deadline)
         try:
             route = provider.route(mode, origin, destination, deadline=deadline)
+            _check_snapping(route, origin, destination)
         except TlsUnsupported as error:
             self._disable(f"Routes turned off: {error}. Use Python 3.11+ built "
                           "with OpenSSL (see docs/backend.md).")
             raise RuntimeError(self.disabled_reason) from error
-        _check_snapping(route, origin, destination)
+        except NoRouteFound as error:
+            with self._lock:
+                self._no_route[key] = (time.monotonic() + NO_ROUTE_CACHE_SECONDS,
+                                       str(error))
+                while len(self._no_route) > self._max_entries:
+                    self._no_route.popitem(last=False)
+            raise
         with self._lock:
             self._cache[key] = route
             self._cache.move_to_end(key)
@@ -648,7 +713,8 @@ def walk_router(service: RouteService,
         workers: parallel requests per call.
     Returns:
         ``route_walks(origins, destination) -> {location_id: minutes}`` with
-        whole minutes rounded up (matching the website's directions box), or
+        whole minutes from display_minutes (matching the website's directions
+        box), or
         None when routing is off. Failed or too-long trips are left out; when
         every route in a call fails, one warning is logged.
     """
@@ -692,7 +758,12 @@ def walk_router(service: RouteService,
                             futures[future], error)
                 problems.append(f"{futures[future]}: {error}")
                 continue
-            minutes[futures[future]] = math.ceil(route.duration_seconds / 60)
+            except Exception as error:  # one bad answer must not lose the others
+                LOGGER.exception("Unexpected walking-route error for %s",
+                                 futures[future])
+                problems.append(f"{futures[future]}: {type(error).__name__}")
+                continue
+            minutes[futures[future]] = display_minutes(route)
         if pending:
             problems.append(f"{len(pending)} not finished within {budget_seconds:g} s")
         if not minutes:

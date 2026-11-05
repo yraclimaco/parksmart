@@ -89,6 +89,13 @@ sends one). ParkSmart respects that limit like this:
   (`FOSSGIS_MIN_INTERVAL_SECONDS`), across both modes. A request whose slot is
   more than 6 s away fails fast (`/routes` 502, recommendations keep
   straight-line times) instead of queueing.
+- **`/routes` cannot crowd out searches.** Directions requests that need the
+  provider start at most every 2 s process-wide
+  (`ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS`), so even a flood of `/routes` calls
+  leaves at least half of the FOSSGIS slots for recommendation walking routes.
+  Cached trips are not limited. For the deployed API, also set API Gateway
+  throttling (a per-route rate limit), since this backend does not identify
+  clients.
 - **Few calls per search.** A recommendation routes at most the top 5 locations,
   then only the first choice and backup if they are not yet checked (at most 11
   calls, in an 8 s budget per request; see `docs/recommendations.md`).
@@ -138,7 +145,7 @@ For Daira's backend deployment. Nothing here needs code changes.
 | Python | 3.12 runtime (has OpenSSL 3 and TLS 1.3). Package `requirements.txt` as usual; `httpx` is the only routing dependency. |
 | Function timeout | At least **30 s**. Routing work stops at each request's deadline (see "Request deadlines" above). Each provider call times out after 8 s (`PROVIDER_TIMEOUT_SECONDS`); a recommendation spends at most 8 s on walking routes (`WALK_ROUTING_BUDGET_SECONDS`) on top of ranking; the website gives up after 20 s. API Gateway caps integrations at about 30 s (29 s for REST APIs). |
 | Internet access | The function must reach `routing.openstreetmap.de` (or `api.openrouteservice.org`) over HTTPS. Outside a VPC this works by default. Inside a VPC it needs a NAT gateway, which costs money: do not enable it without funded DS3 access; use `PARKSMART_ROUTING_PROVIDER=none` instead. |
-| Concurrency | The FOSSGIS throttle is per instance. Set reserved concurrency to **1** while using the public servers, or switch provider (plan above). |
+| Concurrency | The FOSSGIS, OpenRouteService and `/routes` throttles are per instance. Set reserved concurrency to **1** while using the public servers, or switch provider (plan above). Add API Gateway throttling on `POST /routes`. |
 | Cache | In memory only (1,024 routes). Lost on every cold start and not shared between instances, so a cold function routes again. Not a reason to add a database; it only saves provider calls. |
 | Environment | `PARKSMART_CORS_ORIGINS` (Amplify URL). Optional `ORS_API_KEY` as an encrypted variable or Secrets Manager value, never in Git or `VITE_` variables. `PARKSMART_ROUTING_PROVIDER=none` to turn routes off. |
 | Logs | CloudWatch shows one warning when routes are turned off (no TLS 1.3, bad configuration) and a warning, with the reasons, whenever every walking route in a recommendation's routing round failed. Provider errors are never returned to the browser. |
@@ -185,7 +192,16 @@ Response (200):
 | 503 | Routing is not configured on this server, or was turned off because this Python cannot use TLS 1.3 (see the server log). |
 
 Successful routes are cached in memory (1,024 trips, about 1 m coordinate
-precision). Failures are not cached. The website also keeps successful routes for
+precision). "No route" answers (no path, or a point snapped too far) are
+remembered for an hour (`NO_ROUTE_CACHE_SECONDS`) so an impossible trip does not
+spend a provider call on every search; provider failures are never cached.
+OpenRouteService requests are spaced 1.5 s apart per process
+(`ORS_MIN_INTERVAL_SECONDS`) to stay under its 40-a-minute free limit.
+
+`duration_minutes` is rounded to 0.1 min (`route_minutes`); the website shows
+it rounded up with a 1-minute floor, and ranking uses the same number
+(`display_minutes`), so a card and the directions box always show the same
+walking time. The website also keeps successful routes for
 the visit, so switching between first choice and backup does not repeat requests.
 
 ## Snapping check (2026-11-05)

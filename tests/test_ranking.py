@@ -462,3 +462,49 @@ def test_longest_unchecked_explanation_fits_api_limit():
     text = ranking._explain(backup, "V", first)
     assert "straight-line, unchecked" in text
     assert len(text) <= ranking.MAX_TEXT_LENGTH, text
+
+
+
+# Code review fixes ----------------------------------------------------------
+
+@pytest.mark.parametrize("source", [ranking.WALK_STRAIGHT_LINE, ranking.WALK_ROUTED,
+                                    ranking.WALK_UNCHECKED])
+def test_worst_case_explanation_always_fits_the_api_limit(source):
+    # Review case: model basis, limited note, nearly full, approximate pin,
+    # unchecked walk, permit cutoff and backup comparison all at once (207 chars)
+    first = recommend(_candidates([("near", "S", "", 0.9)]), LOCATIONS, "S",
+                      WEEKDAY_MORNING, DESTINATION).first_choice
+    choice = recommend(_candidates([("gliderport", "Visitor", "2-Hour Limit", 0.05)]),
+                       LOCATIONS, "V", WEEKDAY_MORNING, DESTINATION,
+                       WEEKDAY_MORNING.replace(hour=11)).first_choice
+    choice.estimate_basis = "model"
+    choice.estimate_note = "2:00 PM surveys; none cover 10:00 PM, using a broader average"
+    choice.allowed_until = datetime(2026, 10, 28, 7, 30)
+    choice.estimated_walking_minutes = 19
+    choice.walking_source = source
+    text = ranking._explain(choice, "SR", first)
+    assert len(text) <= ranking.MAX_TEXT_LENGTH, text
+    ParkingChoice(location=choice.location, explanation=text,
+                  estimated_available_fraction=0.05, estimated_walking_minutes=19)
+
+
+def test_every_location_too_far_by_path_is_not_called_missing_estimates():
+    # Review case: all scored locations are dropped by routed walk, and one
+    # other group has no estimate; this is a walking problem, not missing data
+    result = recommend(_candidates([
+        ("near", "S", "", 0.5), ("mid", "S", "", 0.6), ("gliderport", "S", "", None),
+    ]), LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION,
+        walk_router=_router({"near": 25, "mid": 24}))
+    assert result.status == NO_SUITABLE_LOCATION
+    assert result.counts["missing_estimate"] == 1
+    assert "2 parking locations were over a 20-minute walk by mapped path " \
+        "and not recommended." in result.limitations
+
+
+def test_route_unavailable_counts_only_locations_sent_to_the_router():
+    no_pin = _location("nopin", 32.8805)
+    no_pin["coordinates"] = None
+    result = recommend(_candidates([("near", "S", "", 0.5), ("nopin", "S", "", 0.9)]),
+                       [*LOCATIONS, no_pin], "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=_router({}))
+    assert result.counts["route_unavailable"] == 1  # "near" only

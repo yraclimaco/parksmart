@@ -74,7 +74,8 @@ class FakeProvider:
 
 def test_ors_sends_key_in_header_and_lon_lat_order():
     seen = []
-    provider = OpenRouteServiceProvider("secret-key", client_returning(200, ors_body(), seen))
+    provider = OpenRouteServiceProvider("secret-key", client_returning(200, ors_body(), seen),
+                                        throttle=None)
     route = provider.route("walking", GILMAN, GEISEL)
     request = seen[0]
     assert request.url.path == "/v2/directions/foot-walking/geojson"
@@ -87,7 +88,7 @@ def test_ors_sends_key_in_header_and_lon_lat_order():
 
 def test_ors_uses_driving_profile():
     seen = []
-    OpenRouteServiceProvider("k", client_returning(200, ors_body(), seen)).route(
+    OpenRouteServiceProvider("k", client_returning(200, ors_body(), seen), throttle=None).route(
         "driving", DOWNTOWN, GILMAN)
     assert seen[0].url.path == "/v2/directions/driving-car/geojson"
 
@@ -98,7 +99,8 @@ def test_ors_requires_a_key():
 
 
 def test_ors_404_means_no_route():
-    provider = OpenRouteServiceProvider("k", client_returning(404, {"error": {"code": 2010}}))
+    provider = OpenRouteServiceProvider("k", client_returning(404, {"error": {"code": 2010}}),
+                                        throttle=None)
     with pytest.raises(NoRouteFound):
         provider.route("walking", GILMAN, GEISEL)
 
@@ -114,7 +116,7 @@ def test_ors_404_means_no_route():
     (200, ors_body(duration="soon")),
 ])
 def test_ors_problems_raise_routing_error(status, body):
-    provider = OpenRouteServiceProvider("k", client_returning(status, body))
+    provider = OpenRouteServiceProvider("k", client_returning(status, body), throttle=None)
     with pytest.raises(RoutingError):
         provider.route("walking", GILMAN, GEISEL)
 
@@ -122,7 +124,8 @@ def test_ors_problems_raise_routing_error(status, body):
 def test_ors_network_failure_raises_routing_error():
     def handler(request):
         raise httpx.ConnectTimeout("timed out", request=request)
-    provider = OpenRouteServiceProvider("k", httpx.Client(transport=httpx.MockTransport(handler)))
+    provider = OpenRouteServiceProvider("k", httpx.Client(transport=httpx.MockTransport(handler)),
+                                        throttle=None)
     with pytest.raises(RoutingError):
         provider.route("walking", GILMAN, GEISEL)
 
@@ -524,14 +527,14 @@ def test_small_snapping_is_accepted():
     assert service.route("walking", GILMAN, GEISEL).duration_seconds == 600.0
 
 
-def test_excessive_snapping_is_rejected_and_not_cached():
+def test_excessive_snapping_is_rejected_and_remembered():
     provider = SnappingProvider(offset=0.005)  # about 556 m
     service = RouteService(provider)
     with pytest.raises(NoRouteFound, match=r"556 m from the start point"):
         service.route("walking", GILMAN, GEISEL)
-    with pytest.raises(NoRouteFound):
+    with pytest.raises(NoRouteFound, match=r"556 m"):
         service.route("walking", GILMAN, GEISEL)
-    assert provider.calls == 2
+    assert provider.calls == 1  # the impossible trip is not asked again
     assert MAX_SNAP_METERS["walking"] < 556 < 1000
 
 
@@ -750,3 +753,126 @@ def test_no_call_starts_with_almost_no_budget_left():
     with pytest.raises(DeadlineExceeded):
         provider.route("walking", GILMAN, GEISEL, deadline=nearly_over)
     assert seen == [] and throttle._next_start == -math.inf  # no slot taken
+
+
+
+# Code review fixes ------------------------------------------------------------
+
+from src.routing import display_minutes, route_minutes  # noqa: E402
+
+
+def _route_of(seconds):
+    return Route(mode="walking", distance_meters=500.0, duration_seconds=seconds,
+                 geometry=LINE, provider="osrm")
+
+
+@pytest.mark.parametrize("seconds, minutes", [(421, 7), (7 * 60 + 4, 8), (30, 1), (0, 1)])
+def test_card_minutes_match_the_directions_box(seconds, minutes):
+    # The website shows max(1, ceil(duration_minutes)) from POST /routes
+    route = _route_of(seconds)
+    assert display_minutes(route) == max(1, math.ceil(route_minutes(route))) == minutes
+
+
+def test_routes_endpoint_and_ranking_use_the_same_minutes(tmp_path):
+    class SecondsProvider(FakeProvider):
+        def route(self, mode, origin, destination, deadline=None):
+            line = [[origin.longitude, origin.latitude],
+                    [destination.longitude, destination.latitude]]
+            return Route(mode=mode, distance_meters=500.0, duration_seconds=422.0,
+                         geometry=line, provider=self.name)
+
+    service = RouteService(SecondsProvider())
+    with api(service, tmp_path) as client:
+        shown = client.post("/routes", json=trip()).json()["duration_minutes"]
+    assert walk_router(service)(ORIGINS, DEST)["gilman-ps"] == max(1, math.ceil(shown))
+
+
+def test_no_route_answers_are_remembered_then_expire(monkeypatch):
+    provider = FakeProvider(error=NoRouteFound("no path"))
+    service = RouteService(provider)
+    for _ in range(3):
+        with pytest.raises(NoRouteFound, match="no path"):
+            service.route("walking", GILMAN, GEISEL)
+    assert provider.calls == 1
+    monkeypatch.setattr(routing, "NO_ROUTE_CACHE_SECONDS", -1.0)
+    service._no_route.clear()
+    for _ in range(2):
+        with pytest.raises(NoRouteFound):
+            service.route("walking", GILMAN, GEISEL)
+    assert provider.calls == 3  # expired entries are asked again
+
+
+def test_provider_errors_are_not_remembered():
+    provider = FakeProvider(error=RoutingError("HTTP 500"))
+    service = RouteService(provider)
+    for _ in range(2):
+        with pytest.raises(RoutingError):
+            service.route("walking", GILMAN, GEISEL)
+    assert provider.calls == 2
+
+
+def test_gate_is_only_taken_when_the_provider_is_called():
+    taken = []
+
+    class CountingGate:
+        def acquire(self, deadline=None):
+            taken.append(deadline)
+
+    service = RouteService(FakeProvider())
+    for _ in range(3):
+        service.route("walking", GILMAN, GEISEL, gate=CountingGate())
+    assert len(taken) == 1  # repeats come from the cache
+
+
+def test_routes_endpoint_caps_its_share_of_provider_calls(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.api.main.ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS", 0.4)
+    with api(RouteService(FakeProvider()), tmp_path) as client:
+        began = time.monotonic()
+        for i in range(3):  # distinct, uncached trips
+            body = trip(origin=Point(GILMAN.latitude + i * 0.0003, GILMAN.longitude))
+            assert client.post("/routes", json=body).status_code == 200
+        elapsed = time.monotonic() - began
+        again = time.monotonic()
+        assert client.post("/routes", json=trip(
+            origin=Point(GILMAN.latitude, GILMAN.longitude))).status_code == 200
+        cached = time.monotonic() - again
+    assert elapsed >= 0.8 - 0.05  # 3 provider calls, 0.4 s apart
+    assert cached < 0.2  # cached trips are not gated
+
+
+def test_ors_shares_a_quota_throttle_and_respects_the_deadline():
+    first = OpenRouteServiceProvider("k", client_returning(200, ors_body()))
+    second = OpenRouteServiceProvider("k", client_returning(200, ors_body()))
+    assert first._throttle is second._throttle
+    assert first._throttle.min_interval == routing.ORS_MIN_INTERVAL_SECONDS
+    seen = []
+    provider = OpenRouteServiceProvider("k", client_returning(200, ors_body(), seen),
+                                        throttle=RequestThrottle(1.0))
+    with pytest.raises(DeadlineExceeded):
+        provider.route("walking", GILMAN, GEISEL, deadline=time.monotonic() - 1)
+    assert seen == []
+
+
+@pytest.mark.parametrize("summary", [None, "oops", 5])
+def test_ors_odd_summary_is_a_provider_error(summary):
+    body = ors_body()
+    body["features"][0]["properties"]["summary"] = summary
+    provider = OpenRouteServiceProvider("k", client_returning(200, body), throttle=None)
+    if summary is None:  # ORS omits it when start and end coincide
+        assert provider.route("walking", GILMAN, GEISEL).duration_seconds == 0
+    else:
+        with pytest.raises(RoutingError, match="unreadable"):
+            provider.route("walking", GILMAN, GEISEL)
+
+
+def test_one_unexpected_route_error_keeps_the_other_routes():
+    class OneBadProvider(FakeProvider):
+        def route(self, mode, origin, destination, deadline=None):
+            if origin.latitude > GILMAN.latitude:
+                raise AttributeError("bad provider answer")
+            return super().route(mode, origin, destination)
+
+    origins = {**ORIGINS, "bad": {"latitude": GILMAN.latitude + 0.001,
+                                  "longitude": GILMAN.longitude}}
+    minutes = walk_router(RouteService(OneBadProvider()))(origins, DEST)
+    assert minutes == {"gilman-ps": 10}

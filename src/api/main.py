@@ -4,6 +4,7 @@ import logging
 import os
 import time
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +13,9 @@ from src.location_registry import DEFAULT_DATASET, DEFAULT_REGISTRY, load_regist
 from src.parking_benchmarks import load_analysis_dataset
 from src.recommender import Recommender
 from src.routing import (
-    PROVIDER_LABELS, METERS_PER_MILE, ROUTE_REQUEST_BUDGET_SECONDS, NoRouteFound, Point,
-    RouteService, RoutingError, provider_from_env, walk_router,
+    PROVIDER_LABELS, METERS_PER_MILE, ROUTE_REQUEST_BUDGET_SECONDS,
+    ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS, NoRouteFound, Point, RequestThrottle,
+    RouteService, RoutingError, provider_from_env, route_minutes, walk_router,
 )
 
 from .locations import get_locations
@@ -71,9 +73,14 @@ def allowed_origins(environ=None) -> list:
         origin = raw.strip().rstrip("/")
         if not origin:
             continue
-        if "*" in origin or not origin.startswith(("https://", "http://")):
+        # A browser Origin is only scheme://host[:port]; anything else never matches
+        parts = urlsplit(origin)
+        if ("*" in origin or parts.scheme not in ("http", "https")
+                or not parts.hostname or parts.path or parts.query
+                or parts.fragment or parts.username or parts.password):
             raise ValueError(
-                f"{CORS_ORIGINS_ENV} entries must be exact http(s) origins: {raw!r}")
+                f"{CORS_ORIGINS_ENV} entries must be exact http(s) origins "
+                f"(scheme://host[:port], no path): {raw!r}")
         extra.append(origin)
     return list(dict.fromkeys([*LOCAL_FRONTEND_ORIGINS, *extra]))
 
@@ -98,6 +105,9 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
         """Load shared resources for this app, then release them on shutdown."""
         application.state.catalog = None
         application.state.recommender = None
+        # Caps POST /routes' share of provider calls (see routing constants)
+        application.state.routes_gate = RequestThrottle(
+            ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS)
         if route_service is not None:
             application.state.routes = route_service
         else:
@@ -200,7 +210,8 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             # Throttle wait plus provider call stay inside the website's route timeout
             deadline = time.monotonic() + ROUTE_REQUEST_BUDGET_SECONDS
             route = service.route(request.mode, origin, destination,
-                                  deadline=deadline)
+                                  deadline=deadline,
+                                  gate=application.state.routes_gate)
         except RuntimeError as error:
             # Routing was turned off after a confirmed unsupported-TLS failure
             raise HTTPException(503, ROUTING_OFF) from error
@@ -215,7 +226,7 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             mode=route.mode,
             distance_meters=round(route.distance_meters, 1),
             distance_miles=round(route.distance_meters / METERS_PER_MILE, 2),
-            duration_minutes=round(route.duration_seconds / 60, 1),
+            duration_minutes=route_minutes(route),
             geometry=route.geometry,
             provider=PROVIDER_LABELS.get(route.provider, route.provider),
             attribution=ROUTE_ATTRIBUTION,

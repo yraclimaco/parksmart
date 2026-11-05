@@ -244,7 +244,12 @@ def test_deployed_origins_come_from_environment(tmp_path, monkeypatch):
     assert "access-control-allow-origin" not in blocked.headers
 
 
-@pytest.mark.parametrize("value", ["*", "https://*.amplifyapp.com", "parksmart.example"])
+@pytest.mark.parametrize("value", [
+    "*", "https://*.amplifyapp.com", "parksmart.example",
+    "https://main.d123.amplifyapp.com/app", "https://site.example?x=1",
+    "https://site.example#top", "ftp://site.example", "https://",
+    "https://user:pw@site.example",
+])
 def test_cors_origins_reject_wildcards_and_bare_hosts(value):
     with pytest.raises(ValueError, match="exact http"):
         main.allowed_origins({main.CORS_ORIGINS_ENV: value})
@@ -252,3 +257,10 @@ def test_cors_origins_reject_wildcards_and_bare_hosts(value):
 
 def test_local_origins_stay_allowed_without_configuration():
     assert main.allowed_origins({}) == main.LOCAL_FRONTEND_ORIGINS
+
+
+def test_cors_origin_with_trailing_slash_or_port_is_accepted():
+    origins = main.allowed_origins({main.CORS_ORIGINS_ENV:
+                                    "https://main.d123.amplifyapp.com/, http://10.0.0.5:3000"})
+    assert "https://main.d123.amplifyapp.com" in origins
+    assert "http://10.0.0.5:3000" in origins

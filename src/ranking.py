@@ -62,6 +62,9 @@ MIXED_ROUTED_NOTE = ("Walking times follow mapped walking paths where available;
 # How explanations name each walking-time source.
 WALK_KINDS = {WALK_ROUTED: "walking route",
               WALK_UNCHECKED: "walk (straight-line, unchecked)"}
+# Compact wording used only when the full explanation would be too long.
+WALK_KINDS_SHORT = {WALK_ROUTED: "walking route",
+                    WALK_UNCHECKED: "walk (unchecked)"}
 # API Text fields (explanations, limitations) allow at most 200 characters.
 MAX_TEXT_LENGTH = 200
 
@@ -270,7 +273,10 @@ def recommend(candidates, locations, permit, arrival, destination=None,
     limitations = _limitations(counts, walking_known, arrival, departure)
 
     if not ranked:
-        if counts["missing_estimate"]:
+        # Mention locations dropped for their routed walk, and only blame
+        # missing estimates when no group with an estimate was even scored
+        _note_walking_sources(limitations, [], counts)
+        if counts["missing_estimate"] and not counts["scored"]:
             return RecommendationResult(
                 PREDICTIONS_UNAVAILABLE, None, None,
                 "Your permit can use some nearby parking, but no availability "
@@ -328,7 +334,9 @@ def _apply_routed_walks(ranked, registry, destination, walk_router, counts):
             location_id = choice.location["location_id"]
             routed = minutes.get(location_id)
             if routed is None:
-                counts["route_unavailable"] += 1
+                # Counts only locations actually sent to the router
+                if registry[location_id]["coordinates"]:
+                    counts["route_unavailable"] += 1
             elif routed > MAX_WALK_MINUTES:
                 counts["too_far_routed"] += 1
                 dropped.add(location_id)
@@ -419,23 +427,30 @@ def _explain(choice, permit, first):
     """Build a short explanation of at most MAX_TEXT_LENGTH characters.
 
     A limited estimate is named in parentheses. If that does not fit, a
-    shorter marker is used, then the backup comparison is dropped; the full
-    note always stays in the limitations.
+    shorter marker is used, then the backup comparison is dropped, then the
+    walking wording is shortened; the full notes always stay in the
+    limitations. As a last resort the text is cut, so the API's length limit
+    can never fail a response.
     """
-    attempts = [(f" ({choice.estimate_note})", True),
-                (" (limited estimate)", True), (" (limited estimate)", False)]
-    if not choice.estimate_note:
-        attempts = [("", True), ("", False)]
-    for note, compare in attempts:
-        text = _explanation_text(choice, permit, first if compare else None,
-                                 note)
-        if len(text) <= MAX_TEXT_LENGTH:
-            break
-    return text
+    notes = ([(f" ({choice.estimate_note})", True),
+              (" (limited estimate)", True), (" (limited estimate)", False)]
+             if choice.estimate_note else [("", True), ("", False)])
+    for short_walk in (False, True):
+        for note, compare in notes:
+            text = _explanation_text(choice, permit,
+                                     first if compare else None, note,
+                                     short_walk)
+            if len(text) <= MAX_TEXT_LENGTH:
+                return text
+    return text[:MAX_TEXT_LENGTH - 1] + "\u2026"
 
 
-def _explanation_text(choice, permit, first, note):
-    """Join the explanation parts; ``first`` adds the backup comparison."""
+def _explanation_text(choice, permit, first, note, short_walk=False):
+    """Join the explanation parts.
+
+    ``first`` adds the backup comparison; ``short_walk`` uses the compact
+    walking wording (WALK_KINDS_SHORT, "approx. pin").
+    """
     parts = [f"{permit} permit valid in {_stall_text(choice.parking_group)}"]
     if choice.allowed_until is not None:
         parts[0] += f" until {_clock(choice.allowed_until)}"
@@ -447,8 +462,10 @@ def _explanation_text(choice, permit, first, note):
     if choice.estimated_available_fraction <= NEAR_FULL_FRACTION:
         parts.append("Often nearly full.")
     if choice.estimated_walking_minutes is not None:
-        approx = " (approximate pin)" if choice.walking_is_approximate else ""
-        kind = WALK_KINDS.get(choice.walking_source, "walk")
+        kinds = WALK_KINDS_SHORT if short_walk else WALK_KINDS
+        approx = ((" (approx. pin)" if short_walk else " (approximate pin)")
+                  if choice.walking_is_approximate else "")
+        kind = kinds.get(choice.walking_source, "walk")
         parts.append(
             f"About {choice.estimated_walking_minutes} min {kind}{approx}.")
     if first is not None:

@@ -123,7 +123,8 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    top 5 locations by this straight-line score get mapped walking routes
    (`walk_router` in `src/routing.py`, in parallel, through the shared FOSSGIS
    throttle). Routes over 20 minutes are dropped; the rest are rescored with
-   the routed minutes (rounded up) and re-sorted, and their explanations say
+   the routed minutes (the directions box's number: duration rounded to 0.1 min,
+   then up, at least 1) and re-sorted, and their explanations say
    "walking route". Straight-line estimates are usually, but not always,
    shorter than mapped paths (paths were 1.2–1.4× the straight line in the
    pilot), so a location outside the top 5 can still rise to first choice or
@@ -136,6 +137,13 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    saying its mapped path was not checked against the 20-minute limit. The
    limit is only described as checked by mapped path for routed picks. If every
    route in a routing round fails, the server logs a warning with the reasons.
+   If routing drops every location, the result is `no_suitable_location` with
+   a limitation saying how many were over the limit by mapped path (never
+   `predictions_unavailable`, which only means no eligible group had an
+   estimate). Routed minutes skip the straight-line formula's 2-minute buffer
+   and 3-minute floor, so when routed and straight-line walks are ranked
+   together they are on slightly different scales; each pick's label says
+   which it is.
    Without routing, behavior is unchanged.
 6. **Ties:** higher score, then higher availability, then shorter walk, then
    `location_id` alphabetically, so results are deterministic.
