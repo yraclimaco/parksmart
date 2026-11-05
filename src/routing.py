@@ -67,8 +67,9 @@ MAX_SNAP_METERS: dict[str, float] = {"driving": 250.0, "walking": 150.0}
 
 #: Total time one recommendation request waits for routed walking times, over
 #: all its routing rounds, before keeping straight-line estimates. Inside the
-#: website's 20 s timeout; at one request a second it covers the first 5
-#: routes plus a check of the picks.
+#: website's 20 s timeout. With an idle FOSSGIS throttle (1 request a second)
+#: it covers the first 5 routes plus a check of the picks; with ORS (one per
+#: 1.6 s) or a busy throttle, fewer, and the rest stay labeled unchecked.
 WALK_ROUTING_BUDGET_SECONDS = 8.0
 #: Parallel walking-route requests per recommendation. The FOSSGIS throttle
 #: still spaces their starts one second apart; parallel requests only overlap
@@ -90,16 +91,30 @@ ROUTE_REQUEST_BUDGET_SECONDS = 10.0
 #: shorter call would almost surely time out and just spend a FOSSGIS slot.
 MIN_PROVIDER_SECONDS = 0.25
 #: Minimum seconds between OpenRouteService requests in this process: its free
-#: plan allows 40 directions a minute (checked 2026-11-04), so 1.5 s stays under.
-ORS_MIN_INTERVAL_SECONDS = 1.5
-#: POST /routes may start a provider call at most this often (process-wide).
-#: It shares the provider's throttle with recommendations, so this keeps at
-#: least half of the FOSSGIS capacity for recommendation walking routes even
-#: if someone floods /routes. Cached routes are not limited.
+#: plan allows 40 directions a minute (checked 2026-11-04); 1.6 s allows at
+#: most 38 in any rolling minute. Per process: several workers or Lambda
+#: instances each get this budget, so keep one instance while on the free plan.
+ORS_MIN_INTERVAL_SECONDS = 1.6
+#: OpenRouteService error codes (sent with HTTP 404) that mean "no route":
+#: 2009 route not found, 2010 no routable point near a coordinate. Any other
+#: 404 is a configuration problem (wrong base URL or profile).
+ORS_NO_ROUTE_CODES = frozenset({2009, 2010})
+#: ORS omits the route summary only when start and end are the same point;
+#: within this distance a missing summary means a 0 m route.
+SAME_POINT_METERS = 1.0
+#: POST /routes may start a provider call at most this often (process-wide)
+#: when the provider is rate limited (public FOSSGIS or ORS). It shares the
+#: provider's throttle with recommendations, so this keeps at least half of
+#: the FOSSGIS capacity for recommendation walking routes even if someone
+#: floods /routes. Cached routes and unthrottled self-hosted servers are not
+#: limited.
 ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS = 2.0
 #: How long "no route" answers (no path, or snapped too far) are remembered,
 #: so an impossible trip does not spend a provider call on every search.
 NO_ROUTE_CACHE_SECONDS = 3600.0
+#: Longest an identical request waits for one already in progress when it has
+#: no deadline of its own (throttle wait plus provider timeout).
+IN_FLIGHT_WAIT_SECONDS = THROTTLE_MAX_WAIT_SECONDS + PROVIDER_TIMEOUT_SECONDS
 #: Decimals of the route duration in minutes, shared by POST /routes and the
 #: walking minutes used in ranking so the card and directions box agree.
 ROUTE_MINUTES_DECIMALS = 1
@@ -396,6 +411,15 @@ def display_minutes(route: Route) -> int:
     return max(1, math.ceil(route_minutes(route)))
 
 
+def _ors_error_code(response: httpx.Response) -> int | None:
+    """The numeric ``error.code`` from an ORS error body, if readable."""
+    try:
+        code = response.json()["error"]["code"]
+        return int(code)
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
 class OpenRouteServiceProvider:
     """OpenRouteService directions (GeoJSON endpoint).
 
@@ -421,6 +445,11 @@ class OpenRouteServiceProvider:
                                           ORS_MIN_INTERVAL_SECONDS)
                           if throttle == "auto" else throttle)
 
+    @property
+    def rate_limited(self) -> bool:
+        """True when requests go through a throttle (always, by default)."""
+        return self._throttle is not None
+
     def route(self, mode: TravelMode, origin: Point, destination: Point,
               deadline: float | None = None) -> Route:
         """Request one route; see RoutingProvider.route."""
@@ -436,17 +465,24 @@ class OpenRouteServiceProvider:
         except httpx.HTTPError as error:
             raise _request_error(error, "OpenRouteService") from error
         if response.status_code == 404:
-            # ORS answers 404 (error code 2010) when a point is far from any road
-            raise NoRouteFound("No road or path was found near one of the points.")
+            code = _ors_error_code(response)
+            if code in ORS_NO_ROUTE_CODES:
+                raise NoRouteFound("No road or path was found near one of the points.")
+            raise RoutingError(
+                f"OpenRouteService returned HTTP 404 (error code {code}); check "
+                "the ORS base URL and profile.")
         if response.status_code != 200:
             raise RoutingError(
                 f"OpenRouteService returned HTTP {response.status_code}.")
         try:
             feature = response.json()["features"][0]
-            summary = feature["properties"].get("summary") or {}
+            summary = feature["properties"].get("summary")
             geometry = feature["geometry"]["coordinates"]
+            if summary is None and (straight_line_km(origin, destination) * 1000
+                                    <= SAME_POINT_METERS):
+                summary = {}  # ORS omits it when start and end coincide
             if not isinstance(summary, dict):
-                raise TypeError("summary is not an object")
+                raise TypeError("summary is missing or not an object")
         except (ValueError, KeyError, IndexError, TypeError, AttributeError) as error:
             raise RoutingError("OpenRouteService response is unreadable.") from error
         return Route(
@@ -486,6 +522,11 @@ class OsrmProvider:
                     FOSSGIS_HOST, FOSSGIS_MIN_INTERVAL_SECONDS) if public else None)
             else:
                 self._throttles[mode] = throttle
+
+    @property
+    def rate_limited(self) -> bool:
+        """True when any mode goes through a throttle (the public servers)."""
+        return any(throttle is not None for throttle in self._throttles.values())
 
     @property
     def uses_public_servers(self) -> bool:
@@ -550,6 +591,8 @@ class RouteService:
         self._cache: OrderedDict[tuple, Route] = OrderedDict()
         #: "No route" answers by trip key: (expiry on time.monotonic, message)
         self._no_route: OrderedDict[tuple, tuple[float, str]] = OrderedDict()
+        #: Trips being fetched now; identical requests wait for the first one
+        self._in_flight: dict[tuple, threading.Event] = {}
         self._max_entries = max_entries
         self._lock = threading.Lock()
 
@@ -557,6 +600,11 @@ class RouteService:
     def enabled(self) -> bool:
         """True when a provider is configured."""
         return self.provider is not None
+
+    @property
+    def rate_limited(self) -> bool:
+        """True when the provider throttles its requests (FOSSGIS or ORS)."""
+        return bool(getattr(self.provider, "rate_limited", False))
 
     def route(self, mode: TravelMode, origin: Point, destination: Point,
               deadline: float | None = None,
@@ -596,17 +644,45 @@ class RouteService:
                        destination.latitude, destination.longitude)
         key = (mode, *(round(value, CACHE_COORDINATE_DECIMALS)
                        for value in coordinates))
-        with self._lock:
-            if key in self._cache:
-                self._cache.move_to_end(key)
-                return self._cache[key]
-            known = self._no_route.get(key)
-            if known is not None:
-                if known[0] > time.monotonic():
-                    raise NoRouteFound(known[1])
-                del self._no_route[key]
+        while True:
+            with self._lock:
+                cached = self._cached(key)
+                if cached is not None:
+                    return cached
+                waiting = self._in_flight.get(key)
+                if waiting is None:
+                    done = self._in_flight[key] = threading.Event()
+                    break
+            # The same trip is being fetched; use its answer instead of a new call
+            wait_for = (IN_FLIGHT_WAIT_SECONDS if deadline is None
+                        else deadline - time.monotonic())
+            if wait_for <= 0 or not waiting.wait(wait_for):
+                raise DeadlineExceeded("The same route is still being fetched.")
+        try:
+            return self._fetch(provider, key, mode, origin, destination,
+                               deadline, gate)
+        finally:
+            with self._lock:
+                self._in_flight.pop(key, None)
+            done.set()
+
+    def _cached(self, key: tuple) -> Route | None:
+        """Cached route, or raise a remembered NoRouteFound; call under _lock."""
+        if key in self._cache:
+            self._cache.move_to_end(key)
+            return self._cache[key]
+        known = self._no_route.get(key)
+        if known is not None:
+            if known[0] > time.monotonic():
+                raise NoRouteFound(known[1])
+            del self._no_route[key]
+        return None
+
+    def _fetch(self, provider, key, mode, origin, destination, deadline, gate):
+        """Call the provider once and cache the answer (see route)."""
         if gate is not None:
-            gate.acquire(deadline)
+            # Same rule as the provider throttle: leave time for the call itself
+            gate.acquire(None if deadline is None else deadline - MIN_PROVIDER_SECONDS)
         try:
             route = provider.route(mode, origin, destination, deadline=deadline)
             _check_snapping(route, origin, destination)

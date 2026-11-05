@@ -107,7 +107,11 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    match today's allocation.
 2. **Filter:** registry status `supported`, eligibility `allowed`, walk at most
    20 minutes, and an availability estimate present. Skipped counts are in
-   `result.counts`; missing estimates are never filled in.
+   `result.counts` for debugging and notebooks (not part of the API response):
+   `not_supported`, `not_allowed`, `needs_verification`, `too_far`,
+   `missing_estimate`, `scored`, and with routing `too_far_routed` and
+   `route_unavailable` (locations sent to the router that got no route).
+   Missing estimates are never filled in.
 3. **Walking time:** straight-line distance × 13 min/km + 2 min, minimum
    3 min — the website's formula. It is an approximation, not a routed path.
    Unknown when the destination has no coordinates. Pins marked approximate

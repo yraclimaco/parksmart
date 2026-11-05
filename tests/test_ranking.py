@@ -499,6 +499,9 @@ def test_every_location_too_far_by_path_is_not_called_missing_estimates():
     assert result.counts["missing_estimate"] == 1
     assert "2 parking locations were over a 20-minute walk by mapped path " \
         "and not recommended." in result.limitations
+    # No contradiction: walks were partly checked by mapped path
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
+    assert ranking.MIXED_ROUTED_NOTE in result.limitations
 
 
 def test_route_unavailable_counts_only_locations_sent_to_the_router():

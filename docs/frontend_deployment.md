@@ -33,7 +33,9 @@ Build settings live in `amplify.yml` at the repository root (monorepo format,
 | Backend (Lambda) environment | `PARKSMART_CORS_ORIGINS` | The Amplify URL, e.g. `https://main.d1abc2345.amplifyapp.com` (comma-separate several; exact origins only, no wildcards) |
 | Backend (Lambda) environment | `ORS_API_KEY` (optional) | Routing key (see `docs/routing.md`); without it the public OSRM servers are used. Never in Amplify or Git |
 
-A malformed `PARKSMART_CORS_ORIGINS` entry (a wildcard, or no `https://`) stops
+Entries are normalized the way browsers send them (lowercase host, no default
+`:443`/`:80`). A malformed entry (a wildcard, no `https://`, a path, query or bad
+port) stops
 the backend at startup with a message naming the entry, rather than failing later
 as an unexplained CORS error in the browser. Check CloudWatch logs if the backend
 will not start after changing it.

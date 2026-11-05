@@ -89,11 +89,12 @@ sends one). ParkSmart respects that limit like this:
   (`FOSSGIS_MIN_INTERVAL_SECONDS`), across both modes. A request whose slot is
   more than 6 s away fails fast (`/routes` 502, recommendations keep
   straight-line times) instead of queueing.
-- **`/routes` cannot crowd out searches.** Directions requests that need the
-  provider start at most every 2 s process-wide
-  (`ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS`), so even a flood of `/routes` calls
-  leaves at least half of the FOSSGIS slots for recommendation walking routes.
-  Cached trips are not limited. For the deployed API, also set API Gateway
+- **`/routes` cannot crowd out searches.** With a rate-limited provider
+  (public FOSSGIS or ORS), directions requests that need the provider start at
+  most every 2 s process-wide (`ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS`), so even
+  a flood of `/routes` calls leaves at least half of the FOSSGIS slots for
+  recommendation walking routes. Cached trips and self-hosted servers are not
+  limited. Identical requests arriving together share one provider call. For the deployed API, also set API Gateway
   throttling (a per-route rate limit), since this backend does not identify
   clients.
 - **Few calls per search.** A recommendation routes at most the top 5 locations,
@@ -194,9 +195,12 @@ Response (200):
 Successful routes are cached in memory (1,024 trips, about 1 m coordinate
 precision). "No route" answers (no path, or a point snapped too far) are
 remembered for an hour (`NO_ROUTE_CACHE_SECONDS`) so an impossible trip does not
-spend a provider call on every search; provider failures are never cached.
-OpenRouteService requests are spaced 1.5 s apart per process
-(`ORS_MIN_INTERVAL_SECONDS`) to stay under its 40-a-minute free limit.
+spend a provider call on every search; provider failures are never cached. For
+OpenRouteService only error codes 2009/2010 count as "no route"; any other 404
+is reported as a configuration problem (base URL or profile). OpenRouteService
+requests are spaced 1.6 s apart per process (`ORS_MIN_INTERVAL_SECONDS`, at most
+38 a minute) to stay under its 40-a-minute free limit; with ORS a search routes
+fewer walks in its 8 s budget, and the rest stay labeled unchecked.
 
 `duration_minutes` is rounded to 0.1 min (`route_minutes`); the website shows
 it rounded up with a 1-minute floor, and ranking uses the same number

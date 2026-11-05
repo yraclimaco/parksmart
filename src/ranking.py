@@ -379,6 +379,10 @@ def _note_walking_sources(limitations, picks, counts):
     """
     sources = {choice.walking_source for _, choice in picks if choice is not None
                and choice.estimated_walking_minutes is not None}
+    if STRAIGHT_LINE_NOTE in limitations and (
+            not any(choice for _, choice in picks) and counts["too_far_routed"]):
+        # Nothing to recommend, but some walks were checked by mapped path
+        limitations[limitations.index(STRAIGHT_LINE_NOTE)] = MIXED_ROUTED_NOTE
     if WALK_ROUTED in sources and STRAIGHT_LINE_NOTE in limitations:
         index = limitations.index(STRAIGHT_LINE_NOTE)
         limitations[index] = (ROUTED_NOTE if sources == {WALK_ROUTED}

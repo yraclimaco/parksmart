@@ -264,3 +264,21 @@ def test_cors_origin_with_trailing_slash_or_port_is_accepted():
                                     "https://main.d123.amplifyapp.com/, http://10.0.0.5:3000"})
     assert "https://main.d123.amplifyapp.com" in origins
     assert "http://10.0.0.5:3000" in origins
+
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("https://Main.D123.amplifyapp.com", "https://main.d123.amplifyapp.com"),
+    ("https://site.example:443", "https://site.example"),
+    ("HTTP://site.example:80/", "http://site.example"),
+    ("https://site.example:8443", "https://site.example:8443"),
+    ("http://[::1]:3000", "http://[::1]:3000"),
+])
+def test_cors_origins_are_normalized_like_browser_origins(value, expected):
+    assert expected in main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+
+
+@pytest.mark.parametrize("value", ["https://site.example:abc", "https://site.example:99999"])
+def test_cors_origins_reject_bad_ports(value):
+    with pytest.raises(ValueError, match="port"):
+        main.allowed_origins({main.CORS_ORIGINS_ENV: value})

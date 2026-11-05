@@ -826,7 +826,9 @@ def test_gate_is_only_taken_when_the_provider_is_called():
 
 def test_routes_endpoint_caps_its_share_of_provider_calls(tmp_path, monkeypatch):
     monkeypatch.setattr("src.api.main.ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS", 0.4)
-    with api(RouteService(FakeProvider()), tmp_path) as client:
+    provider = FakeProvider()
+    provider.rate_limited = True  # like the public FOSSGIS servers
+    with api(RouteService(provider), tmp_path) as client:
         began = time.monotonic()
         for i in range(3):  # distinct, uncached trips
             body = trip(origin=Point(GILMAN.latitude + i * 0.0003, GILMAN.longitude))
@@ -853,16 +855,20 @@ def test_ors_shares_a_quota_throttle_and_respects_the_deadline():
     assert seen == []
 
 
-@pytest.mark.parametrize("summary", [None, "oops", 5])
-def test_ors_odd_summary_is_a_provider_error(summary):
+@pytest.mark.parametrize("summary", [None, "oops", 5, 0, ""])
+def test_ors_missing_or_odd_summary_between_different_points_is_an_error(summary):
     body = ors_body()
     body["features"][0]["properties"]["summary"] = summary
     provider = OpenRouteServiceProvider("k", client_returning(200, body), throttle=None)
-    if summary is None:  # ORS omits it when start and end coincide
-        assert provider.route("walking", GILMAN, GEISEL).duration_seconds == 0
-    else:
-        with pytest.raises(RoutingError, match="unreadable"):
-            provider.route("walking", GILMAN, GEISEL)
+    with pytest.raises(RoutingError, match="unreadable"):
+        provider.route("walking", GILMAN, GEISEL)
+
+
+def test_ors_missing_summary_for_the_same_point_is_a_zero_route():
+    body = ors_body(line=[[GILMAN.longitude, GILMAN.latitude]] * 2)
+    del body["features"][0]["properties"]["summary"]
+    provider = OpenRouteServiceProvider("k", client_returning(200, body), throttle=None)
+    assert provider.route("walking", GILMAN, GILMAN).duration_seconds == 0
 
 
 def test_one_unexpected_route_error_keeps_the_other_routes():
@@ -876,3 +882,95 @@ def test_one_unexpected_route_error_keeps_the_other_routes():
                                   "longitude": GILMAN.longitude}}
     minutes = walk_router(RouteService(OneBadProvider()))(origins, DEST)
     assert minutes == {"gilman-ps": 10}
+
+
+
+# Second code review --------------------------------------------------------
+
+@pytest.mark.parametrize("code, error", [(2010, NoRouteFound), (2009, NoRouteFound),
+                                         (None, RoutingError), (1006, RoutingError)])
+def test_only_ors_no_route_codes_mean_no_route(code, error):
+    body = {"error": {"code": code}} if code else "<html>Not Found</html>"
+    provider = OpenRouteServiceProvider("k", client_returning(404, body), throttle=None)
+    with pytest.raises(error) as raised:
+        provider.route("walking", GILMAN, GEISEL)
+    if error is RoutingError:
+        assert not isinstance(raised.value, NoRouteFound)
+        assert "base URL" in str(raised.value)
+
+
+def test_misconfigured_ors_404_is_not_remembered():
+    seen = []
+    provider = OpenRouteServiceProvider("k", client_returning(404, "nope", seen), throttle=None)
+    service = RouteService(provider)
+    for _ in range(2):
+        with pytest.raises(RoutingError):
+            service.route("walking", GILMAN, GEISEL)
+    assert len(seen) == 2
+
+
+def test_ors_interval_leaves_room_under_forty_a_minute():
+    assert 60 / routing.ORS_MIN_INTERVAL_SECONDS + 1 < 40
+
+
+def test_unthrottled_providers_skip_the_routes_gate(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.api.main.ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS", 5.0)
+    selfhosted = OsrmProvider({"driving": "http://osrm-car:5000",
+                               "walking": "http://osrm-foot:5000"},
+                              client=client_returning(200, osrm_body()))
+    assert not selfhosted.rate_limited
+    assert OsrmProvider(client=client_returning(200, osrm_body())).rate_limited
+    assert OpenRouteServiceProvider("k", client_returning(200, ors_body())).rate_limited
+    with api(RouteService(FakeProvider()), tmp_path) as client:
+        began = time.monotonic()
+        for i in range(3):
+            body = trip(origin=Point(GILMAN.latitude + i * 0.0003, GILMAN.longitude))
+            assert client.post("/routes", json=body).status_code == 200
+    assert time.monotonic() - began < 1.0
+
+
+def test_gate_leaves_time_for_the_call():
+    taken = []
+
+    class RecordingGate:
+        def acquire(self, deadline=None):
+            taken.append(deadline)
+
+    deadline = time.monotonic() + 5
+    RouteService(FakeProvider()).route("walking", GILMAN, GEISEL, deadline=deadline,
+                                       gate=RecordingGate())
+    assert taken == [pytest.approx(deadline - routing.MIN_PROVIDER_SECONDS)]
+
+
+def test_identical_requests_at_once_share_one_provider_call():
+    import threading
+    release = threading.Event()
+
+    class SlowProvider(FakeProvider):
+        def route(self, mode, origin, destination, deadline=None):
+            release.wait(2)
+            return super().route(mode, origin, destination)
+
+    provider = SlowProvider()
+    service = RouteService(provider)
+    results = []
+    threads = [threading.Thread(target=lambda: results.append(
+        service.route("walking", GILMAN, GEISEL, deadline=time.monotonic() + 3)))
+        for _ in range(3)]
+    for thread in threads:
+        thread.start()
+    time.sleep(0.2)
+    release.set()
+    for thread in threads:
+        thread.join()
+    assert provider.calls == 1 and len(results) == 3
+
+
+def test_failed_in_flight_request_lets_the_next_one_try():
+    provider = FakeProvider(error=RoutingError("HTTP 500"))
+    service = RouteService(provider)
+    with pytest.raises(RoutingError):
+        service.route("walking", GILMAN, GEISEL)
+    provider.error = None
+    assert service.route("walking", GILMAN, GEISEL)
+    assert service._in_flight == {}
