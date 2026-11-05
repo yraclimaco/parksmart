@@ -5,6 +5,7 @@ OpenRouteService and OSRM, and endpoint tests inject a fake provider.
 """
 
 import json
+import math
 
 import httpx
 import pytest
@@ -739,3 +740,13 @@ def test_snapping_limit_boundary_for_each_mode(mode, margin, accepted):
     else:
         with pytest.raises(NoRouteFound, match="nearest mapped"):
             service.route(mode, GILMAN, GEISEL)
+
+
+def test_no_call_starts_with_almost_no_budget_left():
+    seen = []
+    throttle = RequestThrottle(1.0)
+    provider = OsrmProvider(client=client_returning(200, osrm_body(), seen), throttle=throttle)
+    nearly_over = time.monotonic() + routing.MIN_PROVIDER_SECONDS / 2
+    with pytest.raises(DeadlineExceeded):
+        provider.route("walking", GILMAN, GEISEL, deadline=nearly_over)
+    assert seen == [] and throttle._next_start == -math.inf  # no slot taken

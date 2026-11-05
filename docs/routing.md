@@ -91,23 +91,26 @@ sends one). ParkSmart respects that limit like this:
   straight-line times) instead of queueing.
 - **Few calls per search.** A recommendation routes at most the top 5 locations,
   then only the first choice and backup if they are not yet checked (at most 11
-  calls, in an 8 s budget per request; see `docs/recommendations.md`). Typical
-  searches use 5 to 7. Successful routes are cached, so repeat searches cost
-  nothing.
+  calls, in an 8 s budget per request; see `docs/recommendations.md`).
+  Successful routes are cached, so repeat searches cost nothing.
 - **Request deadlines.** Each recommendation's walking routes share one
   deadline (its 8 s budget); each `/routes` call gets 10 s
   (`ROUTE_REQUEST_BUDGET_SECONDS`, under the website's 12 s route timeout). The
-  throttle refuses a slot at or after the deadline without reserving it, the
-  deadline is checked again right before the request is sent, and the provider
-  timeout is capped at the time left. Queued work that was never started is
-  cancelled. So once a request's budget is over, it starts no new provider
+  throttle refuses a slot that would leave less than 0.25 s, without reserving
+  it; the deadline is checked again right before the request is sent; and the
+  provider timeout is capped at the time left. Queued work that was never
+  started is cancelled. So once a request's budget is over, it starts no new provider
   calls and takes no slots from later searches.
-- **Already-started calls.** A call already sent when the budget runs out is
-  not aborted; it ends by the deadline at the latest (its timeout was capped),
-  and a route that arrives is cached for the next search. On Lambda the
-  response returns at the budget and the instance freezes; a call still open is
-  dropped or finishes when the instance next thaws, and it can never start a new
-  request then, because the deadline check happens before sending.
+- **Already-started calls.** A walking route already sent when a
+  recommendation's budget runs out is not aborted, and the response does not
+  wait for it (a `/routes` call answers when its one provider call ends). Its timeout was capped at
+  the time left; httpx applies that to each network step (connect, send, each
+  read), so a slow call can end a little after the deadline. A route that
+  arrives is cached for the next search. A call is only started with at least
+  0.25 s left (`MIN_PROVIDER_SECONDS`). On Lambda the response returns at the
+  budget and the instance freezes; a call still open is dropped or finishes
+  when the instance next thaws, and it can never start a new request then,
+  because the deadline is checked right before sending.
 - **Not shared between processes.** The throttle and cache live in memory. Two
   uvicorn workers, or several concurrent Lambda instances, each have their own,
   so together they could exceed one request a second.

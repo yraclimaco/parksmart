@@ -86,6 +86,9 @@ THROTTLE_MAX_WAIT_SECONDS = 6.0
 #: provider call), kept under the website's 12 s route timeout
 #: (ROUTE_TIMEOUT_MS in frontend/src/api/routes.ts).
 ROUTE_REQUEST_BUDGET_SECONDS = 10.0
+#: A provider call is only started with at least this much budget left; a
+#: shorter call would almost surely time out and just spend a FOSSGIS slot.
+MIN_PROVIDER_SECONDS = 0.25
 #: OpenSSL reasons that mean the client and server share no TLS version, so
 #: retrying cannot help. Certificate and other SSL failures are not here.
 TLS_PROTOCOL_REASONS = frozenset({
@@ -250,13 +253,17 @@ def _time_left(deadline: float | None) -> float:
     """Provider timeout for a request: PROVIDER_TIMEOUT_SECONDS, capped by
     the time left before ``deadline`` (a time.monotonic() value).
 
+    httpx applies it to each network step (connect, send, each read), so a
+    slow call can run somewhat past the deadline; callers never wait for it
+    beyond the deadline, and it never starts a new request.
+
     Raises:
-        DeadlineExceeded: the deadline has passed.
+        DeadlineExceeded: less than MIN_PROVIDER_SECONDS is left.
     """
     if deadline is None:
         return PROVIDER_TIMEOUT_SECONDS
     left = deadline - time.monotonic()
-    if left <= 0:
+    if left < MIN_PROVIDER_SECONDS:
         raise DeadlineExceeded("This request's routing time budget has run out.")
     return min(PROVIDER_TIMEOUT_SECONDS, left)
 
@@ -440,16 +447,18 @@ class OsrmProvider:
               deadline: float | None = None) -> Route:
         """Request one route; see RoutingProvider.route.
 
-        With a deadline, the throttle refuses slots at or after it, the
-        deadline is checked again right before the request is sent, and the
-        provider timeout never runs past it.
+        With a deadline, the throttle refuses slots that would leave less than
+        MIN_PROVIDER_SECONDS, the deadline is checked again right before the
+        request is sent, and the provider timeout is capped at the time left.
         """
         points = (f"{origin.longitude},{origin.latitude};"
                   f"{destination.longitude},{destination.latitude}")
         url = f"{self._urls[mode]}/route/v1/driving/{points}"
         _time_left(deadline)  # fail fast before taking a throttle slot
         if self._throttles[mode] is not None:
-            self._throttles[mode].acquire(deadline)
+            # Only take a slot that still leaves time for the call itself
+            self._throttles[mode].acquire(
+                None if deadline is None else deadline - MIN_PROVIDER_SECONDS)
         timeout = _time_left(deadline)  # recheck after waiting for the slot
         try:
             response = self._client.get(
@@ -670,9 +679,9 @@ def walk_router(service: RouteService,
         }
         done, pending = wait(futures, timeout=remaining)
         # Never block the request on stragglers. Queued ones are cancelled; a
-        # worker already waiting for a throttle slot rechecks the deadline and
-        # gives up, and an in-flight call times out by the deadline (its route
-        # is still cached if it arrives in time).
+        # worker waiting for a throttle slot only holds one before the deadline
+        # and rechecks it before sending; an in-flight call is not aborted, but
+        # its timeout was capped and a late route is still cached.
         pool.shutdown(wait=False, cancel_futures=True)
         minutes, problems = {}, []
         for future in done:
