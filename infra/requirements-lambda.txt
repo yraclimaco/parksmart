@@ -1,0 +1,8 @@
+# Serving-only additions. Model dependency pins come from the trusted artifact's
+# generated .serving-bundle/requirements-model.txt, not from example versions.
+fastapi>=0.115,<1.0
+pydantic>=2.9,<3.0
+httpx>=0.27,<1.0
+tzdata>=2024.1
+mangum>=0.19,<1.0
+boto3>=1.35,<2.0

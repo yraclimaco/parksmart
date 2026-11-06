@@ -51,6 +51,15 @@ class HealthResponse(APIModel):
     status: Literal["ok"] = "ok"
 
 
+class ReadinessResponse(APIModel):
+    """Resource readiness, without exposing file paths or secret configuration."""
+
+    status: Literal["ready", "unavailable"]
+    catalog_ready: bool
+    predictions_ready: bool
+    prediction_mode: Literal["baseline", "saved", "provided"]
+
+
 class LocationsResponse(APIModel):
     """Location catalog envelope with explicit source status and limitations."""
 

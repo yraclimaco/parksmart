@@ -1,0 +1,14 @@
+# Allowlist: private datasets, model pickles, credentials, notebooks and local
+# environments must never be copied into the build context/image.
+**
+!infra/
+!infra/Dockerfile
+!infra/requirements-lambda.txt
+!src/
+!src/**
+!config/
+!config/locations.json
+!.serving-bundle/
+!.serving-bundle/requirements-model.txt
+**/__pycache__/
+**/*.pyc

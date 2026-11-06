@@ -6,14 +6,23 @@ capacities before availability analysis. The project includes the data pipeline,
 local FastAPI recommendations, and a synced React website. Deployment and
 improved prediction artifacts are separate work.
 
-## Local backend (Issues #12 and #19)
+## Local backend (Issues #12, #19 and #26)
 
 After installing `requirements.txt` in your virtual environment, run from the
 repository root:
 
 ```bash
-python -m uvicorn src.api.main:app --reload
+python -m uvicorn src.api.saved_model:create_configured_app --factory --reload
 ```
+
+Use a virtual environment (any folder name) with Python and dependency versions
+matching the artifact. For the Lambda Python 3.12 image, generate artifacts in
+its compatible environment. Use OpenSSL and a trusted artifact prepared with
+Vivaan's documented interface. The approved saved estimator is historical
+averages with explicit support limits. See [saved-model setup and verification guide](docs/issue26_handoff.md).
+Check `/readiness` for saved-model readiness; `/health` alone checks liveness.
+The original `python -m uvicorn src.api.main:app --reload` command remains an
+explicit startup-fitted baseline demo, never an automatic saved-model fallback.
 
 Open <http://127.0.0.1:8000/docs> to try GET `/health`, GET `/locations`,
 POST `/recommendations` and POST `/routes`. Locations use the shared real registry. Historical
@@ -25,6 +34,11 @@ is used. The API never builds the dataset or runs notebooks per request.
 default, no key needed), and recommendations use mapped walking routes for the
 top picks; see [routes](docs/routing.md). Website hosting on AWS Amplify is
 prepared in [frontend deployment](docs/frontend_deployment.md).
+
+AWS backend files under `infra/` are preparation only; nothing is deployed.
+See [AWS setup, learning notes and deployment gates](infra/README.md) and
+[parking-feed proposal](docs/parking_status.md). No live-count endpoint is claimed
+before Hanrong's collector and mappings are ready.
 
 See [backend setup, learning walkthrough, and interface contract](docs/backend.md)
 for examples and [the short Dylan/Hanrong proposal](docs/api_proposal.md).

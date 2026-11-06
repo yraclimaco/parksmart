@@ -157,7 +157,10 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Use Python 3.11+ built with OpenSSL (AWS Lambda runs 3.12; 3.13 also works). On
+Use Python built with OpenSSL and exact dependency/Python versions compatible
+with the artifact. Baseline development supports Python 3.11+; the proposed
+Lambda image uses Python 3.12. Generate Lambda artifacts in its compatible
+environment rather than assuming a local Python version is interchangeable. On
 macOS, `python3` may be Apple's Python 3.9 with LibreSSL, which cannot reach
 TLS 1.3-only services such as the public OSRM routing servers;
 `brew install python@3.12` and create the venv with `python3.12 -m venv .venv`.
@@ -183,6 +186,45 @@ python -m src.download_qpass
 ```
 
 ## Running things
+
+### Configured saved serving and AWS preparation — Issue #26
+
+Use any virtual environment with Python and dependencies matching the artifact;
+the folder name is arbitrary. Lambda Python 3.12 artifacts must be generated in
+its compatible environment. The configured
+entrypoint is `python -m uvicorn src.api.saved_model:create_configured_app --factory`.
+It defaults to saved mode, loads Vivaan's compatible trusted v2 artifact once
+at startup, and enforces `historical_average` as the currently approved model.
+Unsupported exact groups/time/calendar stay unknown under his saved-service
+policy. Never alter compatibility metadata or silently fit a fallback.
+GET `/readiness` is 200 only when catalog and predictions are available; health
+is independent liveness. Bad saved resources leave recommendations/readiness
+503. The original `src.api.main:app` baseline remains available explicitly.
+
+`src/api/settings.py` supports PARKSMART_MODEL_MODE, PARKSMART_APPROVED_MODEL,
+PARKSMART_ARTIFACT_PATH, PARKSMART_DATASET_PATH, PARKSMART_REGISTRY_PATH,
+PARKSMART_BUNDLE_MANIFEST and PARKSMART_CACHE_DIR. Local relative paths resolve
+against the repository; no .env file is loaded implicitly. Existing exact-origin
+CORS configuration remains. The optional S3 manifest downloads private,
+checksummed artifact/dataset/registry files with role-based GetObject access.
+No endpoint accepts uploaded pickles or S3 URLs. `src/api/lambda_handler.py`
+enters lifespan once per cold process and disables repeated Mangum lifespan
+cycles so warm requests reuse resources and do not refit/reload.
+
+`infra/` contains initial SAM/container configuration, serving dependencies,
+deployment gates, fundamentals and cleanup instructions. No deployment or AWS
+calls are authorized by adding those files. Keep DeploymentApproved=no and
+reserved concurrency zero until funded DS3 access/allowances and explicit
+deployment approval. No NAT/paid resources or public data bucket is configured.
+The local bundle helper is `python -m scripts.prepare_serving_bundle --s3-prefix
+releases/<release>`; output `.serving-bundle/` is private/gitignored. It copies
+existing approved resources only, never trains, rebuilds or uploads them.
+
+`docs/parking_status.md` defines a proposed separate source-count contract;
+do not invent feed values, refresh old timestamps or blend them with predictions.
+See `docs/issue26_handoff.md` for saved-mode setup and verification results.
+Run the DS3 review using `docs/codeReviewer.md`; keep its report local.
+Container/SAM validation, deployment and collector integration remain pending.
 
 ### Availability prediction artifacts - Issue #18
 
@@ -240,7 +282,7 @@ Dylan's synced website using `VITE_RECOMMENDATION_SOURCE=api npm run dev` from
 `frontend/`; do not edit synced website files here. The source website client
 already sends the implemented JSON contract. See `docs/backend.md` for setup,
 architecture, failure handling and local browser testing; `docs/api_proposal.md`
-records current interfaces and Daira's local verification. A ready
+records current interfaces and local verification results. A ready
 AvailabilityEstimator wrapping the saved Issue #18 model is supplied by
 `src.api.saved_model:create_saved_app` via `create_app(estimator=...)`.
 

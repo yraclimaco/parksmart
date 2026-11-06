@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ParkSmart backend preparation only; deployment is gated and disabled by default.
+
+Parameters:
+  DeploymentApproved:
+    Type: String
+    AllowedValues: ['no', 'yes']
+    Default: 'no'
+    Description: Set yes only after DS3 account, allowances, and mentor approval are verified.
+  ArtifactBucket:
+    Type: String
+    Default: ''
+    Description: Existing PRIVATE S3 bucket; this stack never creates or makes it public.
+  ReleasePrefix:
+    Type: String
+    Default: releases/demo
+    AllowedPattern: '[a-zA-Z0-9][a-zA-Z0-9/_-]*'
+    Description: Immutable release directory containing manifest and its three checked files.
+  FrontendOrigins:
+    Type: String
+    Default: ''
+    Description: Exact comma-separated website origins; no wildcard or credentials.
+  ReservedConcurrency:
+    Type: Number
+    AllowedValues: [0, 1]
+    Default: 0
+    Description: Zero disables invocations; enable one only for approved pilot verification.
+
+Rules:
+  ApprovedDeploymentRequiresBucket:
+    RuleCondition: !Equals [!Ref DeploymentApproved, 'yes']
+    Assertions:
+      - Assert: !Not [!Equals [!Ref ArtifactBucket, '']]
+        AssertDescription: ArtifactBucket must be nonempty when deployment is approved.
+
+Conditions:
+  DeployBackend: !Equals [!Ref DeploymentApproved, 'yes']
+
+Resources:
+  BackendApi:
+    Type: AWS::Serverless::HttpApi
+    Condition: DeployBackend
+    Properties:
+      StageName: '$default'
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 2
+        ThrottlingRateLimit: 1
+      # FastAPI applies configured CORS so gateway and app cannot disagree.
+
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Condition: DeployBackend
+    Properties:
+      PackageType: Image
+      Architectures: [x86_64]
+      MemorySize: 1024
+      Timeout: 30
+      EphemeralStorage:
+        Size: 512
+      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      Environment:
+        Variables:
+          PARKSMART_MODEL_MODE: saved
+          PARKSMART_APPROVED_MODEL: historical_average
+          PARKSMART_BUNDLE_MANIFEST: !Sub 's3://${ArtifactBucket}/${ReleasePrefix}/manifest.json'
+          PARKSMART_CACHE_DIR: /tmp/parksmart-serving
+          PARKSMART_CORS_ORIGINS: !Ref FrontendOrigins
+          # Public-provider throttles are per process; routing is off until the
+          # approved one-instance pilot policy/credentials are configured.
+          PARKSMART_ROUTING_PROVIDER: none
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: s3:GetObject
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ReleasePrefix}/*'
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BackendApi
+            Path: /
+            Method: ANY
+            PayloadFormatVersion: '2.0'
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BackendApi
+            Path: /{proxy+}
+            Method: ANY
+            PayloadFormatVersion: '2.0'
+    Metadata:
+      Dockerfile: infra/Dockerfile
+      DockerContext: ..
+      DockerTag: parksmart-api-prep
+
+  BackendLogs:
+    Type: AWS::Logs::LogGroup
+    Condition: DeployBackend
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${BackendFunction}'
+      RetentionInDays: 7
+
+Outputs:
+  ApiUrl:
+    Condition: DeployBackend
+    Value: !Sub 'https://${BackendApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
+  FunctionName:
+    Condition: DeployBackend
+    Value: !Ref BackendFunction

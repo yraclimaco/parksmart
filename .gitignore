@@ -50,3 +50,9 @@ results/issue3/*
 
 # Local DS3 review output; do not submit.
 /code_review.md
+
+# Private prepared serving bundles and local AWS SAM build output.
+/.serving-bundle/
+/.aws-sam/
+/infra/.aws-sam/
+/infra/samconfig.toml
