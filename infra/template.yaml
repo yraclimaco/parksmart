@@ -27,6 +27,13 @@ Parameters:
     Default: 0
     Description: Zero disables invocations; enable one only for approved pilot verification.
 
+Rules:
+  ApprovedDeploymentRequiresBucket:
+    RuleCondition: !Equals [!Ref DeploymentApproved, 'yes']
+    Assertions:
+      - Assert: !Not [!Equals [!Ref ArtifactBucket, '']]
+        AssertDescription: ArtifactBucket must be nonempty when deployment is approved.
+
 Conditions:
   DeployBackend: !Equals [!Ref DeploymentApproved, 'yes']
 

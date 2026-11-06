@@ -1,21 +1,31 @@
 # Local FastAPI integration — Issue #19
 
+Local verification (2026-11-06): **115 affected tests passed**. The full suite
+then passed **901 tests and 39 subtests**, with 38 warnings, in 57.76s. DS3 review
+is complete. Docker/SAM/AWS validation and parking-feed integration remain pending.
+
 Issue #26 adds configured saved serving and AWS preparation. For the current
 demo use `python -m uvicorn src.api.saved_model:create_configured_app --factory`
 and verify GET `/readiness`, not just `/health`. Full setup, paths, support policy
 and the explicit baseline fallback are in `docs/issue26_handoff.md`. The original
 `src.api.main:app` command below remains the startup-fitted baseline entrypoint.
 Missing/incompatible saved resources return 503 without switching estimators.
-No Issue #26 tests or cloud deployment have been run yet; Daira requested a
-joint verification checkpoint before PR preparation. AWS files/instructions are
-in `infra/`; the unimplemented parking-feed proposal is `docs/parking_status.md`.
+The saved-mode website flow and walking routes were verified locally. AWS
+preparation is in `infra/`; the pending feed proposal is `docs/parking_status.md`.
 
 The API connects the website to the shared registry, historical-average baseline,
 and Dylan's eligibility/ranking modules. No notebook, downloader, or dataset
 builder runs when a request arrives. Predictions are historical estimates, not
 live availability or a guaranteed space.
 
-## Start the backend
+## Start the baseline backend
+
+For approved saved serving, use the configured factory linked above. This
+section preserves the explicit startup-fitted baseline setup.
+
+Virtual-environment folder names are arbitrary; `.venv` below is an example.
+Saved serving requires the artifact's exact Python/dependency versions. Generate
+artifacts for Lambda in the compatible Python 3.12 image environment.
 
 From the repository root, activate your existing environment and install the
 recorded dependencies:
@@ -32,8 +42,11 @@ or invoke `.venv\Scripts\python.exe` directly if activation is blocked.
 
 ### Supported Python setup
 
-Use **Python 3.11 or newer built with OpenSSL** (3.12 matches AWS Lambda; 3.13
-also works). Two things depend on it:
+Baseline development supports **Python 3.11 or newer built with OpenSSL**.
+Saved serving additionally requires the artifact's exact Python and dependency
+versions; matching only the major/minor version is insufficient. The Lambda
+Python 3.12 artifact must be generated in its compatible serving environment.
+Two things depend on the environment:
 
 - **Routes.** The public OSRM servers used by default accept TLS 1.3 only. The
   macOS system/Xcode `python3` (3.9 with LibreSSL 2.8.3) has no TLS 1.3. The
@@ -45,11 +58,12 @@ also works). Two things depend on it:
   `create_saved_app` refuses to start with any other versions. After creating a
   new environment or changing Python, regenerate them.
 
-On macOS: `brew install python@3.12` (or `python@3.13`). Then, from the
+For local reproduction on macOS, for example: `brew install python@3.12`.
+This example does not by itself establish Lambda image compatibility. From the
 repository root:
 
 ```bash
-python3.12 -m venv .venv            # or python3.13
+python3.12 -m venv .venv            # Example folder name; any name works.
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -c "import ssl, sys; print(sys.version.split()[0], ssl.OPENSSL_VERSION, ssl.HAS_TLSv1_3)"
@@ -238,8 +252,7 @@ match the returned first/backup IDs and estimates, and map markers should match
 those IDs when pins exist. Test a single result, invalid input, unavailable
 predictions and no eligible options; never interpret an empty response as full.
 Use the automated fixture tests for states the current real baseline does not
-naturally produce. Daira's local browser result is recorded in
-`docs/api_proposal.md`; Dylan can review or reproduce it from the PR.
+naturally produce. Local browser results are recorded in `docs/api_proposal.md`.
 
 ## Tests and coordination
 
@@ -255,7 +268,7 @@ startup loading once, resource failures, 422s, result states, no backup, shared 
 CORS including errors, nulls and JSON examples.
 
 The real-data/browser walkthrough must be verified locally; passing fixture tests
-does not establish that outcome. Daira's local verification and full-suite result
+does not establish that outcome. Local verification and full-suite results
 are recorded in `docs/api_proposal.md`. Some full-suite tests
 read local data or website data files that restricted agent environments cannot
 access. Do not bypass those restrictions. Run the DS3 review instructions in

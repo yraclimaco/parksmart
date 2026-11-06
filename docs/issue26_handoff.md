@@ -1,11 +1,14 @@
 # Issue #26 — saved-artifact demo and deployment preparation
 
-## Tonight's priority
+Local verification (2026-11-06): **115 affected tests passed**. The full suite
+then passed **901 tests and 39 subtests**, with 38 warnings, in 57.76s. DS3 review
+is complete. Docker/SAM/AWS validation and parking-feed integration remain pending.
 
-Use the merged website/recommender with Vivaan's saved artifact, not a new model
-implementation. His code and v2 loader are already in this repo. The selected
-approved estimator is **historical_average**, not Ridge: it won the corrected
-supported-validation comparison in `docs/issue18_predictions.md`.
+## Local demo scope
+
+The website uses the existing recommender and saved-model v2 loader. The approved
+estimator is **historical_average**, selected by the supported-validation
+comparison documented in `docs/issue18_predictions.md`.
 
 The saved service requires an observed exact facility/category/subtype/level
 parking group and observed survey time/weekday/quarter. Unsupported fields keep
@@ -14,14 +17,13 @@ uses the documented historical fallback. Supported sparse matches can use the
 labeled level_2/level_3 fallback; unseen groups do not receive a campus-wide
 replacement. This differs from the older startup-fitted baseline demo.
 
-## Current checkpoint — 2026-11-05
+## Local demo observations — 2026-11-05
 
-- Existing saved loader, routing, website API client and updated model policy are
-  merged. No need to wait for another prediction interface implementation.
-- Daira reproduced the local artifact with Vivaan's command. Selection returned
+- The local artifact was reproduced with `python -m src.train_availability`.
+  Selection returned
   historical_average in Python 3.12.16; saved readiness returned HTTP 200 with
   catalog_ready/predictions_ready true and prediction_mode saved.
-- Daira's local website showed P302 first choice and P304 backup for Podemos,
+- The local website showed P302 first choice and P304 backup for Podemos,
   B permit, Nov 6 at 9 AM UCSD time. Cards showed about 68%/59% historical
   availability and 14/18 minute walks; first/backup markers were visible.
   Backend logs showed recommendations and routes both returning HTTP 200.
@@ -30,25 +32,20 @@ replacement. This differs from the older startup-fitted baseline demo.
 - No parking-feed collector/adapter is present in the merged source inspected
   for this issue. The feed contract is proposed in `docs/parking_status.md`;
   a real endpoint waits for the collector and reviewed mappings.
-- Daira ran the Section 1 checks locally: 134 passed, one dependency deprecation
-  warning in 3.62s. This covers serving configuration, API, schemas and saved
-  prediction tests. Subsequent bundle/Lambda/configuration checks: 15 passed,
-  one warning in 2.14s. Full suite: 893 passed, 38 warnings, 39 subtests passed
-  in 54.68s. These are user-reported local results, before the new release-script
-  tests were added. No joint website/app test is claimed.
-- DS3 review used docs/codeReviewer.md; follow-up release-script tests are added
-  and Daira reported all 4 passing in 2.24s in a subsequent focused run.
-  Container/SAM checks remain pending. No Issue #26 commit, push
-  or cloud deployment has been performed by the assistant.
+- Current automated verification is summarized at the top of this document.
+  Joint website/app verification, AWS deployment and collector integration remain
+  pending.
 
 ## Start the local demo
 
-Use the new Python 3.12 environment (`venv`), not the older `.venv` Python 3.9.
+Activate any virtual environment whose Python and dependency versions match the
+trusted artifact; its folder name does not matter. For the Lambda Python 3.12
+image, generate the artifact in the compatible serving environment.
 Stop an existing server with Ctrl+C before changing the serving entrypoint.
-From the repo root, when Daira approves the dependency/setup checkpoint:
+From the repository root:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate  # Example name; use your actual environment path.
 python -m pip install -r requirements.txt
 ```
 
@@ -61,8 +58,8 @@ python -m src.train_availability
 
 This uses the existing processed dataset, runs the documented comparison and
 writes local model artifacts. It does not belong in API startup or a request.
-Do not change model selection to make a demo produce results. If training cannot
-run before the meeting, use the explicit baseline fallback below and label it.
+Keep the reviewed model-selection policy. If a compatible saved artifact is
+unavailable, the explicit baseline mode below can be used for a labeled demo.
 Only load trusted team artifacts; pickle files can execute code. Dependency
 versions, including the Python patch version, must match their training runtime.
 Do not edit artifact metadata to bypass the compatibility checks.
@@ -141,11 +138,10 @@ nonsecret, but actual datasets, artifacts, credentials and private source
 snapshots remain local/private. No client can supply a pickle path or S3 URI.
 Routing configuration and credential handling remain in `docs/routing.md`.
 
-## Ready-to-run verification checkpoint — with Daira
+## Verification commands
 
-Daira's completed local checks are recorded above. The added release-preparation
-tests passed separately (4 passed in 2.24s); these commands remain available
-and future regression checks (the 893-test suite result predates these additions):
+The completed local results are recorded at the top. Use these commands for
+future regression checks:
 
 ```bash
 MPLBACKEND=Agg python -m pytest tests/test_prepare_serving_bundle.py tests/test_serving_configuration.py tests/test_serving_bundle.py tests/test_lambda_handler.py tests/test_api.py tests/test_api_schemas.py tests/test_availability_prediction.py tests/test_routing.py -q
@@ -157,23 +153,12 @@ fixtures, unsupported requests, no backup, artifact errors, explicit baseline,
 checksummed S3 cache behavior, and repeated Lambda invocations. No real AWS
 service is used by the fixture tests. Check artifact readiness and website/app
 results with real local files separately. Run the DS3 review instructions in
-`docs/codeReviewer.md` only at the agreed review/PR checkpoint; keep the report
-local. Inspect staged files before commit; do not commit/push without Daira.
+`docs/codeReviewer.md` before requesting PR review; keep the report local.
+Inspect staged files for unrelated changes, private data and credentials.
 
-## Meeting preparation and suggested status update
+## Demo checklist
 
-Be ready to show readiness, one supported search, first/backup cards/markers,
-and the returned historical/support limitations. Explain that routing exists,
-parking feeds are a separate pending source integration, and no cloud service
-has been deployed. Save a reproducible request in case the venue network fails.
-
-Status draft (update after actual verification):
-
-> The saved-model loading interface is merged and the API wiring/configuration
-> is prepared. The approved estimator is the saved historical-average model
-> with explicit support limits. I verified the local website returning first
-> choice and backup cards/markers, and the full suite passed 893 tests plus 39
-> subtests. Final review follow-ups are in progress. The original baseline demo
-> remains available. Feed integration waits on the collector/mappings.
-> AWS adapter, private-S3 bundle configuration and instructions are preparation
-> only—nothing has been deployed or charged.
+Show saved-mode readiness, one supported search, first-choice and backup cards
+and markers, and the historical-data limitations. Keep a recorded response for
+reference if network-dependent routing is unavailable. Parking-feed integration
+and AWS deployment remain pending; the local saved-model workflow is verified.

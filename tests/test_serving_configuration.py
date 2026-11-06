@@ -1,7 +1,6 @@
-"""Saved-artifact serving checks; written for the agreed review checkpoint.
+"""Saved-artifact serving checks using synthetic model/data fixtures.
 
-All model/data values are synthetic fixtures. No network, real artifact or
-private dataset is used. Run only when Daira is ready for the check phase.
+No real network service, production artifact or private dataset is used.
 """
 
 import pandas as pd
@@ -133,3 +132,91 @@ def test_baseline_demo_mode_is_explicit(serving_files, monkeypatch):
     with TestClient(create_configured_app()) as client:
         assert client.get("/readiness").json()["prediction_mode"] == "baseline"
         assert client.post("/recommendations", json=REQUEST).json()["status"] == "ready"
+
+
+def test_explicit_baseline_ignores_saved_settings(serving_files, monkeypatch):
+    from src.api.main import create_app
+
+    monkeypatch.setenv("PARKSMART_MODEL_MODE", "invalid-saved-mode")
+    monkeypatch.setenv("PARKSMART_APPROVED_MODEL", "")
+    monkeypatch.setenv("PARKSMART_BUNDLE_MANIFEST", "s3://unused/missing/manifest.json")
+    monkeypatch.setenv("PARKSMART_ARTIFACT_PATH", "/missing/unused.pkl")
+    _, dataset = serving_files
+    with TestClient(create_app(dataset_path=dataset)) as client:
+        assert client.get("/readiness").json()["prediction_mode"] == "baseline"
+        assert client.post("/recommendations", json=REQUEST).json()["status"] == "ready"
+
+
+@pytest.fixture
+def configured_s3_bundle(serving_files, tmp_path, monkeypatch):
+    """Provide the actual configured factory an offline S3 byte-stream client."""
+    import hashlib
+    import io
+    import json
+    import boto3
+
+    artifact, dataset = serving_files
+    objects = {}
+    files = {}
+    for role, path in {"artifact": artifact, "dataset": dataset,
+                       "registry": PROJECT_ROOT / "config/locations.json"}.items():
+        key = f"release/{role}"
+        content = path.read_bytes()
+        objects[key] = content
+        files[role] = {"key": key, "sha256": hashlib.sha256(content).hexdigest()}
+    objects["release/manifest.json"] = json.dumps(
+        {"schema_version": 1, "files": files}).encode()
+    calls = []
+
+    class StubS3:
+        def get_object(self, Bucket, Key):
+            assert Bucket == "fixture-bucket"
+            calls.append(Key)
+            if Key not in objects:
+                raise OSError("Fixture object unavailable")
+            return {"Body": io.BytesIO(objects[Key])}
+
+    def client(service):
+        assert service == "s3"
+        return StubS3()
+
+    monkeypatch.setattr(boto3, "client", client)
+    monkeypatch.setenv("PARKSMART_BUNDLE_MANIFEST",
+                       "s3://fixture-bucket/release/manifest.json")
+    monkeypatch.setenv("PARKSMART_CACHE_DIR", str(tmp_path / "cache"))
+    # Only the materialized bundle paths can succeed.
+    for variable in ("ARTIFACT", "DATASET", "REGISTRY"):
+        monkeypatch.setenv(f"PARKSMART_{variable}_PATH", str(tmp_path / "absent"))
+    return objects, calls
+
+
+def test_configured_bundle_uses_materialized_paths(configured_s3_bundle):
+    _, calls = configured_s3_bundle
+    with TestClient(create_configured_app()) as client:
+        assert client.get("/readiness").json() == {
+            "status": "ready", "catalog_ready": True,
+            "predictions_ready": True, "prediction_mode": "saved"}
+        for _ in range(2):
+            response = client.post("/recommendations", json=REQUEST)
+            assert response.status_code == 200
+            assert response.json()["first_choice"] is not None
+        assert len(calls) == 4  # One manifest and three files, never per request.
+
+
+@pytest.mark.parametrize("failure", ["missing", "checksum"])
+def test_configured_bundle_failure_returns_lambda_503(
+        configured_s3_bundle, monkeypatch, failure):
+    from types import SimpleNamespace
+    from src.api import lambda_handler
+
+    objects, _ = configured_s3_bundle
+    if failure == "missing":
+        del objects["release/artifact"]
+    else:
+        objects["release/artifact"] = b"checksum-invalid fixture"
+    monkeypatch.setattr(lambda_handler, "_runtime", None)
+    # Exercise the real configured factory and real Lambda initialization.
+    response = lambda_handler.handler({}, SimpleNamespace())
+    assert response["statusCode"] == 503
+    assert "fixture-bucket" not in response["body"]
+    assert lambda_handler._runtime is None

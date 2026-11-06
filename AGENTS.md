@@ -157,7 +157,10 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Use Python 3.11+ built with OpenSSL (AWS Lambda runs 3.12; 3.13 also works). On
+Use Python built with OpenSSL and exact dependency/Python versions compatible
+with the artifact. Baseline development supports Python 3.11+; the proposed
+Lambda image uses Python 3.12. Generate Lambda artifacts in its compatible
+environment rather than assuming a local Python version is interchangeable. On
 macOS, `python3` may be Apple's Python 3.9 with LibreSSL, which cannot reach
 TLS 1.3-only services such as the public OSRM routing servers;
 `brew install python@3.12` and create the venv with `python3.12 -m venv .venv`.
@@ -186,7 +189,9 @@ python -m src.download_qpass
 
 ### Configured saved serving and AWS preparation — Issue #26
 
-Use `venv/` (Python 3.12/OpenSSL), not the old Python 3.9 `.venv`. The configured
+Use any virtual environment with Python and dependencies matching the artifact;
+the folder name is arbitrary. Lambda Python 3.12 artifacts must be generated in
+its compatible environment. The configured
 entrypoint is `python -m uvicorn src.api.saved_model:create_configured_app --factory`.
 It defaults to saved mode, loads Vivaan's compatible trusted v2 artifact once
 at startup, and enforces `historical_average` as the currently approved model.
@@ -215,17 +220,11 @@ The local bundle helper is `python -m scripts.prepare_serving_bundle --s3-prefix
 releases/<release>`; output `.serving-bundle/` is private/gitignored. It copies
 existing approved resources only, never trains, rebuilds or uploads them.
 
-The current checkout had no `models/issue18/` artifact and no parking collector
-when Issue #26 began. Real demo verification requires a compatible local artifact.
 `docs/parking_status.md` defines a proposed separate source-count contract;
 do not invent feed values, refresh old timestamps or blend them with predictions.
-See `docs/issue26_handoff.md` for checkpoint commands. Daira reported 15 focused
-checks passing and a full run of 893 tests plus 39 subtests passing. DS3 review
-used `docs/codeReviewer.md`; added `tests/test_prepare_serving_bundle.py` checks
-release manifests/pins and rejects invalid releases: Daira reported 4 passed
-in 2.24s. This was a separate run after the 893-test full suite.
-Container/SAM validation and deployment remain pending. Run checks together with
-Daira; never commit/push without her approval.
+See `docs/issue26_handoff.md` for saved-mode setup and verification results.
+Run the DS3 review using `docs/codeReviewer.md`; keep its report local.
+Container/SAM validation, deployment and collector integration remain pending.
 
 ### Availability prediction artifacts - Issue #18
 
@@ -283,7 +282,7 @@ Dylan's synced website using `VITE_RECOMMENDATION_SOURCE=api npm run dev` from
 `frontend/`; do not edit synced website files here. The source website client
 already sends the implemented JSON contract. See `docs/backend.md` for setup,
 architecture, failure handling and local browser testing; `docs/api_proposal.md`
-records current interfaces and Daira's local verification. A ready
+records current interfaces and local verification results. A ready
 AvailabilityEstimator wrapping the saved Issue #18 model is supplied by
 `src.api.saved_model:create_saved_app` via `create_app(estimator=...)`.
 

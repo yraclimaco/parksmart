@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.location_registry import load_registry
+from src.location_registry import DEFAULT_DATASET, DEFAULT_REGISTRY, load_registry
 from src.parking_benchmarks import load_analysis_dataset
 from src.recommender import Recommender
 from src.routing import (
@@ -20,7 +20,6 @@ from src.routing import (
 )
 
 from .locations import get_locations
-from .settings import ServingSettings
 from .schemas import (
     HealthResponse, LocationsResponse, RecommendationRequest, RecommendationResponse,
     ReadinessResponse, RouteRequest, RouteResponse,
@@ -120,7 +119,7 @@ def allowed_origins(environ=None) -> list:
     return list(dict.fromkeys([*LOCAL_FRONTEND_ORIGINS, *extra]))
 
 
-def create_app(dataset_path=None, registry_path=None,
+def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
                estimator=None, route_service=None, estimator_loader=None,
                prediction_mode=None) -> FastAPI:
     """Create an API loading its catalog and prediction resources at startup.
@@ -140,9 +139,6 @@ def create_app(dataset_path=None, registry_path=None,
         FastAPI app. Missing/invalid resources produce HTTP 503 while health
         remains available. Each process loads once; restart to reload resources.
     """
-    settings = ServingSettings.from_env()
-    dataset_path = settings.dataset_path if dataset_path is None else dataset_path
-    registry_path = settings.registry_path if registry_path is None else registry_path
     if estimator is not None and estimator_loader is not None:
         raise ValueError("Provide an estimator or its loader, not both")
     mode = prediction_mode or (

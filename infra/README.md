@@ -57,10 +57,9 @@ Official references: [SAM function](https://docs.aws.amazon.com/serverless-appli
   public data bucket, persistent database or automatic paid service is configured.
 
 These files are initial configuration, **not yet container-built/SAM-validated
-or deployed**. Daira reported 15 focused checks passing and a full Python suite
-of 893 tests plus 39 subtests passing. DS3 review has been performed; added
-release-preparation tests subsequently passed (4 passed in 2.24s, reported by Daira). Python tests do not
-establish container compatibility or successful AWS deployment.
+or deployed**. Local Python checks and DS3 review are complete; current results
+and commands are in `docs/issue26_handoff.md`. Python tests do not establish
+container compatibility or successful AWS deployment.
 
 ## Prepare a private release locally
 
@@ -80,7 +79,7 @@ Git. The manifest contains hashes, model name and exact dependency versions.
 Use a new immutable prefix for each approved release. Record the approved model
 identity and artifact hash with Vivaan before provisioning it.
 
-At the agreed local build/checkpoint, with Docker and SAM CLI available:
+For local build validation, with Docker and SAM CLI installed:
 
 ```bash
 docker build --platform linux/amd64 -f infra/Dockerfile -t parksmart-backend:local .
@@ -122,6 +121,32 @@ command. This requires the dataset mounted locally; never train on Lambda cold
 start. Pin the generated dependency lock and image identity for that release.
 The saved loader enforces compatibility and readiness stays unavailable on
 mismatch. Do not upload/deploy a release until the container readiness passes.
+
+## Reserved concurrency prerequisite — check before enabling
+
+Reserved concurrency is a per-function capacity reservation and limit, not a
+cost guarantee. Lambda requires at least 100 concurrency units to remain
+unreserved. Before enabling ReservedConcurrency=1, an approved operator must
+check the target account AND region in Lambda's account settings/Service Quotas,
+or use this read-only command with their approved profile:
+
+```bash
+aws lambda get-account-settings --profile <approved-profile> --region <approved-region>
+```
+
+Inspect AccountLimit.ConcurrentExecutions and UnreservedConcurrentExecutions.
+There must be room to reserve one unit while leaving at least 100 unreserved;
+account for existing reservations and recheck immediately before deployment.
+Small/new accounts may not have sufficient quota. If unsupported, leave
+DeploymentApproved=no and ReservedConcurrency=0, keep using the local demo,
+and ask the mentor/account owner to resolve quota eligibility or approve a
+revised deployment design. Do not remove the limit to bypass this prerequisite
+or enable paid usage. These checks have not been performed for a DS3 account.
+
+References: [reserved concurrency](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html),
+[account settings](https://docs.aws.amazon.com/cli/latest/reference/lambda/get-account-settings.html).
+CloudFormation also rejects DeploymentApproved=yes with an empty ArtifactBucket;
+the disabled preparation template can retain the empty default.
 
 ## Later: approved private S3 provisioning and deployment
 

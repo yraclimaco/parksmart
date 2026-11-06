@@ -15,9 +15,11 @@ repository root:
 python -m uvicorn src.api.saved_model:create_configured_app --factory --reload
 ```
 
-Use Python 3.12 with OpenSSL and a compatible trusted artifact prepared with
+Use a virtual environment (any folder name) with Python and dependency versions
+matching the artifact. For the Lambda Python 3.12 image, generate artifacts in
+its compatible environment. Use OpenSSL and a trusted artifact prepared with
 Vivaan's documented interface. The approved saved estimator is historical
-averages with explicit support limits. See [tonight's demo and setup checklist](docs/issue26_handoff.md).
+averages with explicit support limits. See [saved-model setup and verification guide](docs/issue26_handoff.md).
 Check `/readiness` for saved-model readiness; `/health` alone checks liveness.
 The original `python -m uvicorn src.api.main:app --reload` command remains an
 explicit startup-fitted baseline demo, never an automatic saved-model fallback.

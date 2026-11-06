@@ -5,12 +5,12 @@ Issue #26 update (2026-11-05): configured saved serving now uses the approved
 paths and optional private S3 bundle are configurable; GET `/readiness` exposes
 resource readiness/mode without file paths. The baseline is explicit only, never
 an automatic substitute for an artifact error. Section 1 local verification is
-recorded below; remaining sections and final checks are pending. The earlier
+recorded below; cloud validation and collector integration remain pending. The earlier
 Issue #19 result is separate evidence. See `docs/issue26_handoff.md` and `infra/README.md`.
 The source-count interface is separately proposed in `docs/parking_status.md`;
 no collector or live-count endpoint has been verified in this checkout.
 
-Saved-mode local verification (2026-11-05, reported by Daira):
+Saved-mode local browser verification (2026-11-05):
 
 - Vivaan's offline preparation selected historical_average; readiness returned
   HTTP 200, catalog_ready/predictions_ready true and prediction_mode saved.
@@ -18,13 +18,11 @@ Saved-mode local verification (2026-11-05, reported by Daira):
 - Website at localhost:3000: Podemos/B/Nov 6 at 9 AM showed P302 first choice
   and P304 backup, both cards/markers and historical survey limitations.
   Recommendations and routes requests returned HTTP 200.
-- Section 1 tests: 134 passed, one warning in 3.62s, using Python 3.12 venv.
-  Subsequent bundle/Lambda/configuration checks: 15 passed, one warning in 2.14s.
-  Full suite: 893 passed, 38 warnings, 39 subtests passed in 54.68s.
-  DS3 review completed using docs/codeReviewer.md; follow-up release-script tests
-  passed separately: 4 passed in 2.24s (reported by Daira).
-  Container/SAM validation remains pending.
-- These are Daira's local observations; no joint Dylan/Hanrong session is claimed.
+- Latest automated verification (2026-11-06): 115 affected checks passed;
+  the local full suite passed 901 tests and 39 subtests, with 38
+  warnings. DS3 review refreshed. See `docs/issue26_handoff.md` for commands.
+  Container/SAM/AWS validation remains pending.
+- These results cover local verification; joint website/app testing remains pending.
 
 This implementation follows Dylan's merged Issue #20 handoff. It uses the shared
 registry and historical baseline, with an optional saved Issue #18 estimator.
@@ -88,7 +86,7 @@ for the request/response details and local website commands.
   mode, survey-time metadata and support labels are stored. The saved-model
   entrypoint returns no estimate for unseen groups, while normal baseline startup
   keeps its original behavior. No joint saved-model website walkthrough is claimed.
-- Routes (Issue #25, proposed for Daira's review): the website calls `POST /routes`
+- Routes (Issue #25): the website calls `POST /routes`
   twice per selected choice — driving from the user's start to the parking
   location, walking from it to the destination. The app can make the same two
   calls; 503 means routing is off and should be shown as "directions not set up",
@@ -96,10 +94,10 @@ for the request/response details and local website commands.
 - Hanrong's app can use the same HTTP contract. No additional app confirmation
   is recorded here; live-data research is a separate task.
 - [x] API integration and generated-fixture endpoint tests implemented.
-- [x] Daira tested the local website in API mode with the historical baseline.
+- [x] Local website tested in API mode with the historical baseline.
 - [x] Record the local test and full-suite result below.
 
-Local verification (2026-11-01, reported by Daira):
+Baseline local verification (2026-11-01):
 
 - Used Dylan's merged registry/recommender and the existing historical baseline,
   as requested; no improved-model artifact was required.
@@ -108,8 +106,7 @@ Local verification (2026-11-01, reported by Daira):
 - The supplied screenshot shows Lot P671 as first choice, a 68% historical
   estimate, a 9-minute approximate walk, and first/backup map markers. The card
   explains the 2 PM survey fallback and that availability is not live.
-- This is Daira's local browser test, not a joint session with Dylan. The raw
-  network JSON and backup ID were not captured in these notes.
+- The raw network JSON and backup ID were not captured during this local test.
 - Full local suite: `MPLBACKEND=Agg python -m pytest -q` — **683 passed,
   17 warnings in 71.79s**. Automated fixture tests cover invalid requests,
   unavailable predictions, no eligible options and a result without a backup.
