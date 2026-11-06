@@ -59,6 +59,8 @@ interface ResultsListProps {
   errorMessage?: string | null;
   /** Source and backend messages for the current results; null for the dev simulator. */
   resultInfo?: ResultInfo | null;
+  /** Driving/walking directions for the selected result (API mode), shown under the cards. */
+  directions?: React.ReactNode;
 }
 
 /**
@@ -84,6 +86,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   onResetFilters,
   errorMessage = null,
   resultInfo = null,
+  directions = null,
 }) => {
   const api = resultInfo?.source === 'api' ? resultInfo : null;
   // Show the top 3, then reveal 5 more per "Show more" click; reset on every new search
@@ -220,6 +223,8 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           );
         })}
       </div>
+
+      {!isStale && directions}
 
       {api ? (
         <Limitations notes={api.limitations} />

@@ -16,6 +16,7 @@ import { API_BASE_URL } from '../config.ts';
 import { ALL_PARKING } from '../data/parkingLots.ts';
 import { findDestination } from '../data/destinations.ts';
 import type { ParkingLot, ParkingPlannerRequest, ParkingRecommendation } from '../types.ts';
+import { withTimeout } from './timeout.ts';
 
 export interface ApiCoordinates {
   latitude: number;
@@ -82,18 +83,51 @@ export function toApiRequest(request: ParkingPlannerRequest): ApiRecommendationR
 }
 
 /**
+ * How long a search may take before the website gives up and shows an error.
+ * Generous on purpose: a backend on AWS Lambda can take several seconds to start
+ * ("cold start") when nobody has used it recently.
+ */
+export const REQUEST_TIMEOUT_MS = 20_000;
+
+const TIMEOUT_MESSAGE = 'ParkSmart is taking too long to answer. Try again in a moment.';
+
+interface FetchOptions {
+  fetchImpl?: typeof fetch;
+  /** Cancels the request, e.g. when a newer search starts. Rejects with AbortError. */
+  signal?: AbortSignal;
+  baseUrl?: string;
+  /** Overrides REQUEST_TIMEOUT_MS (tests). */
+  timeoutMs?: number;
+}
+
+/**
  * Sends the trip to the backend and returns results or a message to show.
- * Never throws for HTTP or network problems, and never falls back to sample data.
+ * Never throws for HTTP, network or timeout problems, and never falls back to
+ * sample data. Only a cancellation through `signal` rejects (AbortError).
  */
 export async function fetchRecommendations(
   request: ParkingPlannerRequest,
-  options: { fetchImpl?: typeof fetch; signal?: AbortSignal; baseUrl?: string } = {}
+  options: FetchOptions = {}
+): Promise<RecommendationOutcome> {
+  const { signal, timeoutMs = REQUEST_TIMEOUT_MS, ...rest } = options;
+  return withTimeout<RecommendationOutcome>(
+    (combined) => requestRecommendations(request, { ...rest, signal: combined }),
+    () => ({ kind: 'error', message: TIMEOUT_MESSAGE }),
+    { signal, timeoutMs }
+  );
+}
+
+/** One POST /recommendations without the timeout. Rejects only on abort. */
+async function requestRecommendations(
+  request: ParkingPlannerRequest,
+  options: { fetchImpl?: typeof fetch; signal: AbortSignal; baseUrl?: string }
 ): Promise<RecommendationOutcome> {
   const body = toApiRequest(request);
   if (!body) return { kind: 'error', message: 'Pick a destination from the list first.' };
   const baseUrl = options.baseUrl ?? API_BASE_URL;
   const fetchImpl = options.fetchImpl ?? fetch;
 
+  // Messages are written for visitors; technical details go to the console.
   let response: Response;
   try {
     response = await fetchImpl(`${baseUrl}/recommendations`, {
@@ -104,28 +138,37 @@ export async function fetchRecommendations(
     });
   } catch (error) {
     if ((error as Error)?.name === 'AbortError') throw error;
-    return { kind: 'error', message: `Could not reach the ParkSmart backend at ${baseUrl}. Check that it is running and allows requests from this site (CORS).` };
+    console.warn(
+      `[ParkSmart] Could not reach the backend at ${baseUrl}. Check that it is running and allows requests from this site (CORS).`
+    );
+    return { kind: 'error', message: "Couldn't reach ParkSmart right now. Check your connection and try again." };
   }
 
   if (response.status === 404) {
-    return { kind: 'error', message: 'The backend has no recommendation service yet (POST /recommendations returned 404).' };
+    console.warn(`[ParkSmart] POST ${baseUrl}/recommendations returned 404.`);
+    return { kind: 'error', message: 'Parking recommendations are not available right now.' };
   }
   if (response.status === 422) {
-    return { kind: 'error', message: `The backend rejected these trip details: ${await validationDetail(response)}` };
+    return { kind: 'error', message: `These trip details can't be checked: ${await validationDetail(response)}` };
   }
   if (!response.ok) {
-    return { kind: 'error', message: `The backend could not compute recommendations (HTTP ${response.status}).` };
+    return {
+      kind: 'error',
+      message: `ParkSmart couldn't work out recommendations right now (error ${response.status}). Try again in a moment.`,
+    };
   }
 
   let data: unknown;
   try {
     data = await response.json();
-  } catch {
-    return { kind: 'error', message: 'The backend sent a response the website could not read.' };
+  } catch (error) {
+    if ((error as Error)?.name === 'AbortError') throw error;
+    return { kind: 'error', message: 'ParkSmart sent a response the website could not read.' };
   }
   const parsed = parseResponse(data);
   if (!parsed) {
-    return { kind: 'error', message: 'The backend response did not match the agreed format.' };
+    console.warn('[ParkSmart] Backend response did not match the agreed format:', data);
+    return { kind: 'error', message: 'ParkSmart sent a response that did not match the agreed format.' };
   }
   return { kind: 'ok', response: parsed, recommendations: toRecommendations(parsed) };
 }

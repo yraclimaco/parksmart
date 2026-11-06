@@ -268,3 +268,277 @@ def test_predictions_unavailable_passes_response_schema():
     assert response.status == PREDICTIONS_UNAVAILABLE
     for note in response.limitations:
         assert len(note) <= ranking.MAX_TEXT_LENGTH
+
+
+# Routed walking (Issue #25) ------------------------------------------------
+
+def _router(minutes, calls=None):
+    """walk_router stand-in returning fixed routed minutes per location."""
+    def route_walks(origins, destination):
+        if calls is not None:
+            calls.append(sorted(origins))
+        return {loc: minutes[loc] for loc in origins if loc in minutes}
+    return route_walks
+
+
+def test_routed_walks_replace_straight_line_for_picks():
+    calls = []
+    result = recommend(_candidates([
+        ("near", "S", "", 0.5), ("mid", "S", "", 0.5),
+    ]), LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION,
+        walk_router=_router({"near": 4, "mid": 9}, calls))
+    first, backup = result.first_choice, result.backup_choice
+    assert (first.estimated_walking_minutes, backup.estimated_walking_minutes) == (4, 9)
+    assert first.walking_source == ranking.WALK_ROUTED
+    assert "min walking route" in first.explanation
+    assert ranking.ROUTED_NOTE in result.limitations
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
+    assert calls == [["mid", "near"]]
+
+
+def test_routed_walk_over_limit_drops_location_and_promotes_next():
+    result = recommend(_candidates([
+        ("near", "S", "", 0.5), ("mid", "S", "", 0.5),
+    ]), LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION,
+        walk_router=_router({"near": ranking.MAX_WALK_MINUTES + 3, "mid": 9}))
+    assert result.first_choice.location["location_id"] == "mid"
+    assert result.backup_choice is None
+    assert result.counts["too_far_routed"] == 1
+    assert any("by mapped path" in note for note in result.limitations)
+
+
+def test_longer_routed_walk_can_change_the_order():
+    # Straight-line: near wins. Routed: near is a long detour, mid is direct.
+    result = recommend(_candidates([
+        ("near", "S", "", 0.5), ("mid", "S", "", 0.5),
+    ]), LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION,
+        walk_router=_router({"near": 18, "mid": 8}))
+    assert result.first_choice.location["location_id"] == "mid"
+
+
+def test_all_routed_walks_too_long_is_no_suitable_location():
+    result = recommend(_candidates([("near", "S", "", 0.5)]), LOCATIONS, "S",
+                       WEEKDAY_MORNING, DESTINATION,
+                       walk_router=_router({"near": 25}))
+    assert result.status == NO_SUITABLE_LOCATION
+
+
+def test_routing_failure_keeps_straight_line_estimates():
+    def broken(origins, destination):
+        raise RuntimeError("provider down")
+    plain = recommend(_candidates([("near", "S", "", 0.5)]), LOCATIONS, "S",
+                      WEEKDAY_MORNING, DESTINATION)
+    result = recommend(_candidates([("near", "S", "", 0.5)]), LOCATIONS, "S",
+                       WEEKDAY_MORNING, DESTINATION, walk_router=broken)
+    assert result.first_choice.estimated_walking_minutes == (
+        plain.first_choice.estimated_walking_minutes)
+    assert result.first_choice.walking_source == ranking.WALK_UNCHECKED
+    assert ranking.STRAIGHT_LINE_NOTE in result.limitations
+    assert "straight-line, unchecked" in result.first_choice.explanation
+    assert any(note.startswith("First choice walking time is a straight-line")
+               for note in result.limitations)
+    assert result.counts["route_unavailable"] == 1
+
+
+def test_partly_routed_picks_say_so():
+    result = recommend(_candidates([
+        ("near", "S", "", 0.5), ("mid", "S", "", 0.5),
+    ]), LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION,
+        walk_router=_router({"near": 4}))
+    assert result.backup_choice.walking_source == ranking.WALK_UNCHECKED
+    assert ranking.MIXED_ROUTED_NOTE in result.limitations
+    assert any(note.startswith("Backup walking time is a straight-line")
+               for note in result.limitations)
+    assert not any(note.startswith("First choice walking time")
+                   for note in result.limitations)
+
+
+def test_only_top_locations_are_routed():
+    many = [_location(f"lot{i}", 32.8800 + i * 0.0002) for i in range(8)]
+    calls = []
+    recommend(_candidates([(f"lot{i}", "S", "", 0.5) for i in range(8)]), many,
+              "S", WEEKDAY_MORNING, DESTINATION, walk_router=_router({}, calls))
+    assert len(calls) == 1 and len(calls[0]) == ranking.ROUTED_WALK_CANDIDATES
+
+
+def test_no_destination_means_no_routing():
+    calls = []
+    recommend(_candidates([("near", "S", "", 0.5)]), LOCATIONS, "S",
+              WEEKDAY_MORNING, walk_router=_router({"near": 4}, calls))
+    assert calls == []
+
+
+def test_longest_routed_explanation_fits_api_limit():
+    first, backup = (recommend(_candidates([(loc, "Visitor", "2-Hour Limit",
+                                             frac)]), LOCATIONS, "V",
+                               WEEKDAY_MORNING, DESTINATION,
+                               WEEKDAY_MORNING.replace(hour=11)).first_choice
+                     for loc, frac in (("near", 0.9), ("gliderport", 0.05)))
+    backup.allowed_until = datetime(2026, 10, 28, 7, 30)
+    backup.estimated_walking_minutes = 19
+    backup.walking_source = ranking.WALK_ROUTED
+    text = ranking._explain(backup, "V", first)
+    assert "walking route" in text
+    assert len(text) <= 200, text
+
+
+def _row_of_lots(count):
+    """``count`` S lots stepping north from DESTINATION, nearest first."""
+    lots = [_location(f"lot{i}", 32.8802 + i * 0.0002) for i in range(count)]
+    return lots, _candidates([(f"lot{i}", "S", "", 0.5) for i in range(count)])
+
+
+def test_picks_outside_first_routed_group_are_checked_too():
+    # Regression: the top 5 all route over the limit, so lot5 and lot6 (never
+    # routed in the first round) become the picks; they must be routed too.
+    lots, candidates = _row_of_lots(7)
+    too_far = {f"lot{i}": ranking.MAX_WALK_MINUTES + 5 for i in range(5)}
+    calls = []
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=_router({**too_far, "lot5": 6, "lot6": 7},
+                                           calls))
+    assert calls == [[f"lot{i}" for i in range(5)], ["lot5", "lot6"]]
+    assert result.first_choice.location["location_id"] == "lot5"
+    assert result.first_choice.walking_source == ranking.WALK_ROUTED
+    assert result.backup_choice.walking_source == ranking.WALK_ROUTED
+    assert result.first_choice.estimated_walking_minutes == 6
+    assert ranking.ROUTED_NOTE in result.limitations
+
+
+def test_picks_not_reached_within_budget_are_labeled_unchecked():
+    # The router answers the first round, then its budget is used up.
+    lots, candidates = _row_of_lots(7)
+    answers = [{f"lot{i}": ranking.MAX_WALK_MINUTES + 5 for i in range(5)}]
+
+    def router(origins, destination):
+        return answers.pop() if answers else {}
+
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=router)
+    for label, pick in (("First choice", result.first_choice),
+                        ("Backup", result.backup_choice)):
+        assert pick.walking_source == ranking.WALK_UNCHECKED
+        assert "walking route" not in pick.explanation
+        assert "straight-line, unchecked" in pick.explanation
+        assert (f"{label} walking time is a straight-line estimate; its mapped "
+                f"path was not checked against the {ranking.MAX_WALK_MINUTES}"
+                "-minute limit.") in result.limitations
+    # The dropped locations were checked by mapped path; the picks were not
+    assert ranking.MIXED_ROUTED_NOTE in result.limitations
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
+    for note in result.limitations:
+        assert len(note) <= ranking.MAX_TEXT_LENGTH
+
+
+def test_routing_rounds_are_bounded():
+    lots, candidates = _row_of_lots(15)
+    calls = []
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=_router({f"lot{i}": 30 for i in range(15)},
+                                           calls))
+    assert len(calls) == ranking.MAX_ROUTING_ROUNDS
+    assert sum(len(batch) for batch in calls) == (
+        ranking.ROUTED_WALK_CANDIDATES + 2 * (ranking.MAX_ROUTING_ROUNDS - 1))
+    assert result.first_choice.walking_source == ranking.WALK_UNCHECKED
+
+
+def test_without_routing_picks_keep_the_plain_straight_line_label():
+    result = recommend(_candidates([("near", "S", "", 0.5)]), LOCATIONS, "S",
+                       WEEKDAY_MORNING, DESTINATION)
+    assert result.first_choice.walking_source == ranking.WALK_STRAIGHT_LINE
+    assert "straight-line, unchecked" not in result.first_choice.explanation
+    assert not any("was not checked against" in n for n in result.limitations)
+
+
+def test_longest_unchecked_explanation_fits_api_limit():
+    first, backup = (recommend(_candidates([(loc, "Visitor", "2-Hour Limit",
+                                             frac)]), LOCATIONS, "V",
+                               WEEKDAY_MORNING, DESTINATION,
+                               WEEKDAY_MORNING.replace(hour=11)).first_choice
+                     for loc, frac in (("near", 0.9), ("gliderport", 0.05)))
+    backup.allowed_until = datetime(2026, 10, 28, 7, 30)
+    backup.estimated_walking_minutes = 19
+    backup.walking_source = ranking.WALK_UNCHECKED
+    backup.estimate_note = "2:00 PM surveys; none cover 10:00 PM"
+    text = ranking._explain(backup, "V", first)
+    assert "straight-line, unchecked" in text
+    assert len(text) <= ranking.MAX_TEXT_LENGTH, text
+
+
+# Code review fixes ----------------------------------------------------------
+
+@pytest.mark.parametrize("source", [ranking.WALK_STRAIGHT_LINE, ranking.WALK_ROUTED,
+                                    ranking.WALK_UNCHECKED])
+def test_worst_case_explanation_always_fits_the_api_limit(source):
+    # Review case: model basis, limited note, nearly full, approximate pin,
+    # unchecked walk, permit cutoff and backup comparison all at once (207 chars)
+    first = recommend(_candidates([("near", "S", "", 0.9)]), LOCATIONS, "S",
+                      WEEKDAY_MORNING, DESTINATION).first_choice
+    choice = recommend(_candidates([("gliderport", "Visitor", "2-Hour Limit", 0.05)]),
+                       LOCATIONS, "V", WEEKDAY_MORNING, DESTINATION,
+                       WEEKDAY_MORNING.replace(hour=11)).first_choice
+    choice.estimate_basis = "model"
+    choice.estimate_note = ("2:00 PM surveys; none cover 10:00 PM, using a broader "
+                            "average")
+    choice.allowed_until = datetime(2026, 10, 28, 7, 30)
+    choice.estimated_walking_minutes = 19
+    choice.walking_source = source
+    text = ranking._explain(choice, "SR", first)
+    assert len(text) <= ranking.MAX_TEXT_LENGTH, text
+    ParkingChoice(location=choice.location, explanation=text,
+                  estimated_available_fraction=0.05, estimated_walking_minutes=19)
+
+
+def test_every_location_too_far_by_path_is_not_called_missing_estimates():
+    # Review case: all scored locations are dropped by routed walk, and one
+    # other group has no estimate; this is a walking problem, not missing data
+    result = recommend(_candidates([
+        ("near", "S", "", 0.5), ("mid", "S", "", 0.6), ("gliderport", "S", "", None),
+    ]), LOCATIONS, "S", WEEKDAY_MORNING, DESTINATION,
+        walk_router=_router({"near": 25, "mid": 24}))
+    assert result.status == NO_SUITABLE_LOCATION
+    assert result.counts["missing_estimate"] == 1
+    assert "2 parking locations were over a 20-minute walk by mapped path " \
+        "and not recommended." in result.limitations
+    # No contradiction: every scored walk was checked by mapped path
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
+    assert ranking.ROUTED_NOTE in result.limitations
+
+
+def test_route_unavailable_counts_only_locations_sent_to_the_router():
+    no_pin = _location("nopin", 32.8805)
+    no_pin["coordinates"] = None
+    result = recommend(_candidates([("near", "S", "", 0.5), ("nopin", "S", "", 0.9)]),
+                       [*LOCATIONS, no_pin], "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=_router({}))
+    assert result.counts["route_unavailable"] == 1  # "near" only
+
+
+@pytest.mark.parametrize("routes, first_choice, note", [
+    # every candidate routed and dropped: only mapped paths were used
+    ({"near": 25, "mid": 24}, None, ranking.ROUTED_NOTE),
+    # one dropped by path; the pick's route failed, so it is straight-line
+    ({"near": 25}, "mid", ranking.MIXED_ROUTED_NOTE),
+    # both picks routed, but "far" was filtered by its straight-line time
+    ({"near": 4, "mid": 9}, "near", ranking.MIXED_ROUTED_NOTE),
+])
+def test_walking_note_matches_what_was_actually_used(routes, first_choice, note):
+    rows = [("near", "S", "", 0.5), ("mid", "S", "", 0.6)]
+    if first_choice == "near":
+        rows.append(("far", "S", "", 0.9))
+    result = recommend(_candidates(rows), LOCATIONS, "S", WEEKDAY_MORNING,
+                       DESTINATION, walk_router=_router(routes))
+    assert note in result.limitations
+    assert ranking.STRAIGHT_LINE_NOTE not in result.limitations
+    if first_choice:
+        assert result.first_choice.location["location_id"] == first_choice
+
+
+def test_unchecked_picks_after_the_budget_runs_out_get_the_mixed_note():
+    # First round answers (all over the limit), later rounds get nothing
+    lots, candidates = _row_of_lots(7)
+    answers = [{f"lot{i}": ranking.MAX_WALK_MINUTES + 5 for i in range(5)}]
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       walk_router=lambda o, d: answers.pop() if answers else {})
+    assert result.first_choice.walking_source == ranking.WALK_UNCHECKED
+    assert ranking.MIXED_ROUTED_NOTE in result.limitations

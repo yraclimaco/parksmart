@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+from src.api import main
 from src.api.main import create_app
 from src.availability import AvailabilityEstimator
 from src.location_registry import load_registry
@@ -71,8 +72,10 @@ def test_real_registry_catalog(client):
 def test_documentation_exposes_post_contract(client):
     assert client.get("/docs").status_code == 200
     schema = client.get("/openapi.json").json()
-    assert set(schema["paths"]) == {"/health", "/locations", "/recommendations"}
+    assert set(schema["paths"]) == {"/health", "/locations", "/recommendations",
+                                    "/routes"}
     assert "post" in schema["paths"]["/recommendations"]
+    assert "post" in schema["paths"]["/routes"]
     assert "RecommendationRequest" in schema["components"]["schemas"]
 
 
@@ -105,7 +108,7 @@ def test_walking_and_unused_starting_location_are_explicit(client):
     result = client.post("/recommendations", json=payload).json()
     assert result["status"] == "ready"
     assert result["first_choice"]["estimated_walking_minutes"] is not None
-    assert any("Starting location is not used" in note
+    assert any("Starting location is not used for ranking" in note
                for note in result["limitations"])
 
 
@@ -228,3 +231,63 @@ def test_post_preflight_and_error_response_allow_local_browser(client, tmp_path)
         assert response.headers["access-control-allow-origin"] == (
             "http://localhost:3000"
         )
+
+
+def test_deployed_origins_come_from_environment(tmp_path, monkeypatch):
+    origins = " https://main.d1abc.amplifyapp.com/ , https://parksmart.example "
+    monkeypatch.setenv(main.CORS_ORIGINS_ENV, origins)
+    assert main.allowed_origins()[-2:] == [
+        "https://main.d1abc.amplifyapp.com", "https://parksmart.example"]
+    with TestClient(create_app(dataset_path=tmp_path / "missing.csv")) as client:
+        allowed = client.get("/health", headers={"Origin": "https://parksmart.example"})
+        blocked = client.get("/health", headers={"Origin": "https://evil.example"})
+    assert allowed.headers["access-control-allow-origin"] == "https://parksmart.example"
+    assert "access-control-allow-origin" not in blocked.headers
+
+
+@pytest.mark.parametrize("value", [
+    "*", "https://*.amplifyapp.com", "parksmart.example",
+    "https://main.d123.amplifyapp.com/app", "https://site.example?x=1",
+    "https://site.example#top", "ftp://site.example", "https://",
+    "https://user:pw@site.example",
+])
+def test_cors_origins_reject_wildcards_and_bare_hosts(value):
+    with pytest.raises(ValueError, match="exact http"):
+        main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+
+
+def test_local_origins_stay_allowed_without_configuration():
+    assert main.allowed_origins({}) == main.LOCAL_FRONTEND_ORIGINS
+
+
+def test_cors_origin_with_trailing_slash_or_port_is_accepted():
+    value = "https://main.d123.amplifyapp.com/, http://10.0.0.5:3000"
+    origins = main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+    assert "https://main.d123.amplifyapp.com" in origins
+    assert "http://10.0.0.5:3000" in origins
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("https://Main.D123.amplifyapp.com", "https://main.d123.amplifyapp.com"),
+    ("https://site.example:443", "https://site.example"),
+    ("HTTP://site.example:80/", "http://site.example"),
+    ("https://site.example:8443", "https://site.example:8443"),
+    ("http://[::1]:3000", "http://[::1]:3000"),
+    ("https://xn--bcher-kva.example", "https://xn--bcher-kva.example"),
+])
+def test_cors_origins_are_normalized_like_browser_origins(value, expected):
+    assert expected in main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+
+
+@pytest.mark.parametrize("value", ["https://site.example:abc",
+                                   "https://site.example:99999"])
+def test_cors_origins_reject_bad_ports(value):
+    with pytest.raises(ValueError, match="port"):
+        main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+
+
+@pytest.mark.parametrize("value", ["https://a..b", "https://bücher.example",
+                                   "https://straße.example"])
+def test_cors_origins_reject_invalid_or_non_ascii_hosts(value):
+    with pytest.raises(ValueError, match="punycode"):
+        main.allowed_origins({main.CORS_ORIGINS_ENV: value})

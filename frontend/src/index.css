@@ -422,3 +422,13 @@ body {
   border-color: var(--color-gold);
   color: var(--color-navy);
 }
+
+/* Starting point for driving directions: navy dot with a white ring */
+.ps-start-marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-navy);
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 0 0 1px rgba(24, 43, 73, 0.35), 0 1px 4px rgba(0, 0, 0, 0.3);
+}

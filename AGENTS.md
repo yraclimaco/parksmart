@@ -129,6 +129,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 ├── AGENTS.md
 ├── .env.example
 ├── .gitignore
+├── amplify.yml        # AWS Amplify Hosting build for frontend/ (see Issue #25)
 ├── requirements.txt
 ├── pytest.ini
 ├── docs/              # data audits, assumptions, and technical documentation
@@ -141,7 +142,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 ├── results/           # model evaluations, figures, and reports
 ├── models/            # saved models and forecast artifacts
 ├── frontend/          # React + TypeScript website (synced copy; see Website)
-└── infra/             # planned AWS deployment configuration
+└── infra/             # planned AWS backend deployment configuration
 ```
 
 Some planned directories may not exist yet. Update this structure as components are added.
@@ -155,6 +156,14 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
+
+Use Python 3.11+ built with OpenSSL (AWS Lambda runs 3.12; 3.13 also works). On
+macOS, `python3` may be Apple's Python 3.9 with LibreSSL, which cannot reach
+TLS 1.3-only services such as the public OSRM routing servers;
+`brew install python@3.12` and create the venv with `python3.12 -m venv .venv`.
+Saved model artifacts store exact library versions, so rerun
+`python -m src.train_availability` after changing Python. Full steps and a TLS
+check command: "Supported Python setup" in `docs/backend.md`.
 
 ### Windows PowerShell
 
@@ -224,7 +233,9 @@ Neither means parking is full. Runtime results are `is_example: false`.
 Static examples remain labeled and never provide runtime fallback estimates.
 `not_implemented` is legacy schema compatibility only.
 
-Local CORS permits GET/POST from localhost/127.0.0.1 ports 3000 and 5173. Start
+Local CORS permits GET/POST from localhost/127.0.0.1 ports 3000 and 5173; add
+deployed origins with `PARKSMART_CORS_ORIGINS` (comma-separated exact origins, no
+wildcards; `allowed_origins()` in `src/api/main.py`). Start
 Dylan's synced website using `VITE_RECOMMENDATION_SOURCE=api npm run dev` from
 `frontend/`; do not edit synced website files here. The source website client
 already sends the implemented JSON contract. See `docs/backend.md` for setup,
@@ -487,7 +498,53 @@ unless `VITE_RECOMMENDATION_SOURCE=api`, which sends them to
 `POST /recommendations` (`frontend/src/api/recommendations.ts`) and never falls
 back to sample data. Website data marked sample in `frontend/README.md` is not a
 real prediction. Website pins must use registry `location_id` values; a test in
-`tests/test_location_registry.py` checks this.
+`tests/test_location_registry.py` checks this. In API mode the selected result
+also gets driving/walking routes from `POST /routes` (see Issue #25 below).
+Website changes are made on a branch of ParkSmart-Website, merged there, then
+synced; `--source` syncs a local clone's committed `HEAD` for testing.
+
+### Routes and website hosting — Issue #25
+
+`POST /routes` returns one driving or walking route (GeoJSON `[lon, lat]`
+geometry, meters, miles, minutes, `traffic_aware: false`) between two coordinates.
+Providers live in `src/routing.py`: OpenRouteService (`ORS_API_KEY`) or OSRM
+(public FOSSGIS servers, light use only). Unset means `ors` with a key, otherwise
+`osrm`, so routes work with no setup; `PARKSMART_ROUTING_PROVIDER=none` turns them
+off (503) and recommendations keep working. Keys stay on the backend, never in `VITE_` variables or Git.
+When routing is on, `/recommendations` routes the top 5 locations' walks, then
+any unchecked first choice/backup (`MAX_ROUTING_ROUNDS`, one 8 s budget per
+request via `walk_router`), drops routes over 20 minutes and rescores. Picks
+without a route keep straight-line times labeled unchecked; never say the
+20-minute limit was checked for them (see `docs/recommendations.md`). Every
+FOSSGIS request shares one per-process 1 request/s throttle; routes that snap a
+point over 150 m (walking) / 250 m (driving) are rejected. Tests set
+`PARKSMART_ROUTING_PROVIDER=none` (`tests/conftest.py`), so they never call a
+provider.
+Trips are capped (driving 150 km, walking 5 km straight line), successes are
+cached in memory, and provider errors are logged, not returned. Parking ends are
+registry building points, not verified entrances; responses say so. Never call
+travel times traffic-aware. FOSSGIS needs TLS 1.3; without it (macOS Xcode
+Python 3.9) startup logs a warning and turns routes off (503). At run time only a
+confirmed unsupported-TLS error turns them off; certificate and other SSL errors
+are provider errors and routing stays on. Provider calls never start after their
+request's deadline (8 s per recommendation, 10 s per `/routes` call).
+With a rate-limited provider (public FOSSGIS or ORS, per mode), `/routes` starts
+provider calls at most every 2 s so it cannot starve searches; self-hosted
+servers are not gated. ORS is spaced 1.6 s apart; only its error codes
+2009/2010 mean "no route" (other 404s are 502 config errors). "No route" answers
+are cached for an hour. `PARKSMART_CORS_ORIGINS` entries are normalized like
+browser Origin headers (lowercase, punycode, no default port).
+Card and directions minutes both come from `route_minutes`/`display_minutes`. Contract, configuration, public-server limits,
+deployment plan, Lambda handoff and pilot results: `docs/routing.md`. The
+website's "Fix the map" OSM link lives in ParkSmart-Website (synced);
+copyable JSON is in `docs/examples/backend/route_*.json` (validated by
+`tests/test_api_schemas.py`). Tests:
+`python -m pytest tests/test_routing.py tests/test_api.py -q`.
+
+`amplify.yml` builds `frontend/` on AWS Amplify Hosting (monorepo `appRoot:
+frontend`; set Node.js 22 and `VITE_API_BASE_URL`/`VITE_RECOMMENDATION_SOURCE=api`
+in the Amplify console). Deploy only with funded DS3 AWS access; never enable
+paid usage. Steps, verification and cleanup: `docs/frontend_deployment.md`.
 
 ### Location registry — Issue #20
 

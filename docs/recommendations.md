@@ -107,7 +107,11 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    match today's allocation.
 2. **Filter:** registry status `supported`, eligibility `allowed`, walk at most
    20 minutes, and an availability estimate present. Skipped counts are in
-   `result.counts`; missing estimates are never filled in.
+   `result.counts` for debugging and notebooks (not part of the API response):
+   `not_supported`, `not_allowed`, `needs_verification`, `too_far`,
+   `missing_estimate`, `scored`, and with routing `too_far_routed` and
+   `route_unavailable` (locations sent to the router that got no route).
+   Missing estimates are never filled in.
 3. **Walking time:** straight-line distance × 13 min/km + 2 min, minimum
    3 min — the website's formula. It is an approximation, not a routed path.
    Unknown when the destination has no coordinates. Pins marked approximate
@@ -119,6 +123,32 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    score 0.
 5. **One group per location:** the location's best-scoring eligible group
    represents it. First choice and backup are always different locations.
+   **Routed walks (Issue #25):** when the backend has routing configured, the
+   top 5 locations by this straight-line score get mapped walking routes
+   (`walk_router` in `src/routing.py`, in parallel, through the shared FOSSGIS
+   throttle). Routes over 20 minutes are dropped; the rest are rescored with
+   the routed minutes (the directions box's number: duration rounded to 0.1 min,
+   then up, at least 1) and re-sorted, and their explanations say
+   "walking route". Straight-line estimates are usually, but not always,
+   shorter than mapped paths (paths were 1.2–1.4× the straight line in the
+   pilot), so a location outside the top 5 can still rise to first choice or
+   backup, for example when routed top-5 walks are long. Ranking therefore
+   routes the current first choice and backup again whenever either is not yet
+   checked, up to 3 more rounds (at most 11 routes per request), all within
+   one 8-second budget per request. A pick whose route failed, was rejected or
+   was not reached in time keeps its straight-line time, is labeled
+   "walk (straight-line, unchecked)" in its explanation, and gets a limitation
+   saying its mapped path was not checked against the 20-minute limit. The
+   limit is only described as checked by mapped path for routed picks. If every
+   route in a routing round fails, the server logs a warning with the reasons.
+   If routing drops every location, the result is `no_suitable_location` with
+   a limitation saying how many were over the limit by mapped path (never
+   `predictions_unavailable`, which only means no eligible group had an
+   estimate). Routed minutes skip the straight-line formula's 2-minute buffer
+   and 3-minute floor, so when routed and straight-line walks are ranked
+   together they are on slightly different scales; each pick's label says
+   which it is.
+   Without routing, behavior is unchanged.
 6. **Ties:** higher score, then higher availability, then shorter walk, then
    `location_id` alphabetically, so results are deterministic.
 
