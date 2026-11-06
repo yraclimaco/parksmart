@@ -115,9 +115,10 @@ describe('fetchRecommendations', () => {
   });
 
   it.each([
-    [404, {}, 'returned 404'],
+    [404, {}, 'not available right now'],
     [422, { detail: [{ msg: 'Arrival time does not exist in UCSD local time' }] }, 'does not exist in UCSD'],
-    [500, {}, 'HTTP 500'],
+    [500, {}, 'error 500'],
+    [503, {}, 'error 503'],
     [200, 'not json', 'could not read'],
     [200, { status: 'ready' }, 'agreed format'],
     [200, ready({ first_choice: choice('x', 1.4, 3) }), 'agreed format'],
@@ -129,15 +130,49 @@ describe('fetchRecommendations', () => {
   });
 
   it('explains network failures without falling back to sample data', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const fetchImpl = vi.fn(async () => {
       throw new TypeError('Failed to fetch');
     });
     const outcome = await fetchRecommendations(REQUEST, { fetchImpl, baseUrl: 'http://api.test' });
     expect(outcome).toEqual({
       kind: 'error',
-      message:
-        'Could not reach the ParkSmart backend at http://api.test. Check that it is running and allows requests from this site (CORS).',
+      message: "Couldn't reach ParkSmart right now. Check your connection and try again.",
     });
+    // Visitors get plain wording; the URL and CORS hint go to the console for developers
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('http://api.test'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('CORS'));
+    warn.mockRestore();
+  });
+
+  it('gives up after the timeout instead of loading forever', async () => {
+    vi.useFakeTimers();
+    // A backend that never answers, but stops when its request is aborted
+    const fetchImpl = vi.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        })
+    );
+    const pending = fetchRecommendations(REQUEST, { fetchImpl: fetchImpl as typeof fetch, timeoutMs: 5000 });
+    await vi.advanceTimersByTimeAsync(5000);
+    const outcome = await pending;
+    vi.useRealTimers();
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind === 'error') expect(outcome.message).toContain('taking too long');
+  });
+
+  it('still lets a newer search cancel a request that has a timeout', async () => {
+    const controller = new AbortController();
+    const fetchImpl = vi.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        })
+    );
+    const pending = fetchRecommendations(REQUEST, { fetchImpl: fetchImpl as typeof fetch, signal: controller.signal });
+    controller.abort();
+    await expect(pending).rejects.toThrow('Aborted');
   });
 
   it('lets aborts from a newer search propagate', async () => {

@@ -15,11 +15,16 @@ repository root:
 python -m uvicorn src.api.main:app --reload
 ```
 
-Open <http://127.0.0.1:8000/docs> to try GET `/health`, GET `/locations`, and
-POST `/recommendations`. Locations use the shared real registry. Historical
+Open <http://127.0.0.1:8000/docs> to try GET `/health`, GET `/locations`,
+POST `/recommendations` and POST `/routes`. Locations use the shared real registry. Historical
 recommendations use the existing pipeline dataset and baseline, loaded once at
 startup. Missing resources return explicit 503s; no sample prediction fallback
 is used. The API never builds the dataset or runs notebooks per request.
+
+`POST /routes` returns driving and walking routes (free public OSRM servers by
+default, no key needed), and recommendations use mapped walking routes for the
+top picks; see [routes](docs/routing.md). Website hosting on AWS Amplify is
+prepared in [frontend deployment](docs/frontend_deployment.md).
 
 See [backend setup, learning walkthrough, and interface contract](docs/backend.md)
 for examples and [the short Dylan/Hanrong proposal](docs/api_proposal.md).
@@ -82,7 +87,8 @@ Reusable code lives in `src/`, tests in `tests/`, and exploration in `notebooks/
 Intermediate Inventory groups/audits are in `data/interim/inventory/`; batch
 reports are in `results/capacity_matching/batch/`. Delivery copies are compressed
 CSVs in `results/capacity_matching/deliverables/`; pandas reads `.csv.gz` directly.
-Frontend, infrastructure and model folders are placeholders for later work.
+The frontend contains the synced website; model artifacts are generated locally.
+Infrastructure remains planned.
 
 ## Git and GitHub workflow for DS3 projects
 
@@ -186,3 +192,11 @@ This template is intentionally simple so students can focus on the science inste
 - frontend UI/UX code in `frontend/`
 - CI checks
 - docs pages
+
+Availability prediction training, saved artifacts, and backend integration:
+see [Issue #18 handoff and evaluation](docs/issue18_predictions.md).
+Run `python -m src.train_availability`, then serve the reviewed saved estimator
+with `python -m uvicorn src.api.saved_model:create_saved_app --factory`.
+The selected model is historical averages, chosen on supported validation rows.
+Exact artifact dependency versions are checked at load; unsupported groups stay
+unknown. Later-quarter accuracy remains unvalidated.

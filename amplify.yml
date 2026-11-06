@@ -1,0 +1,32 @@
+# AWS Amplify Hosting build settings for the ParkSmart website (Issue #25).
+# The website lives in frontend/ (a synced copy of ParkSmart-Website), so this is
+# a monorepo build: appRoot must equal the AMPLIFY_MONOREPO_APP_ROOT environment
+# variable (the console sets it when the app root "frontend" is entered).
+# Set the Node.js version (22) under Build image settings > Live package updates;
+# never "latest". Setup, verification and cleanup: docs/frontend_deployment.md.
+version: 1
+applications:
+  - appRoot: frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            # Vite needs Node 20.19+ or 22.12+; stop early with a clear message
+            - node --version
+            - node -e "const [a,b]=process.versions.node.split('.').map(Number); if (!((a===20&&b>=19)||(a===22&&b>=12)||a>22)) { console.error('Node 20.19+ or 22.12+ required'); process.exit(1); }"
+            - npm ci
+        build:
+          commands:
+            # VITE_ variables are baked into the public bundle; never put secrets in them
+            - echo "VITE_API_BASE_URL=${VITE_API_BASE_URL:-unset (defaults to http://127.0.0.1:8000)}"
+            - echo "VITE_RECOMMENDATION_SOURCE=${VITE_RECOMMENDATION_SOURCE:-unset (sample data)}"
+            - npm test
+            - npm run lint
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*

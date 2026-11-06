@@ -1,7 +1,7 @@
 # API integration contract — Issue #19
 
 This implementation follows Dylan's merged Issue #20 handoff. It uses the shared
-registry and existing historical baseline while Vivaan develops improved models.
+registry and historical baseline, with an optional saved Issue #18 estimator.
 This is the implemented API contract; acceptance by all teammates and a joint
 website walkthrough have not been recorded. Record feedback and outcomes below.
 
@@ -17,12 +17,16 @@ website walkthrough have not been recorded. Record feedback and outcomes below.
 | Recommender | `.recommend(permit, arrival, destination=coordinates)`; `.to_api()` returns choices, status, explanation and limitations |
 | Result | `ready`, `no_suitable_location`, `predictions_unavailable`; null backup when only one location qualifies |
 | Units | Availability fraction 0–1; walking minutes; null for unknown values |
+| Routes (Issue #25) | `POST /routes` with `mode` (`driving`/`walking`), `origin`, `destination`; returns GeoJSON `[lon, lat]` `geometry`, meters, miles, minutes, `traffic_aware: false`. Examples: `docs/examples/backend/route_*.json`; details: `docs/routing.md` |
 
 FastAPI loads the registry and existing dataset once at startup. The current
 baseline is fitted once, never per request. A ready `AvailabilityEstimator`
 wrapping a model loaded with Vivaan's loader can replace it without endpoint
-changes. There is no saved-model loader in the merged prediction code yet;
-no artifact format is assumed. See `src/availability.py` for the full interface.
+changes. `src.api.saved_model:create_saved_app` loads the version-checked v2
+artifact through `src.availability_prediction.load_prediction_service`; its
+selected historical baseline abstains on unsupported groups/time/calendar fields.
+See `docs/issue18_predictions.md` for the shared selection/support rule and
+`src/availability.py` for the arrival adapter interface.
 
 The registry attaches shared IDs to facility/category/subtype/level groups;
 restrictions and level distinctions are not flattened. Production pins retain
@@ -30,8 +34,10 @@ registry verification rules. `GET /locations` omits restricted, unresolved and
 excluded entries and explains this in its limitations. Catalog support is not
 proof that the location is currently open or eligible for a user's permit.
 
-Destination coordinates determine straight-line walking estimates. Destination
-name is display-only. Starting location is accepted but unused, explicitly
+Destination coordinates determine walking times: mapped walking routes for the
+top locations when routing is available (Issue #25), otherwise straight-line
+estimates; the explanation and limitations say which. Destination
+name is display-only. Starting location is accepted but unused for ranking, explicitly
 reported in response limitations when supplied. Eligibility checks arrival only.
 Historical fallback basis, outside-survey-hours requests and calendar limitations
 come from the reusable recommender, not endpoint guesses.
@@ -51,10 +57,16 @@ for the request/response details and local website commands.
 
 - Dylan owns the registry, eligibility/ranking modules and source website.
   His merged `docs/recommendations_handoff.md` supplies the integration interface.
-- Vivaan owns improved predictions and saved artifacts; the existing baseline
-  is used now. Confirm model loader, survey-time metadata and basis labels before
-  swapping in an artifact. The documented campus-wide baseline fallback remains
-  labeled; whether unseen groups should instead return NaN remains a team decision.
+- Vivaan owns saved predictions and reproducible model comparison. The corrected
+  selected artifact uses historical averages; exact dependency versions, feature
+  mode, survey-time metadata and support labels are stored. The saved-model
+  entrypoint returns no estimate for unseen groups, while normal baseline startup
+  keeps its original behavior. No joint saved-model website walkthrough is claimed.
+- Routes (Issue #25, proposed for Daira's review): the website calls `POST /routes`
+  twice per selected choice — driving from the user's start to the parking
+  location, walking from it to the destination. The app can make the same two
+  calls; 503 means routing is off and should be shown as "directions not set up",
+  not as an error. Open points are listed at the end of `docs/routing.md`.
 - Hanrong's app can use the same HTTP contract. No additional app confirmation
   is recorded here; live-data research is a separate task.
 - [x] API integration and generated-fixture endpoint tests implemented.

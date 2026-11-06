@@ -57,8 +57,8 @@ const INSIGHT_END_HOUR = 20;
 const INSIGHT_STEP_MINUTES = 15;
 
 /**
- * First time on `date`'s day when the lot stops being "likely open", e.g. 9:45 AM.
- * Null if it stays likely open all day.
+ * First time on `date`'s day when the lot stops being "usually open", e.g. 9:45 AM.
+ * Null if it stays usually open all day.
  */
 export function tightFrom(lot: ParkingLot, date: Date): Date | null {
   const t = new Date(date);

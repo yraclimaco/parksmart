@@ -16,9 +16,44 @@ python -m pip install -r requirements.txt
 python -m uvicorn src.api.main:app --reload
 ```
 
-For a new environment, first run `python3 -m venv .venv`. On Windows use
-`py -m venv .venv` and `.venv\Scripts\Activate.ps1`, or invoke
-`.venv\Scripts\python.exe` directly if activation is blocked.
+For a new environment, first run `python3 -m venv .venv` (see the supported
+setup below). On Windows use `py -m venv .venv` and `.venv\Scripts\Activate.ps1`,
+or invoke `.venv\Scripts\python.exe` directly if activation is blocked.
+
+### Supported Python setup
+
+Use **Python 3.11 or newer built with OpenSSL** (3.12 matches AWS Lambda; 3.13
+also works). Two things depend on it:
+
+- **Routes.** The public OSRM servers used by default accept TLS 1.3 only. The
+  macOS system/Xcode `python3` (3.9 with LibreSSL 2.8.3) has no TLS 1.3. The
+  backend detects this at startup, logs a warning that names the SSL library,
+  and turns routes off (`/routes` answers 503) instead of failing every request.
+  Recommendations keep straight-line walking times.
+- **Saved models.** Issue #18 artifacts record the exact Python, numpy, pandas,
+  scikit-learn, scipy and joblib versions they were trained with, and
+  `create_saved_app` refuses to start with any other versions. After creating a
+  new environment or changing Python, regenerate them.
+
+On macOS: `brew install python@3.12` (or `python@3.13`). Then, from the
+repository root:
+
+```bash
+python3.12 -m venv .venv            # or python3.13
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -c "import ssl, sys; print(sys.version.split()[0], ssl.OPENSSL_VERSION, ssl.HAS_TLSv1_3)"
+# expect 3.11 or newer, "OpenSSL 3...", True
+
+# Regenerate the saved model artifacts for this environment
+python -m src.train_availability     # needs data/processed/pipeline/analysis_dataset.csv
+python -m uvicorn src.api.saved_model:create_saved_app --factory
+```
+
+If the dataset is missing, build it first (`python -m src.download_qpass`,
+`python -m src.download_inventory`, `python -m src.build_dataset`). Old
+artifacts in `models/issue18/` are overwritten; they are gitignored and never
+shared between machines.
 
 Open http://127.0.0.1:8000/docs. Try GET `/health`, GET `/locations`, then POST
 `/recommendations` using [the request example](examples/backend/recommendation_request.json).
@@ -61,12 +96,18 @@ Website form
 - Endpoint handlers only pass validated arguments to `src/recommender.py` and
   serialize its result. `src/availability.py`, `src/eligibility.py` and
   `src/ranking.py` own estimation and parking decisions.
-- To use Vivaan's saved model, load it once with his supplied loader and wrap it
-  in `AvailabilityEstimator(model, survey_times=[...], basis_descriptions=...)`.
-  Pass that ready estimator to `create_app(estimator=estimator)`. There is no
-  invented artifact format or loader here: the merged baseline is the current
-  working integration. See `docs/recommendations_handoff.md` for his model's
-  prediction contract. A ready estimator is not refitted by the API.
+- To use the reviewed Issue #18 artifact, run
+  `python -m uvicorn src.api.saved_model:create_saved_app --factory` after
+  `python -m src.train_availability`. The factory loads the checked v2 artifact,
+  uses its `survey_times` metadata and shared basis descriptions, and passes
+  `AvailabilityEstimator` to `create_app(estimator=...)` without fitting it.
+  Exact training dependency versions are required; missing/incompatible artifacts
+  stop saved-model startup with an error instead of a silent model substitution.
+  The normal `src.api.main:app` entrypoint retains its original fitted baseline.
+  The selected saved artifact now uses historical averages, selected on requests
+  the service supports; unseen groups remain NaN. Full Python wiring, coverage
+  rules and regression wording are in `docs/recommendations_handoff.md` and
+  `docs/issue18_predictions.md`.
 
 FastAPI's lifespan pattern is described in its
 [official documentation](https://fastapi.tiangolo.com/advanced/events/).
@@ -107,7 +148,8 @@ are complete numeric WGS84 `latitude`/`longitude` pairs, within [-90,90] and
 verification of catalog pins. Destination name is display text, not geocoded.
 Null destination coordinates are allowed: walking time is unavailable and the
 recommender explains that ranking uses availability alone. A supplied starting
-location adds an explicit limitation because no driving route is calculated.
+location adds an explicit limitation because it does not affect ranking; driving
+and walking routes come from `POST /routes` (`docs/routing.md`).
 
 Arrival is normalized to `America/Los_Angeles`, with daylight saving. An offset
 or `Z` identifies an instant and is converted to UCSD time. No offset means UCSD
@@ -172,7 +214,9 @@ VITE_RECOMMENDATION_SOURCE=api VITE_API_BASE_URL=http://127.0.0.1:8000 npm run d
 ```
 
 Open http://localhost:3000. The explicit CORS allowlist covers localhost and
-127.0.0.1 on ports 3000 and 5173, GET/POST, and Content-Type. API mode does not fall
+127.0.0.1 on ports 3000 and 5173, GET/POST, and Content-Type. Deployed sites
+(for example the Amplify URL) are added with `PARKSMART_CORS_ORIGINS`, a
+comma-separated list of exact origins. API mode does not fall
 back to sample recommendations. An HTTP 503 currently produces the website's
 service-error message; evaluated unavailable estimates use its empty state.
 Without the API flag the prototype still uses labeled samples.

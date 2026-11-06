@@ -33,7 +33,7 @@ interface RecommendationCardProps {
 
 /**
  * Clickable, keyboard-accessible card displaying parking lot details,
- * estimated capacity bar, walking time, and recommendation reasoning.
+ * estimated availability bar, walking time, and recommendation reasoning.
  */
 export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   recommendation,

@@ -33,6 +33,7 @@ BASIS_DESCRIPTIONS = {
     "level_2": "same time, any weekday or quarter",
     "level_3": "all-day average for these stalls",
     "global": "campus-wide average; no history for these stalls",
+    "model": None,  # Regression type is not itself a coverage limitation.
 }
 # Bases that ignore the time of day, so naming the survey time would mislead.
 ALL_DAY_BASES = {"level_3", "global"}
