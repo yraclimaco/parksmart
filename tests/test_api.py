@@ -72,8 +72,8 @@ def test_real_registry_catalog(client):
 def test_documentation_exposes_post_contract(client):
     assert client.get("/docs").status_code == 200
     schema = client.get("/openapi.json").json()
-    assert set(schema["paths"]) == {"/health", "/locations", "/recommendations",
-                                    "/routes"}
+    assert set(schema["paths"]) == {"/health", "/readiness", "/locations",
+                                    "/recommendations", "/routes"}
     assert "post" in schema["paths"]["/recommendations"]
     assert "post" in schema["paths"]["/routes"]
     assert "RecommendationRequest" in schema["components"]["schemas"]

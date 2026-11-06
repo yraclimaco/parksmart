@@ -8,8 +8,9 @@ from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from src.location_registry import DEFAULT_DATASET, DEFAULT_REGISTRY, load_registry
+from src.location_registry import load_registry
 from src.parking_benchmarks import load_analysis_dataset
 from src.recommender import Recommender
 from src.routing import (
@@ -19,9 +20,10 @@ from src.routing import (
 )
 
 from .locations import get_locations
+from .settings import ServingSettings
 from .schemas import (
     HealthResponse, LocationsResponse, RecommendationRequest, RecommendationResponse,
-    RouteRequest, RouteResponse,
+    ReadinessResponse, RouteRequest, RouteResponse,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -118,8 +120,9 @@ def allowed_origins(environ=None) -> list:
     return list(dict.fromkeys([*LOCAL_FRONTEND_ORIGINS, *extra]))
 
 
-def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
-               estimator=None, route_service=None) -> FastAPI:
+def create_app(dataset_path=None, registry_path=None,
+               estimator=None, route_service=None, estimator_loader=None,
+               prediction_mode=None) -> FastAPI:
     """Create an API loading its catalog and prediction resources at startup.
 
     Args:
@@ -129,10 +132,24 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             None uses the historical-average baseline, fitted once at startup.
         route_service: optional RouteService. None builds one from environment
             variables (src.routing.provider_from_env) at startup.
+        estimator_loader: optional zero-argument loader called once at startup;
+            failures leave recommendations unavailable, never fit a fallback.
+        prediction_mode: readiness label; inferred as provided or baseline when
+            omitted. Saved entrypoints explicitly use saved.
     Returns:
         FastAPI app. Missing/invalid resources produce HTTP 503 while health
         remains available. Each process loads once; restart to reload resources.
     """
+    settings = ServingSettings.from_env()
+    dataset_path = settings.dataset_path if dataset_path is None else dataset_path
+    registry_path = settings.registry_path if registry_path is None else registry_path
+    if estimator is not None and estimator_loader is not None:
+        raise ValueError("Provide an estimator or its loader, not both")
+    mode = prediction_mode or (
+        "provided" if estimator is not None or estimator_loader else "baseline")
+    if mode not in {"baseline", "saved", "provided"}:
+        raise ValueError("Invalid prediction_mode")
+
     @asynccontextmanager
     async def lifespan(application):
         """Load shared resources for this app, then release them on shutdown."""
@@ -156,9 +173,13 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             LOGGER.warning("Location registry unavailable: %s", error)
         else:
             try:
+                ready_estimator = (estimator_loader() if estimator_loader
+                                   else estimator)
+                if estimator_loader is not None and ready_estimator is None:
+                    raise ValueError("Estimator loader returned no estimator")
                 records = load_analysis_dataset(dataset_path)
                 application.state.recommender = Recommender(
-                    records, registry, estimator=estimator,
+                    records, registry, estimator=ready_estimator,
                 )
             except (OSError, ValueError, KeyError) as error:
                 LOGGER.warning("Historical recommendation resources unavailable: %s",
@@ -184,6 +205,20 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
     def health() -> HealthResponse:
         """Return process liveness, independently of prediction readiness."""
         return HealthResponse()
+
+    @application.get("/readiness", response_model=ReadinessResponse,
+                     tags=["Health"])
+    def readiness():
+        """Return HTTP 200 when resources are ready, otherwise an explicit 503."""
+        catalog_ready = application.state.catalog is not None
+        predictions_ready = application.state.recommender is not None
+        result = ReadinessResponse(
+            status="ready" if catalog_ready and predictions_ready else "unavailable",
+            catalog_ready=catalog_ready, predictions_ready=predictions_ready,
+            prediction_mode=mode,
+        )
+        return JSONResponse(result.model_dump(), status_code=(
+            200 if result.status == "ready" else 503))
 
     @application.get("/locations", response_model=LocationsResponse,
                      tags=["Locations"])

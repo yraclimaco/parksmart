@@ -1,5 +1,31 @@
 # API integration contract — Issue #19
 
+Issue #26 update (2026-11-05): configured saved serving now uses the approved
+`historical_average` artifact with Vivaan's exact support policy. Local file
+paths and optional private S3 bundle are configurable; GET `/readiness` exposes
+resource readiness/mode without file paths. The baseline is explicit only, never
+an automatic substitute for an artifact error. Section 1 local verification is
+recorded below; remaining sections and final checks are pending. The earlier
+Issue #19 result is separate evidence. See `docs/issue26_handoff.md` and `infra/README.md`.
+The source-count interface is separately proposed in `docs/parking_status.md`;
+no collector or live-count endpoint has been verified in this checkout.
+
+Saved-mode local verification (2026-11-05, reported by Daira):
+
+- Vivaan's offline preparation selected historical_average; readiness returned
+  HTTP 200, catalog_ready/predictions_ready true and prediction_mode saved.
+- Geisel/S/Nov 3 at 10 AM returned ready with Pangea and a valid null backup.
+- Website at localhost:3000: Podemos/B/Nov 6 at 9 AM showed P302 first choice
+  and P304 backup, both cards/markers and historical survey limitations.
+  Recommendations and routes requests returned HTTP 200.
+- Section 1 tests: 134 passed, one warning in 3.62s, using Python 3.12 venv.
+  Subsequent bundle/Lambda/configuration checks: 15 passed, one warning in 2.14s.
+  Full suite: 893 passed, 38 warnings, 39 subtests passed in 54.68s.
+  DS3 review completed using docs/codeReviewer.md; follow-up release-script tests
+  passed separately: 4 passed in 2.24s (reported by Daira).
+  Container/SAM validation remains pending.
+- These are Daira's local observations; no joint Dylan/Hanrong session is claimed.
+
 This implementation follows Dylan's merged Issue #20 handoff. It uses the shared
 registry and historical baseline, with an optional saved Issue #18 estimator.
 This is the implemented API contract; acceptance by all teammates and a joint

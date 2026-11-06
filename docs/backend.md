@@ -1,5 +1,15 @@
 # Local FastAPI integration — Issue #19
 
+Issue #26 adds configured saved serving and AWS preparation. For the current
+demo use `python -m uvicorn src.api.saved_model:create_configured_app --factory`
+and verify GET `/readiness`, not just `/health`. Full setup, paths, support policy
+and the explicit baseline fallback are in `docs/issue26_handoff.md`. The original
+`src.api.main:app` command below remains the startup-fitted baseline entrypoint.
+Missing/incompatible saved resources return 503 without switching estimators.
+No Issue #26 tests or cloud deployment have been run yet; Daira requested a
+joint verification checkpoint before PR preparation. AWS files/instructions are
+in `infra/`; the unimplemented parking-feed proposal is `docs/parking_status.md`.
+
 The API connects the website to the shared registry, historical-average baseline,
 and Dylan's eligibility/ranking modules. No notebook, downloader, or dataset
 builder runs when a request arrives. Predictions are historical estimates, not

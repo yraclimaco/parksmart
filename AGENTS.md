@@ -184,6 +184,49 @@ python -m src.download_qpass
 
 ## Running things
 
+### Configured saved serving and AWS preparation — Issue #26
+
+Use `venv/` (Python 3.12/OpenSSL), not the old Python 3.9 `.venv`. The configured
+entrypoint is `python -m uvicorn src.api.saved_model:create_configured_app --factory`.
+It defaults to saved mode, loads Vivaan's compatible trusted v2 artifact once
+at startup, and enforces `historical_average` as the currently approved model.
+Unsupported exact groups/time/calendar stay unknown under his saved-service
+policy. Never alter compatibility metadata or silently fit a fallback.
+GET `/readiness` is 200 only when catalog and predictions are available; health
+is independent liveness. Bad saved resources leave recommendations/readiness
+503. The original `src.api.main:app` baseline remains available explicitly.
+
+`src/api/settings.py` supports PARKSMART_MODEL_MODE, PARKSMART_APPROVED_MODEL,
+PARKSMART_ARTIFACT_PATH, PARKSMART_DATASET_PATH, PARKSMART_REGISTRY_PATH,
+PARKSMART_BUNDLE_MANIFEST and PARKSMART_CACHE_DIR. Local relative paths resolve
+against the repository; no .env file is loaded implicitly. Existing exact-origin
+CORS configuration remains. The optional S3 manifest downloads private,
+checksummed artifact/dataset/registry files with role-based GetObject access.
+No endpoint accepts uploaded pickles or S3 URLs. `src/api/lambda_handler.py`
+enters lifespan once per cold process and disables repeated Mangum lifespan
+cycles so warm requests reuse resources and do not refit/reload.
+
+`infra/` contains initial SAM/container configuration, serving dependencies,
+deployment gates, fundamentals and cleanup instructions. No deployment or AWS
+calls are authorized by adding those files. Keep DeploymentApproved=no and
+reserved concurrency zero until funded DS3 access/allowances and explicit
+deployment approval. No NAT/paid resources or public data bucket is configured.
+The local bundle helper is `python -m scripts.prepare_serving_bundle --s3-prefix
+releases/<release>`; output `.serving-bundle/` is private/gitignored. It copies
+existing approved resources only, never trains, rebuilds or uploads them.
+
+The current checkout had no `models/issue18/` artifact and no parking collector
+when Issue #26 began. Real demo verification requires a compatible local artifact.
+`docs/parking_status.md` defines a proposed separate source-count contract;
+do not invent feed values, refresh old timestamps or blend them with predictions.
+See `docs/issue26_handoff.md` for checkpoint commands. Daira reported 15 focused
+checks passing and a full run of 893 tests plus 39 subtests passing. DS3 review
+used `docs/codeReviewer.md`; added `tests/test_prepare_serving_bundle.py` checks
+release manifests/pins and rejects invalid releases: Daira reported 4 passed
+in 2.24s. This was a separate run after the 893-test full suite.
+Container/SAM validation and deployment remain pending. Run checks together with
+Daira; never commit/push without her approval.
+
 ### Availability prediction artifacts - Issue #18
 
 Run `python -m src.train_availability` after building the integrated CSV.
