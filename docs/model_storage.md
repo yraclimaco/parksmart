@@ -31,6 +31,14 @@ backend with fitting patched to fail and routing disabled. It requires readiness
 200, two successful supported recommendations with distinct choices, and exactly
 one artifact load across startup and both requests. It prints summary values.
 
+The manual `Prediction validation` GitHub Actions workflow runs the same public
+source rebuild, experiments, release commands and full suite on Ubuntu 24.04.
+After merge, select it under Actions and choose Run workflow. It is restricted
+to public repositories, uses standard runner compute with no cache/artifact
+storage, and prints aggregate results and metadata. Generated private files
+remain on the ephemeral runner; use the commands above to retain a release in
+an allowed local/container environment.
+
 `metadata.json` records training dates, reading count, survey times, support
 policy, artifact format, model identity, exact Python/numpy/pandas/scikit-learn/
 scipy/joblib versions, input hashes and reproduction-source hashes. The generated
@@ -170,12 +178,23 @@ incompatible artifacts, bad checksums and repeated requests with fitting disable
 python -m pytest tests/test_prepare_prediction_artifact.py tests/test_prepare_serving_bundle.py tests/test_serving_configuration.py tests/test_serving_bundle.py tests/test_lambda_handler.py -q
 ```
 
-Runtime validation is pending an allowed execution environment: local Windows
-Application Control blocks native SciPy/sklearn imports in both the existing
-Python 3.15 environment and a clean Python 3.12 environment. No security settings
-were changed. Release generation, backend smoke verification and tests must pass
-before the release is accepted; compilation and diff checks alone do not establish
-runtime correctness.
+Verified on November 10 in
+[Linux run 42784254791](https://github.com/yraclimaco/parksmart/actions/runs/42784254791)
+at source commit `c8ac676`: 42 targeted tests and the full **918 tests plus 39
+subtests passed**. The real 76,102-reading release passed the backend verifier:
+readiness 200, two requests with distinct choices and one startup artifact load,
+with fitting forbidden. The private release is
+`models/issue27/issue27-2026-11-10/`; its bundled metadata records the hashes.
+Its exact model environment is Python 3.12.10, numpy 2.5.4, pandas 3.1.1,
+scikit-learn 1.9.1, scipy 1.18.1 and joblib 1.6.0.
+
+Local Windows Application Control blocks native imports in both Python 3.15
+and Python 3.12 environments; no security settings were changed. Tests and
+real-data serving ran on the standard Linux runner. Private generated files
+were transferred as recipient-encrypted ciphertext and checked locally against
+the runner's ZIP checksum; model/data files were not published in plaintext or
+uploaded to Actions artifact storage. Regenerate in the exact intended Lambda
+image before cloud deployment; a Linux runner is not Lambda validation.
 
 This provides a concrete handoff to Daira's merged backend. It does not claim a
 new joint teammate session or cloud verification. Runtime/backend preparation

@@ -1,8 +1,6 @@
 name: Prediction validation
 
 on:
-  push:
-    branches: [issue-27-prediction-improvements]
   workflow_dispatch:
 
 permissions:
@@ -12,16 +10,17 @@ jobs:
   validate:
     # Standard runner compute is free for this public repository. No paid
     # runner, AWS access, cache service or Actions artifact storage is used.
+    if: github.event.repository.private == false
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       MPLBACKEND: Agg
       PARKSMART_ROUTING_PROVIDER: none
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12.10'
       - name: Install existing requirements
@@ -48,8 +47,6 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import json
-          import pandas as pd
           root = Path('results/issue27')
           for path in sorted(root.glob('*.csv')):
               if path.name != 'predictions.csv':
@@ -63,13 +60,3 @@ jobs:
           print(Path('models/issue27/issue27-2026-11-10/metadata.json').read_text())
           print('RELEASE_METADATA_END')
           PY
-      # Temporary recipient-only export while local native imports are blocked.
-      # Public certificate only; private key never leaves the user's computer.
-      - name: Export encrypted private release
-        run: |
-          zip -q -r /tmp/release.zip models/issue27/issue27-2026-11-10 results/issue27
-          sha256sum /tmp/release.zip
-          openssl cms -encrypt -binary -aes256 -in /tmp/release.zip -outform DER -out /tmp/release.der scripts/issue27-transfer.pem
-          echo ENCRYPTED_RELEASE_BEGIN
-          base64 -w 76 /tmp/release.der
-          echo ENCRYPTED_RELEASE_END

@@ -77,8 +77,8 @@ supported IDs and no fold losing more than 0.5 pp overall MAE. These practical
 thresholds avoid promoting a tiny point estimate; they are not a significance
 test. Do not tune them after inspecting this run or the old holdout.
 
-An independent standard-library calculation gives the following results; the
-committed pandas implementation is being checked on the Linux validation runner.
+The committed pandas implementation and an independent standard-library
+calculation agree on the following results.
 
 | Method | Supported rows / coverage | MAE pp | Near-full MAE pp | Near-full mean overestimate pp |
 | --- | ---: | ---: | ---: | ---: |
@@ -126,8 +126,18 @@ versions, permissions and startup configuration for Daira's merged backend.
 
 Written expert-meeting explanation: historical averages remain the working
 reference. Visitor and sparse-history near-full overestimation are the main
-actionable errors. Recency experiments preserve existing support and will be
-judged on development validation, while newly collected compatible dated
-observations are needed for fresh evaluation. No AWS deployment or paid usage
-is enabled by this work. November 5 is past; this document records the November
+actionable errors. Two recency experiments preserve existing support but worsen
+near-full predictions, so neither replaces the baseline. Newly collected
+compatible dated observations are needed for fresh evaluation. No AWS deployment
+or paid usage is enabled by this work. November 5 is past; this document records the November
 10 work and does not claim the earlier checkpoint or a joint teammate session.
+
+## Verification
+
+[Linux run 42784254791](https://github.com/yraclimaco/parksmart/actions/runs/42784254791)
+at source commit `c8ac676` rebuilt 76,102 readings, passed 42 targeted tests,
+then passed the full suite: **918 tests and 39 subtests**, with 38 warnings.
+The generated real-data bundle served readiness 200 and two requests with
+distinct first/backup choices, exactly one artifact load and fitting disabled.
+Missing/incompatible artifacts and unsupported requests are covered by tests.
+The DS3 review report remains local and uncommitted.

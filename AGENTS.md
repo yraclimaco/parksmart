@@ -132,6 +132,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 ├── amplify.yml        # AWS Amplify Hosting build for frontend/ (see Issue #25)
 ├── requirements.txt
 ├── pytest.ini
+├── .github/workflows/ # optional manual Linux prediction verification
 ├── docs/              # data audits, assumptions, and technical documentation
 ├── notebooks/         # exploration, EDA, and modeling experiments
 ├── src/               # reusable data, modeling, and backend code (api/)
@@ -210,9 +211,11 @@ conditional S3 upload instructions. No AWS provisioning or paid usage is enabled
 
 Tests: `python -m pytest tests/test_prediction_experiments.py
 tests/test_prepare_prediction_artifact.py tests/test_prepare_serving_bundle.py -q`.
-The optional `.github/workflows/prediction-validation.yml` reproduces the public
+The optional manual `.github/workflows/prediction-validation.yml` reproduces the public
 source pipeline, experiments, release and full tests on a standard Linux runner;
-it uses no AWS credentials, cache or Actions artifact storage. The local
+it runs only for public repositories and uses no AWS credentials, cache or
+Actions artifact storage. Generated private files stay on the ephemeral runner;
+the workflow prints aggregate results only. The local
 `.venv312/` environment is ignored; use an allowed runtime with the artifact's
 exact versions. Do not change Windows security settings to load blocked modules.
 `docs/issue27_additional_data.md` assesses QPASS, status counts and occupancy
