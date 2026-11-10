@@ -187,6 +187,37 @@ python -m src.download_qpass
 
 ## Running things
 
+### Prediction experiments and versioned storage preparation — Issue #27
+
+`python -m src.prediction_experiments` writes separate diagnostics to
+`results/issue27/` and never changes serving artifacts. It uses the existing
+whole-date development folds, excludes the previously inspected holdout, and
+compares recent-three-year and two-year-half-life averages against the approved
+baseline on identical supported record IDs. Recent estimates fall back to full
+history for exact groups absent recently. All statistics and recency reference
+dates come from training only. See `docs/issue27_predictions.md` for the fixed
+selection criteria, results and limitations; historical averages remain approved.
+
+`python -m src.prepare_prediction_artifact --release-id <new-release-id>` fits
+only the approved historical model into a new private `models/issue27/` release.
+It records exact dependency versions, input/source hashes and training coverage.
+It never overwrites Issue #18 files. Pass its `metadata.json` to
+`python -m scripts.prepare_serving_bundle --metadata <metadata-path>
+--artifact <artifact-path> --output-dir <new-bundle-dir> --s3-prefix
+releases/<release-id>` to bind matching model/data/registry files. See
+`docs/model_storage.md` for complete commands, startup settings, IAM and later
+conditional S3 upload instructions. No AWS provisioning or paid usage is enabled.
+
+Tests: `python -m pytest tests/test_prediction_experiments.py
+tests/test_prepare_prediction_artifact.py tests/test_prepare_serving_bundle.py -q`.
+The optional `.github/workflows/prediction-validation.yml` reproduces the public
+source pipeline, experiments, release and full tests on a standard Linux runner;
+it uses no AWS credentials, cache or Actions artifact storage. The local
+`.venv312/` environment is ignored; use an allowed runtime with the artifact's
+exact versions. Do not change Windows security settings to load blocked modules.
+`docs/issue27_additional_data.md` assesses QPASS, status counts and occupancy
+summaries. Hanrong's multi-snapshot dataset is pending; no status data is merged.
+
 ### Configured saved serving and AWS preparation — Issue #26
 
 Use any virtual environment with Python and dependencies matching the artifact;

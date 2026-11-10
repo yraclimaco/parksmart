@@ -214,3 +214,11 @@ with `python -m uvicorn src.api.saved_model:create_saved_app --factory`.
 The selected model is historical averages, chosen on supported validation rows.
 Exact artifact dependency versions are checked at load; unsupported groups stay
 unknown. Later-quarter accuracy remains unvalidated.
+
+Issue #27 adds [focused recency experiments](docs/issue27_predictions.md),
+an [additional-data assessment](docs/issue27_additional_data.md), and
+[versioned artifact/S3 preparation](docs/model_storage.md). Reproduce the approved
+baseline independently with `python -m src.prepare_prediction_artifact
+--release-id <new-release-id>`; experiments never overwrite the working artifact.
+The prediction-validation workflow can reproduce the public dataset and run all
+checks on a standard Linux runner without AWS deployment.

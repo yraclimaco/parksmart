@@ -1,0 +1,75 @@
+name: Prediction validation
+
+on:
+  push:
+    branches: [issue-27-prediction-improvements]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    # Standard runner compute is free for this public repository. No paid
+    # runner, AWS access, cache service or Actions artifact storage is used.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MPLBACKEND: Agg
+      PARKSMART_ROUTING_PROVIDER: none
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+      - name: Install existing requirements
+        run: python -m pip install -r requirements.txt
+      - name: Check generated-data behavior
+        run: python -m pytest tests/test_prediction_experiments.py tests/test_prepare_prediction_artifact.py tests/test_prepare_serving_bundle.py tests/test_serving_configuration.py tests/test_serving_bundle.py tests/test_lambda_handler.py -q
+      - name: Download public source workbooks
+        run: |
+          python -m src.download_qpass
+          python -m src.download_inventory
+      - name: Rebuild and validate integrated readings
+        run: python -m src.build_dataset
+      - name: Run fixed development experiments
+        run: python -m src.prediction_experiments
+      - name: Prepare approved private release locally
+        run: |
+          python -m src.prepare_prediction_artifact --release-id issue27-2026-11-10
+          python -m scripts.prepare_serving_bundle --artifact models/issue27/issue27-2026-11-10/selected.pkl --metadata models/issue27/issue27-2026-11-10/metadata.json --output-dir models/issue27/issue27-2026-11-10/bundle --s3-prefix releases/issue27-2026-11-10
+      - name: Verify real release through backend without fitting
+        run: python -m scripts.verify_prediction_release --release-dir models/issue27/issue27-2026-11-10/bundle
+      - name: Run complete test suite
+        run: python -m pytest -q
+      - name: Print compact aggregate findings
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import pandas as pd
+          root = Path('results/issue27')
+          for path in sorted(root.glob('*.csv')):
+              if path.name != 'predictions.csv':
+                  print(f'REPORT_BEGIN {path.name}')
+                  print(path.read_text())
+                  print('REPORT_END')
+          print('REPORT_BEGIN metadata.json')
+          print((root / 'metadata.json').read_text())
+          print('REPORT_END')
+          print('RELEASE_METADATA_BEGIN')
+          print(Path('models/issue27/issue27-2026-11-10/metadata.json').read_text())
+          print('RELEASE_METADATA_END')
+          PY
+      # Temporary recipient-only export while local native imports are blocked.
+      # Public certificate only; private key never leaves the user's computer.
+      - name: Export encrypted private release
+        run: |
+          zip -q -r /tmp/release.zip models/issue27/issue27-2026-11-10 results/issue27
+          sha256sum /tmp/release.zip
+          openssl cms -encrypt -binary -aes256 -in /tmp/release.zip -outform DER -out /tmp/release.der scripts/issue27-transfer.pem
+          echo ENCRYPTED_RELEASE_BEGIN
+          base64 -w 76 /tmp/release.der
+          echo ENCRYPTED_RELEASE_END
