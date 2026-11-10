@@ -12,16 +12,16 @@ jobs:
   validate:
     # Standard runner compute is free for this public repository. No paid
     # runner, AWS access, cache service or Actions artifact storage is used.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       MPLBACKEND: Agg
       PARKSMART_ROUTING_PROVIDER: none
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12.10'
       - name: Install existing requirements
