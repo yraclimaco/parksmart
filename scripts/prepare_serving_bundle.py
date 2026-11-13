@@ -34,6 +34,8 @@ def main(argv=None):
     parser.add_argument("--s3-prefix", required=True,
                         help="Immutable release prefix, e.g. releases/demo-2026-11-05")
     parser.add_argument("--approved-model", default="historical_average")
+    parser.add_argument("--metadata", type=Path,
+                        help="Optional reproduction metadata binding these inputs")
     args = parser.parse_args(argv)
     prefix = args.s3_prefix.strip("/")
     if not prefix or ".." in prefix.split("/") or ":" in prefix:
@@ -45,6 +47,21 @@ def main(argv=None):
     records = load_analysis_dataset(args.dataset)
     if unmapped_facilities(registry, records):
         parser.error("Dataset contains facilities not mapped by the registry")
+    metadata = None
+    metadata_raw = None
+    if args.metadata:
+        metadata_raw = args.metadata.read_bytes()
+        metadata = json.loads(metadata_raw)
+        expected = {
+            "artifact": file_sha256(args.artifact),
+            "dataset": file_sha256(args.dataset),
+            "registry": file_sha256(args.registry),
+        }
+        if (metadata.get("schema_version") != 1
+                or metadata.get("input_sha256") != expected
+                or metadata.get("dependency_versions") != model.dependency_versions
+                or metadata.get("model_name") != model.name):
+            parser.error("Reproduction metadata does not match model/data/registry")
     output = args.output_dir
     # Avoid overwriting an earlier release or mixing it with partially copied data.
     output.mkdir(parents=True, exist_ok=False)
@@ -56,7 +73,10 @@ def main(argv=None):
     ]:
         target = output / filename
         shutil.copyfile(source, target)
-        files[name] = {"key": f"{prefix}/{filename}", "sha256": file_sha256(target)}
+        digest = file_sha256(target)
+        if metadata is not None and digest != expected[name]:
+            raise ValueError(f"Copied {name} does not match reproduction metadata")
+        files[name] = {"key": f"{prefix}/{filename}", "sha256": digest}
     manifest = {
         "schema_version": 1,
         "prepared_at": datetime.now(timezone.utc).isoformat(),
@@ -64,6 +84,13 @@ def main(argv=None):
         "dependency_versions": model.dependency_versions,
         "files": files,
     }
+    if metadata is not None:
+        metadata_path = output / "metadata.json"
+        # Use exactly the bytes validated before copying, even if the source changes.
+        metadata_path.write_bytes(metadata_raw)
+        manifest["release_metadata"] = {
+            "key": f"{prefix}/metadata.json", "sha256": file_sha256(metadata_path),
+        }
     manifest_path = output / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     pins = [f"{name}=={value}" for name, value in

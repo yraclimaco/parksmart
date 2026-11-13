@@ -132,6 +132,7 @@ Reusable logic lives in `src/`; notebooks are for exploration and should import 
 ├── amplify.yml        # AWS Amplify Hosting build for frontend/ (see Issue #25)
 ├── requirements.txt
 ├── pytest.ini
+├── .github/workflows/ # optional manual Linux prediction verification
 ├── docs/              # data audits, assumptions, and technical documentation
 ├── notebooks/         # exploration, EDA, and modeling experiments
 ├── src/               # reusable data, modeling, and backend code (api/)
@@ -186,6 +187,49 @@ python -m src.download_qpass
 ```
 
 ## Running things
+
+### Prediction experiments and versioned storage preparation — Issue #27
+
+`python -m src.prediction_experiments` writes separate diagnostics to
+`results/issue27/` and never changes serving artifacts. It uses the existing
+whole-date development folds with a fixed holdout boundary of 2025-10-08;
+observations on or after that date are excluded even as the archive grows.
+The latest-20%-of-dates rule describes the original Issue #18 split only.
+Regression tests protect this fixed exclusion when later archive dates are added.
+Experiments compare recent-three-year and two-year-half-life averages against
+the approved baseline on identical supported record IDs. Recent estimates fall
+back to full history for exact groups absent recently. All statistics and
+recency reference dates come from training only. See `docs/issue27_predictions.md`
+for the author-declared selection criteria; their pre-execution timing has not
+been independently verified. Both experiments worsen near-full error, sufficient
+to retain historical averages regardless of the 1 pp improvement threshold.
+
+`python -m src.prepare_prediction_artifact --release-id <new-release-id>` fits
+only the approved historical model into a new private `models/issue27/` release.
+It records exact dependency versions, input/source hashes and training coverage.
+It never overwrites Issue #18 files. Pass its `metadata.json` to
+`python -m scripts.prepare_serving_bundle --metadata <metadata-path>
+--artifact <artifact-path> --output-dir <new-bundle-dir> --s3-prefix
+releases/<release-id>` to bind matching model/data/registry files. See
+`docs/model_storage.md` for complete commands, startup settings, IAM and later
+conditional S3 upload instructions. No AWS provisioning or paid usage is enabled.
+
+Tests: `python -m pytest tests/test_prediction_experiments.py
+tests/test_prepare_prediction_artifact.py tests/test_prepare_serving_bundle.py -q`.
+The optional manual `.github/workflows/prediction-validation.yml` reproduces the public
+source pipeline, experiments, release and full tests on a standard Linux runner;
+it runs only for public repositories and uses no AWS credentials, cache or
+Actions artifact storage. The current workflow after `a1da53f` removes encrypted
+release export; generated model/data files stay on the ephemeral runner and only
+aggregate results and metadata are printed to public logs. Earlier run
+42784254791 at `c8ac676` printed recipient-encrypted release ciphertext into public
+Actions logs; it was not privately transmitted. No Actions artifact upload does
+not imply private logs. Yra/the user will delete that earlier run and logs;
+deletion is pending and unconfirmed. The local
+`.venv312/` environment is ignored; use an allowed runtime with the artifact's
+exact versions. Do not change Windows security settings to load blocked modules.
+`docs/issue27_additional_data.md` assesses QPASS, status counts and occupancy
+summaries. Hanrong's multi-snapshot dataset is pending; no status data is merged.
 
 ### Configured saved serving and AWS preparation — Issue #26
 
