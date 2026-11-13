@@ -192,12 +192,17 @@ python -m src.download_qpass
 
 `python -m src.prediction_experiments` writes separate diagnostics to
 `results/issue27/` and never changes serving artifacts. It uses the existing
-whole-date development folds, excludes the previously inspected holdout, and
-compares recent-three-year and two-year-half-life averages against the approved
-baseline on identical supported record IDs. Recent estimates fall back to full
-history for exact groups absent recently. All statistics and recency reference
-dates come from training only. See `docs/issue27_predictions.md` for the fixed
-selection criteria, results and limitations; historical averages remain approved.
+whole-date development folds with a fixed holdout boundary of 2025-10-08;
+observations on or after that date are excluded even as the archive grows.
+The latest-20%-of-dates rule describes the original Issue #18 split only.
+Regression tests protect this fixed exclusion when later archive dates are added.
+Experiments compare recent-three-year and two-year-half-life averages against
+the approved baseline on identical supported record IDs. Recent estimates fall
+back to full history for exact groups absent recently. All statistics and
+recency reference dates come from training only. See `docs/issue27_predictions.md`
+for the author-declared selection criteria; their pre-execution timing has not
+been independently verified. Both experiments worsen near-full error, sufficient
+to retain historical averages regardless of the 1 pp improvement threshold.
 
 `python -m src.prepare_prediction_artifact --release-id <new-release-id>` fits
 only the approved historical model into a new private `models/issue27/` release.
@@ -214,8 +219,13 @@ tests/test_prepare_prediction_artifact.py tests/test_prepare_serving_bundle.py -
 The optional manual `.github/workflows/prediction-validation.yml` reproduces the public
 source pipeline, experiments, release and full tests on a standard Linux runner;
 it runs only for public repositories and uses no AWS credentials, cache or
-Actions artifact storage. Generated private files stay on the ephemeral runner;
-the workflow prints aggregate results only. The local
+Actions artifact storage. The current workflow after `a1da53f` removes encrypted
+release export; generated model/data files stay on the ephemeral runner and only
+aggregate results and metadata are printed to public logs. Earlier run
+42784254791 at `c8ac676` printed recipient-encrypted release ciphertext into public
+Actions logs; it was not privately transmitted. No Actions artifact upload does
+not imply private logs. Yra/the user will delete that earlier run and logs;
+deletion is pending and unconfirmed. The local
 `.venv312/` environment is ignored; use an allowed runtime with the artifact's
 exact versions. Do not change Windows security settings to load blocked modules.
 `docs/issue27_additional_data.md` assesses QPASS, status counts and occupancy

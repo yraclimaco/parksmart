@@ -11,7 +11,7 @@ import pandas as pd
 from .availability_prediction import PredictionService, dependency_versions
 from .parking_benchmarks import (
     BASELINE_LEVELS, DEFAULT_DATASET, FEATURES, GROUP_COLUMNS,
-    NEAR_FULL_THRESHOLD, TARGET, HistoricalAverage, chronological_split,
+    NEAR_FULL_THRESHOLD, TARGET, HistoricalAverage,
     evaluate_predictions, load_analysis_dataset,
 )
 from .train_availability import date_folds
@@ -20,9 +20,13 @@ METHODS = ("historical_average", "recent_3_years", "decay_2_years")
 RECENT_YEARS = 3
 HALF_LIFE_DAYS = 365.25 * 2
 LARGE_OVERPREDICTION = 0.20
-# Declared before running: a small pooled gain alone is insufficient evidence.
+# The author reports declaring these thresholds before execution; timing has
+# not been independently verified. Near-full regression alone rejects a change.
 MIN_GAIN_PP = 1.0
 MAX_FOLD_REGRESSION_PP = 0.5
+# Freeze Issue #18's previously inspected boundary for this experiment. A moving
+# latest-20%-of-dates split would leak old holdout dates as the archive grows.
+INSPECTED_HOLDOUT_START = pd.Timestamp("2025-10-08")
 HISTORY_BINS = [0, 4, 19, 49, np.inf]
 HISTORY_LABELS = ["1-4 dates", "5-19 dates", "20-49 dates", "50+ dates"]
 
@@ -149,19 +153,40 @@ def choose_method(summary, fold_metrics):
         eligible) else "historical_average"
 
 
+def split_experiment_records(records):
+    """Split prepared records at the fixed, already-inspected holdout boundary.
+
+    Args:
+        records: Prepared integrated readings with observation_date/record_id.
+    Returns:
+        Sorted copies of development dates before 2025-10-08 and excluded dates
+        on or after it, including newly appended dates. No targets are inspected.
+        An empty development frame raises ValueError; excluded rows may be empty.
+    """
+    ordered = records.sort_values(["observation_date", "record_id"])
+    development = ordered.loc[
+        ordered.observation_date < INSPECTED_HOLDOUT_START].copy()
+    excluded = ordered.loc[
+        ordered.observation_date >= INSPECTED_HOLDOUT_START].copy()
+    if development.empty:
+        raise ValueError("Issue #27 needs development dates before the fixed "
+                         "inspected holdout boundary 2025-10-08")
+    return development, excluded
+
+
 def run_experiments(records, output_dir="results/issue27"):
     """Export chronological validation diagnostics and two fixed experiments.
 
     Args:
-        records: Complete prepared integrated readings; latest 20% of survey
-            dates are excluded before analysis and never scored here.
+        records: Complete prepared integrated readings; all dates on or after
+            the fixed 2025-10-08 boundary are excluded and never scored here.
         output_dir: Local, gitignored CSV/metadata directory.
     Returns:
         JSON-compatible metadata. No production model path is read or written.
     """
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    development, holdout = chronological_split(records)
+    development, holdout = split_experiment_records(records)
     predictions, folds = [], []
     for number, (train, validation) in enumerate(date_folds(development), 1):
         split = f"validation_{number}"
@@ -210,7 +235,8 @@ def run_experiments(records, output_dir="results/issue27"):
     metadata = dict(
         recommended_method=recommendation, approved_method="historical_average",
         development_rows=len(development), excluded_holdout_rows=len(holdout),
-        excluded_holdout_start=str(holdout.observation_date.min().date()),
+        excluded_holdout_start=str(INSPECTED_HOLDOUT_START.date()),
+        holdout_boundary_policy="fixed_inspected_boundary",
         holdout_scored=False, holdout_previously_inspected=True,
         selection_rule=dict(min_mae_gain_pp=MIN_GAIN_PP,
                             max_fold_regression_pp=MAX_FOLD_REGRESSION_PP,

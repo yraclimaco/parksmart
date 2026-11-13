@@ -7,10 +7,17 @@ below write separate outputs and do not replace the working artifact.
 ## Evaluation boundaries
 
 Use the integrated analysis CSV and Issue #18's three expanding whole-survey-date
-development folds. The latest 20% of unique dates are the previously inspected
-holdout; exclude them before error analysis and experimentation. This issue does
-not score that holdout. Development validation has also been examined before, so
-these are exploratory comparisons, not fresh confirmation of future accuracy.
+development folds. Issue #27 fixes the previously inspected holdout boundary at
+**2025-10-08**: only observations before that date enter error analysis or
+experiments. The latest-20%-of-unique-dates rule describes the original Issue #18
+split; it is not recomputed for Issue #27 when the archive grows. Observations
+on or after the fixed boundary remain excluded, including newly added archive
+dates. Regression tests protect this exclusion when later dates are appended.
+Run metadata records `excluded_holdout_start: 2025-10-08` and
+`holdout_boundary_policy: fixed_inspected_boundary`.
+This issue does not score that holdout. Development validation has also been
+examined before, so these are exploratory comparisons, not fresh confirmation
+of future accuracy.
 
 All candidates require the same training-observed exact
 facility/category/subtype/level, survey time, weekday and quarter through
@@ -71,11 +78,13 @@ worse. Baseline fallback-level diagnostics are exported too.
 
 No new features, encoders, category mappings or hyperparameter search are used.
 Every mean, fallback and reference date is fitted on that fold's training data.
-The criteria were fixed before execution: recommend a change only with at least
-1 pp pooled supported MAE improvement, no worse pooled near-full MAE, unchanged
-supported IDs and no fold losing more than 0.5 pp overall MAE. These practical
-thresholds avoid promoting a tiny point estimate; they are not a significance
-test. Do not tune them after inspecting this run or the old holdout.
+The author declared these selection criteria and states they were chosen before
+execution: recommend a change only with at least 1 pp pooled supported MAE
+improvement, no worse pooled near-full MAE, unchanged supported IDs and no fold
+losing more than 0.5 pp overall MAE. The timing of that declaration has not been
+independently verified. These practical thresholds avoid promoting a tiny point
+estimate; they are not a significance test. Do not tune them after inspecting
+this run or the old holdout.
 
 The committed pandas implementation and an independent standard-library
 calculation agree on the following results.
@@ -86,10 +95,11 @@ calculation agree on the following results.
 | Recent three years, older-group fallback | 24,492 / 57.20% | 17.929 | 12.571 | 12.163 |
 | Two-year half-life | 24,492 / 57.20% | 18.036 | 12.321 | 11.869 |
 
-Both changes make near-full errors worse. The 0.121 pp and 0.014 pp overall
-gains also fall short of the predeclared 1 pp threshold. **Retain historical
-averages.** The number of near-full predictions overestimating by more than
-20 pp rises from 2,086 to 2,147 with the recent window and 2,143 with decay.
+Both changes make near-full errors worse, which is sufficient to **retain
+historical averages** regardless of the 1 pp improvement threshold. The 0.121 pp
+and 0.014 pp overall gains also fall short of that author-declared threshold.
+The number of near-full predictions overestimating by more than 20 pp rises
+from 2,086 to 2,147 with the recent window and 2,143 with decay.
 
 | Fold | Supported rows | Baseline MAE / near-full MAE pp | Recent MAE / near-full MAE pp | Decay MAE / near-full MAE pp |
 | --- | ---: | ---: | ---: | ---: |
@@ -141,3 +151,21 @@ The generated real-data bundle served readiness 200 and two requests with
 distinct first/backup choices, exactly one artifact load and fitting disabled.
 Missing/incompatible artifacts and unsupported requests are covered by tests.
 The DS3 review report remains local and uncommitted.
+
+That earlier run at `c8ac676` printed a recipient-encrypted release into public
+Actions logs; the ciphertext was not privately transmitted. No Actions artifact
+upload was used, which does not make the public log output private. Yra/the user
+will delete the earlier run and logs; deletion is pending and unconfirmed. The
+current workflow after `a1da53f` removes encrypted release export and prints only
+aggregate results and metadata. The earlier test results above apply to
+`c8ac676`, not a separate verification of the current workflow or holdout-boundary
+regression change.
+
+Review revision verification on November 13, 2026 (local Windows Python 3.12.10):
+the 40 affected prediction tests passed, followed by the full **921 tests and
+39 subtests** (38 warnings). The new archive-growth regression keeps the
+2025-10-08 boundary fixed and leaves development data and predictions unchanged
+after adding future dates. A separate real-data CLI rerun retained 59,979
+development and 16,123 excluded readings; validation metrics, fold metrics and
+support counts match the original outputs. No saved artifact was replaced and
+no new Actions export was run. Log deletion remains unconfirmed.

@@ -2,8 +2,8 @@
 
 Historical averages remain the approved serving method from PR #23. Experiments
 use separate outputs; none of the commands below overwrites `models/issue18/`.
-This work is local preparation. No bucket, IAM resource, upload, deployment or
-billing change was made.
+This work is local preparation. No AWS bucket, IAM resource, S3 upload,
+deployment or billing change was made.
 
 ## Reproduce an immutable local release
 
@@ -35,9 +35,12 @@ The manual `Prediction validation` GitHub Actions workflow runs the same public
 source rebuild, experiments, release commands and full suite on Ubuntu 24.04.
 After merge, select it under Actions and choose Run workflow. It is restricted
 to public repositories, uses standard runner compute with no cache/artifact
-storage, and prints aggregate results and metadata. Generated private files
-remain on the ephemeral runner; use the commands above to retain a release in
-an allowed local/container environment.
+storage, and prints aggregate results and metadata to public Actions logs.
+The current workflow, after commit `a1da53f`, removes the encrypted release
+export step. Its generated model/data files remain on the ephemeral runner;
+use the commands above to retain a release in an allowed local/container
+environment. This describes the current workflow, not the earlier verification
+run described below.
 
 `metadata.json` records training dates, reading count, survey times, support
 policy, artifact format, model identity, exact Python/numpy/pandas/scikit-learn/
@@ -188,13 +191,25 @@ with fitting forbidden. The private release is
 Its exact model environment is Python 3.12.10, numpy 2.5.4, pandas 3.1.1,
 scikit-learn 1.9.1, scipy 1.18.1 and joblib 1.6.0.
 
-Local Windows Application Control blocks native imports in both Python 3.15
-and Python 3.12 environments; no security settings were changed. Tests and
-real-data serving ran on the standard Linux runner. Private generated files
-were transferred as recipient-encrypted ciphertext and checked locally against
-the runner's ZIP checksum; model/data files were not published in plaintext or
-uploaded to Actions artifact storage. Regenerate in the exact intended Lambda
-image before cloud deployment; a Linux runner is not Lambda validation.
+On November 10, local Windows Application Control blocked native imports in
+both Python 3.15 and Python 3.12 environments; no security settings were changed.
+That day's tests and real-data serving ran on the standard Linux runner.
+Earlier run `42784254791`
+at `c8ac676` printed the recipient-encrypted release into **public Actions
+logs**. The ciphertext was publicly logged and checked locally against the
+runner's ZIP checksum; it was not privately transmitted. The absence of an
+Actions artifact upload does not mean that those logs were private. Yra/the
+user will delete the earlier run and logs; deletion is pending and has not
+been confirmed. The current workflow after `a1da53f` no longer exports the
+encrypted release and prints only aggregate results and metadata. Regenerate
+in the exact intended Lambda image before cloud deployment; a Linux runner is
+not Lambda validation.
+
+Review revision checks on November 13, 2026 ran locally in Windows/Python 3.12.10:
+40 affected prediction tests and the full **921 tests plus 39 subtests passed**
+(38 warnings in the full suite). The fixed-boundary real-data rerun reproduced
+the existing validation results. No saved artifact was replaced, no new Actions
+export was run, and deletion of the earlier public logs is still unconfirmed.
 
 This provides a concrete handoff to Daira's merged backend. It does not claim a
 new joint teammate session or cloud verification. Runtime/backend preparation

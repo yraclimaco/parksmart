@@ -9,8 +9,9 @@ import pytest
 from src.availability_prediction import PredictionService
 from src.parking_benchmarks import chronological_split, prepare_records
 from src.prediction_experiments import (
-    HALF_LIFE_DAYS, METHODS, RecencyAverage, choose_method, error_metrics,
-    history_details, run_experiments,
+    HALF_LIFE_DAYS, INSPECTED_HOLDOUT_START, METHODS, RecencyAverage,
+    choose_method, error_metrics, history_details, run_experiments,
+    split_experiment_records,
 )
 
 
@@ -112,11 +113,11 @@ def test_selection_requires_useful_gain_and_near_full_nonregression():
 
 def test_exports_use_identical_ids_and_ignore_holdout_targets(tmp_path):
     records = sample([(str(date.date()), facility, target)
-                      for date in pd.date_range("2025-10-01", periods=24)
+                      for date in pd.date_range("2025-09-01", periods=48)
                       for facility, target in [("P1", 0.2), ("restricted", 0.8)]])
     first = run_experiments(records, tmp_path / "first")
     changed = records.copy()
-    _, holdout = chronological_split(records)
+    _, holdout = split_experiment_records(records)
     changed.loc[holdout.index, "fraction_available"] = 1 - changed.loc[
         holdout.index, "fraction_available"]
     second = run_experiments(changed, tmp_path / "second")
@@ -131,3 +132,46 @@ def test_exports_use_identical_ids_and_ignore_holdout_targets(tmp_path):
                for _, group in fold.groupby("method")]
         assert ids[0] == ids[1] == ids[2]
     assert json.loads((tmp_path / "first/metadata.json").read_text()) == first
+
+
+def test_appending_future_dates_keeps_inspected_holdout_out_of_development(tmp_path):
+    records = sample([(str(date.date()), "P1", 0.2)
+                      for date in pd.date_range("2025-09-01", periods=48)])
+    future = sample([(str(date.date()), "P1", 0.9)
+                     for date in pd.date_range("2027-01-01", periods=100)])
+    future["record_id"] = "future-" + future.record_id
+    expanded = pd.concat([records, future], ignore_index=True)
+    # Demonstrate the failure that a recalculated latest-20% split would cause.
+    moving_development, _ = chronological_split(expanded)
+    assert (moving_development.observation_date >= INSPECTED_HOLDOUT_START).any()
+
+    first = run_experiments(records, tmp_path / "original")
+    second = run_experiments(expanded, tmp_path / "expanded")
+    assert first["development_rows"] == second["development_rows"] == 37
+    assert first["development_sha256"] == second["development_sha256"]
+    assert first["recommended_method"] == second["recommended_method"]
+    assert first["excluded_holdout_start"] == second[
+        "excluded_holdout_start"] == "2025-10-08"
+    assert second["excluded_holdout_rows"] == first["excluded_holdout_rows"] + 100
+    for filename in ("validation_summary.csv", "fold_metrics.csv", "predictions.csv"):
+        assert (tmp_path / "original" / filename).read_bytes() == (
+            tmp_path / "expanded" / filename).read_bytes()
+    predictions = pd.read_csv(tmp_path / "expanded/predictions.csv")
+    assert pd.to_datetime(predictions.observation_date).lt(
+        INSPECTED_HOLDOUT_START).all()
+    assert not predictions.record_id.astype(str).str.startswith("future-").any()
+
+
+def test_fixed_split_preserves_boundary_when_first_excluded_date_is_missing():
+    records = sample([("2025-10-07", "P1", 0.2),
+                      ("2025-10-09", "P1", 0.9)])
+    development, excluded = split_experiment_records(records)
+    assert development.observation_date.tolist() == [pd.Timestamp("2025-10-07")]
+    assert excluded.observation_date.tolist() == [pd.Timestamp("2025-10-09")]
+
+
+def test_fixed_split_rejects_missing_development_history():
+    records = sample([("2025-10-08", "P1", 0.2),
+                      ("2026-10-08", "P1", 0.9)])
+    with pytest.raises(ValueError, match="fixed inspected holdout boundary 2025-10-08"):
+        split_experiment_records(records)
