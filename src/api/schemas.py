@@ -11,13 +11,15 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.eligibility import PERMIT_TYPES
-from src.ranking import BALANCED, MAX_WALK_MINUTES, MIN_WALK_LIMIT_MINUTES
+from src.ranking import (BALANCED, MAX_WALK_MINUTES, MIN_WALK_LIMIT_MINUTES,
+                         PREFERENCES)
 
 UCSD_TIME_ZONE = "America/Los_Angeles"
 LOCAL_ZONE = ZoneInfo(UCSD_TIME_ZONE)
 Text = Annotated[str, Field(min_length=1, max_length=200)]
-#: What the user prioritizes; must match src.ranking.PREFERENCE_WEIGHTS.
-Preference = Literal["shorter_walk", "balanced", "more_availability"]
+#: What the user prioritizes. Built from src.ranking.PREFERENCES, so adding a
+#: preference there is the only change the API schema needs.
+Preference = Literal[PREFERENCES]
 
 
 class APIModel(BaseModel):
@@ -210,6 +212,21 @@ class RecommendationResponse(APIModel):
             == self.first_choice.location.location_id
         ):
             raise ValueError("Backup must differ from first choice")
+        if self.options:
+            # Clients show options as ranked pins; keep their order trustworthy
+            ids = [option.location.location_id for option in self.options]
+            if len(set(ids)) != len(ids):
+                raise ValueError("Ranked options must be distinct locations")
+            if ids[0] != self.first_choice.location.location_id or (
+                    self.backup_choice and (
+                        len(ids) < 2
+                        or ids[1] != self.backup_choice.location.location_id)):
+                raise ValueError("Options must start with the first choice "
+                                 "and the backup")
+            ranks = [option.rank for option in self.options]
+            if any(rank is not None for rank in ranks) and ranks != list(
+                    range(1, len(ranks) + 1)):
+                raise ValueError("Option ranks must run 1, 2, 3, ... in order")
         return self
 
 

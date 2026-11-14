@@ -146,6 +146,29 @@ def test_inconsistent_response(changes):
         RecommendationResponse.model_validate(payload)
 
 
+def _example_payload():
+    payload = json.loads((EXAMPLES / "recommendation_example.json").read_text())
+    assert len(payload["options"]) >= 2  # the checks below need a first + backup
+    return payload
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda p: p["options"].reverse(),  # best option must come first
+    lambda p: p["options"].__setitem__(1, p["options"][0]),  # repeated location
+    lambda p: p["options"].pop(0),  # first choice missing from the list
+    lambda p: p["options"][1].update(rank=5),  # ranks must run 1, 2, 3, ...
+])
+def test_misordered_options_rejected(mutate):
+    payload = _example_payload()
+    mutate(payload)
+    with pytest.raises(ValidationError):
+        RecommendationResponse.model_validate(payload)
+
+
+def test_options_with_matching_picks_and_ranks_are_accepted():
+    RecommendationResponse.model_validate(_example_payload())
+
+
 def test_duplicate_backup_rejected():
     payload = json.loads((EXAMPLES / "recommendation_example.json").read_text())
     payload["backup_choice"] = payload["first_choice"]

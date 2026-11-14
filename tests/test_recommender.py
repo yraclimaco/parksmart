@@ -77,6 +77,24 @@ def test_cli_prints_api_json(capsys, monkeypatch):
     assert payload["first_choice"]["location"]["location_id"] == "near"
 
 
+def test_cli_passes_preference_and_walking_limit(capsys, monkeypatch):
+    monkeypatch.setattr("src.recommender.Recommender.from_files",
+                        classmethod(lambda cls, *args: cls(_records(),
+                                                           LOCATIONS)))
+    main(["--permit", "S", "--arrival", "2026-10-27T10:00",
+          "--lat", "32.88", "--lon", "-117.24",
+          "--preference", "shorter_walk", "--max-walk", "10"])
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["preference"] == "shorter_walk"
+    assert payload["max_walk_minutes"] == 10
+
+
+def test_cli_rejects_an_unknown_preference():
+    with pytest.raises(SystemExit):
+        main(["--permit", "S", "--arrival", "2026-10-27T10:00",
+              "--preference", "cheapest"])
+
+
 def test_cli_requires_both_coordinates():
     with pytest.raises(SystemExit):
         main(["--permit", "S", "--arrival", "2026-10-27T10:00", "--lat", "32.88"])

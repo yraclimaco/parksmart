@@ -630,6 +630,7 @@ when permit rules change. Tests:
 `src/recommender.Recommender.from_files()` loads all of this once and answers
 requests with `.recommend(permit, arrival, destination)`; try it with
 `python -m src.recommender --permit S --arrival 2026-11-03T09:00 --lat 32.8811 --lon -117.2376`
+(optional `--preference shorter_walk|balanced|more_availability`, `--max-walk MINUTES`)
 (needs the integrated dataset). Tests: `python -m pytest tests/test_recommender.py -q`.
 `POST /recommendations` now calls this recommender; the original integration
 handoff is `docs/recommendations_handoff.md`, and current setup/limitations are

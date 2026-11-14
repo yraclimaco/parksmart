@@ -193,3 +193,24 @@ dropped; the limitation always has the full note.
   (20/80) and `more_availability` (85/15) weights were added after Yra's
   website review (2026-11-05) as starting points; how to present the
   tradeoff is being reviewed with the experts.
+
+## Adding or changing a preference
+
+A preference is one entry in `src.ranking.PREFERENCE_WEIGHTS`, mapping its name
+to `(availability weight, walking weight)`. The API schema's allowed values,
+the CLI's `--preference` choices and the walk/availability scoring are all
+built from that dict, so these are the only steps:
+
+1. Add the entry (weights should sum to 1) and a short label in
+   `PREFERENCE_LABELS`, and a constant for the name like `SHORTER_WALK`.
+2. Add a branch for it in `_fit_reason` so its "why it fits" sentence names
+   the factor it prioritizes (the balanced sentence is the fallback).
+3. Add the matching option to the website (`PRIORITY_OPTIONS` in
+   ParkSmart-Website `src/constants.ts`, same weights) and sync `frontend/`;
+   `test_website_priority_weights_match_the_backend` fails if they differ.
+4. Try it: `python -m src.recommender --permit S --arrival 2026-11-17T10:00
+   --lat 32.8811 --lon -117.2376 --preference <name>`.
+
+Ranking cost does not depend on the preference: one pass over the candidate
+groups, at most `MAX_RANKED_OPTIONS` (12) options explained, about 2 ms per
+request on the local dataset.

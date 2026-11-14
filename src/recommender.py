@@ -21,7 +21,7 @@ from .availability import AvailabilityEstimator
 from .location_registry import (DEFAULT_DATASET, DEFAULT_REGISTRY,
                                 current_groups, load_registry)
 from .parking_benchmarks import load_analysis_dataset
-from .ranking import BALANCED, recommend
+from .ranking import BALANCED, PREFERENCES, recommend
 
 
 class Recommender:
@@ -105,6 +105,10 @@ def main(argv=None):
     parser.add_argument("--departure", help="optional ISO datetime")
     parser.add_argument("--lat", type=float, help="destination latitude")
     parser.add_argument("--lon", type=float, help="destination longitude")
+    parser.add_argument("--preference", choices=PREFERENCES, default=BALANCED,
+                        help="what to weigh most (default: balanced)")
+    parser.add_argument("--max-walk", type=int, metavar="MINUTES",
+                        help="personal walking limit, whole minutes")
     parser.add_argument("--dataset", default=DEFAULT_DATASET)
     parser.add_argument("--registry", default=DEFAULT_REGISTRY)
     args = parser.parse_args(argv)
@@ -117,7 +121,7 @@ def main(argv=None):
                  else None)
     result = Recommender.from_files(args.dataset, args.registry).recommend(
         args.permit, datetime.fromisoformat(args.arrival), destination,
-        departure)
+        departure, preference=args.preference, max_walk_minutes=args.max_walk)
     print(json.dumps(result.to_api(), indent=2))
 
 

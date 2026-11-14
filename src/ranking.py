@@ -497,6 +497,10 @@ def _fit_reasons(options, preference, walking_known):
     Best and tied-best use exact values, not rounded percents. Percentages are
     shares of spaces open in past surveys, never a chance of finding a space.
 
+    Args:
+        options: ranked Choice objects, best first (at least one).
+        preference: key of PREFERENCE_WEIGHTS.
+        walking_known: whether a destination was given.
     Returns:
         List of strings (at most MAX_TEXT_LENGTH characters), in option order.
     """
@@ -519,7 +523,21 @@ def _fit_reasons(options, preference, walking_known):
 
 def _fit_reason(choice, pools, best_open, most_open, open_ties, count,
                 preference, walking_known):
-    """Fit sentence for one option; see _fit_reasons for the rules."""
+    """Fit sentence for one option; see _fit_reasons for the rules.
+
+    Args:
+        choice: the option to describe.
+        pools: ranked options with a walking time, grouped by walking source
+            (True for mapped paths, False for straight-line estimates).
+        best_open: the most open option (ties broken by location ID).
+        most_open: that option's available fraction.
+        open_ties: how many options share ``most_open``.
+        count: number of ranked options.
+        preference: key of PREFERENCE_WEIGHTS.
+        walking_known: whether a destination was given.
+    Returns:
+        One sentence, not yet cut to MAX_TEXT_LENGTH.
+    """
     percent = _percent(choice)
     walk = choice.estimated_walking_minutes
     if not walking_known:
@@ -564,7 +582,7 @@ def _fit_reason(choice, pools, best_open, most_open, open_ties, count,
         return f"{compared}; ranked lower for more space."
     return (f"Balances a {walk:g}-min walk{kind} (shortest {shortest:g}) with "
             f"about {percent}% open in past surveys (most "
-            f"{round(most_open * 100)}%).")
+            f"{_percent(best_open)}%).")
 
 
 def _percent(choice):
