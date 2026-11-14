@@ -1,0 +1,11 @@
+{
+  "parking_location_id": "gilman-ps",
+  "arrival_time": "2026-11-18T09:30:00-08:00",
+  "destination": {
+    "name": "Geisel Library",
+    "coordinates": {
+      "latitude": 32.8811,
+      "longitude": -117.2376
+    }
+  }
+}

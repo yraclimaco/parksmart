@@ -73,9 +73,10 @@ def test_documentation_exposes_post_contract(client):
     assert client.get("/docs").status_code == 200
     schema = client.get("/openapi.json").json()
     assert set(schema["paths"]) == {"/health", "/readiness", "/locations",
-                                    "/recommendations", "/routes"}
+                                    "/recommendations", "/routes", "/trip-alerts"}
     assert "post" in schema["paths"]["/recommendations"]
     assert "post" in schema["paths"]["/routes"]
+    assert "post" in schema["paths"]["/trip-alerts"]
     assert "RecommendationRequest" in schema["components"]["schemas"]
 
 
