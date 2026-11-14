@@ -13,6 +13,10 @@ from fastapi.responses import JSONResponse
 from src.location_registry import DEFAULT_DATASET, DEFAULT_REGISTRY, load_registry
 from src.parking_benchmarks import load_analysis_dataset
 from src.recommender import Recommender
+from src.trip_alerts.contracts import AlertTarget
+from src.trip_alerts.service import (
+    COMMON_LIMITATIONS, TripAlertService, unavailable_source,
+)
 from src.routing import (
     PROVIDER_LABELS, METERS_PER_MILE, ROUTE_REQUEST_BUDGET_SECONDS,
     ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS, NoRouteFound, Point, RequestThrottle,
@@ -20,6 +24,7 @@ from src.routing import (
 )
 
 from .locations import get_locations
+from .alert_schemas import TripAlertsRequest, TripAlertsResponse
 from .schemas import (
     HealthResponse, LocationsResponse, RecommendationRequest, RecommendationResponse,
     ReadinessResponse, RouteRequest, RouteResponse,
@@ -121,7 +126,7 @@ def allowed_origins(environ=None) -> list:
 
 def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
                estimator=None, route_service=None, estimator_loader=None,
-               prediction_mode=None) -> FastAPI:
+               prediction_mode=None, trip_alert_service=None) -> FastAPI:
     """Create an API loading its catalog and prediction resources at startup.
 
     Args:
@@ -135,6 +140,8 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             failures leave recommendations unavailable, never fit a fallback.
         prediction_mode: readiness label; inferred as provided or baseline when
             omitted. Saved entrypoints explicitly use saved.
+        trip_alert_service: optional ready TripAlertService for injection. Default
+            creates optional source clients once; no source is called at startup.
     Returns:
         FastAPI app. Missing/invalid resources produce HTTP 503 while health
         remains available. Each process loads once; restart to reload resources.
@@ -151,6 +158,16 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
         """Load shared resources for this app, then release them on shutdown."""
         application.state.catalog = None
         application.state.recommender = None
+        application.state.trip_alerts = None
+        try:
+            enabled = os.environ.get("PARKSMART_TRIP_ALERTS_ENABLED", "true").lower()
+            if enabled not in {"true", "false", "1", "0"}:
+                raise ValueError("PARKSMART_TRIP_ALERTS_ENABLED must be true or false")
+            application.state.trip_alerts = trip_alert_service or TripAlertService(
+                enabled=enabled in {"true", "1"})
+        except Exception:
+            # Optional alert-client initialization must not take down parking.
+            LOGGER.exception("Trip alerts unavailable during initialization")
         # Caps POST /routes' share of provider calls (see routing constants)
         application.state.routes_gate = RequestThrottle(
             ROUTES_ENDPOINT_MIN_INTERVAL_SECONDS)
@@ -186,9 +203,12 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             application.state.recommender = None
             application.state.catalog = None
             application.state.routes = None
+            if application.state.trip_alerts is not None:
+                application.state.trip_alerts.close()
+                application.state.trip_alerts = None
 
     application = FastAPI(
-        title="ParkSmart Local API", version="0.2.0", lifespan=lifespan,
+        title="ParkSmart Local API", version="0.3.0", lifespan=lifespan,
         description="Shared real locations and historical parking recommendations. "
         "Estimates are not live availability or a guaranteed space.",
     )
@@ -254,6 +274,56 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
             ]
         return RecommendationResponse(
             **payload, is_example=False, arrival_time=request.arrival_time,
+        )
+
+    @application.post("/trip-alerts", response_model=TripAlertsResponse,
+                      tags=["Trip alerts"])
+    def trip_alerts(request: TripAlertsRequest) -> TripAlertsResponse:
+        """Return optional trip context without consulting or changing predictions.
+
+        Source failures are HTTP 200 with per-source unavailable/stale states.
+        Unknown parking IDs are 404; an unavailable parking catalog is 503.
+        A destination-only request does not require prediction/catalog readiness.
+        """
+        targets, limitations = [], list(COMMON_LIMITATIONS)
+        if request.parking_location_id is not None:
+            catalog = application.state.catalog
+            if catalog is None:
+                raise HTTPException(503, "Parking location catalog is unavailable.")
+            location = next((item for item in catalog.locations
+                             if item.location_id == request.parking_location_id), None)
+            if location is None:
+                raise HTTPException(404, "Unknown or unsupported parking location ID.")
+            if location.coordinates is not None:
+                targets.append(AlertTarget(
+                    "parking", location.name, location.coordinates.latitude,
+                    location.coordinates.longitude, location.location_id,
+                ))
+            else:
+                limitations.append(
+                    "Selected parking location has no verified coordinates; "
+                    "its proximity to construction could not be checked.")
+        if request.destination is not None:
+            destination = request.destination
+            if destination.coordinates is not None:
+                targets.append(AlertTarget(
+                    "destination", destination.name, destination.coordinates.latitude,
+                    destination.coordinates.longitude,
+                ))
+            else:
+                limitations.append(
+                    "Destination has no coordinates; its name was not geocoded.")
+        service = application.state.trip_alerts
+        if service is None:
+            from dataclasses import asdict
+            results = {name: asdict(unavailable_source(
+                name, "Trip alert services are unavailable on this server."))
+                for name in ("weather", "construction")}
+        else:
+            results = service.get(request.arrival_time, targets)
+        return TripAlertsResponse(
+            **results, arrival_time=request.arrival_time,
+            is_example=False, limitations=limitations,
         )
 
     @application.post("/routes", response_model=RouteResponse, tags=["Routes"])

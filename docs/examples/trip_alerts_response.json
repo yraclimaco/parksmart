@@ -1,0 +1,78 @@
+{
+  "schema_version": "0.1",
+  "is_example": true,
+  "arrival_time": "2026-11-18T09:30:00-08:00",
+  "time_zone": "America/Los_Angeles",
+  "weather": {
+    "status": "available",
+    "source_name": "Open-Meteo",
+    "source_url": "https://open-meteo.com/",
+    "last_checked_at": "2026-11-14T08:00:00Z",
+    "last_attempt_at": "2026-11-14T08:00:00Z",
+    "alerts": [
+      {
+        "alert_id": "example-weather-rain",
+        "alert_type": "weather",
+        "message": "Forecast precipitation could affect the walk (70% probability); consider rain protection.",
+        "locations": [
+          {
+            "role": "parking",
+            "name": "Gilman Parking Structure",
+            "latitude": 32.87756239,
+            "longitude": -117.23365383,
+            "location_id": "gilman-ps"
+          }
+        ],
+        "relevant_from": "2026-11-18T17:00:00Z",
+        "relevant_until": "2026-11-18T18:00:00Z",
+        "source_name": "Open-Meteo",
+        "source_url": "https://open-meteo.com/",
+        "last_checked_at": "2026-11-14T08:00:00Z",
+        "match_basis": "forecast_hour",
+        "limitations": [
+          "Illustrative example only; not an official weather warning."
+        ]
+      }
+    ],
+    "forecast": {
+      "location": {
+        "role": "parking",
+        "name": "Gilman Parking Structure",
+        "latitude": 32.87756239,
+        "longitude": -117.23365383,
+        "location_id": "gilman-ps"
+      },
+      "forecast_time": "2026-11-18T18:00:00Z",
+      "period_start": "2026-11-18T17:00:00Z",
+      "period_end": "2026-11-18T18:00:00Z",
+      "temperature_c": 20.0,
+      "apparent_temperature_c": 20.0,
+      "precipitation_probability_percent": 70.0,
+      "precipitation_mm": 0.5,
+      "wind_speed_kmh": 8.0,
+      "weather_code": 61
+    },
+    "limitations": [
+      "Illustrative example only; these are not live forecast values.",
+      "Instantaneous values refer to the ending hour; precipitation covers the preceding hour."
+    ]
+  },
+  "construction": {
+    "status": "no_relevant",
+    "source_name": "UC San Diego construction alerts",
+    "source_url": "https://admin-enterprise-gis.ucsd.edu/server/rest/services/Construction/Construction_Alert_Approved/MapServer",
+    "last_checked_at": "2026-11-14T08:00:00Z",
+    "last_attempt_at": "2026-11-14T08:00:00Z",
+    "alerts": [],
+    "forecast": null,
+    "limitations": [
+      "Illustrative empty result, not a claim about current construction.",
+      "Published notices may be incomplete; mapped proximity does not establish closure."
+    ]
+  },
+  "limitations": [
+    "Illustrative contract example; not live trip information.",
+    "Trip alerts are informational and do not change parking availability or ranking.",
+    "Construction notices do not establish whole-lot closure or route avoidance."
+  ]
+}

@@ -187,6 +187,44 @@ python -m src.download_qpass
 
 ## Running things
 
+### Informational trip alerts — Issue #35
+
+Reusable providers, cache and orchestration live in `src/trip_alerts/`; the
+shared HTTP models are in `src/api/alert_schemas.py`.
+
+`POST /trip-alerts` is the shared website/iOS interface for a registry
+`parking_location_id`, `arrival_time` and optional destination coordinates.
+It is independent of `/recommendations`; source calls never change predictions,
+eligibility, ranking or route geometry. Weather uses Open-Meteo hourly forecasts
+(UTC hour ending at/after arrival, up to the actual returned 16-day range).
+Missing values stay null; ParkSmart rain/heat/wind suggestions are not official
+weather warnings. UCSD construction layers 0–2 are requested in WGS84 and matched
+by published effective windows and geometry within 200 m of trip points.
+Published notices do not establish entire-lot closure or route avoidance;
+upstream completeness and update frequency remain unverified.
+
+Sources are cached in memory per process: weather 15 minutes with at most one
+hour stale age, construction 10 minutes with at most 24 hours stale age.
+Failures back off for 30 seconds. Source results distinguish fresh `no_relevant`
+from `partial`, `unavailable`, `out_of_range`, `missing_location` and `stale`.
+Successful retrieval and last-attempt timestamps stay separate. Refreshes have
+four-second source budgets; a bounded two-worker service shares a 6.5-second
+response budget. Source calls do not occur at startup or during recommendations.
+`PARKSMART_TRIP_ALERTS_ENABLED=false` disables external alert calls. No new
+dependency, model retraining, paid API or AWS provisioning is added.
+
+See `docs/trip_alerts.md` for requests, response examples, client guidance,
+configuration and Daira's hosted-verification dependency. Run offline checks:
+`python -m pytest tests/test_trip_alert_cache.py tests/test_weather_alerts.py
+tests/test_construction_alerts.py tests/test_trip_alert_api.py
+tests/test_check_trip_alerts.py -q`. Opt-in server smoke check:
+`python -m scripts.check_trip_alerts --base-url http://127.0.0.1:8000`.
+Only run against the actual approved hosted URL when Daira supplies access;
+schema/source checks alone do not prove AWS hosting or a new upstream refresh.
+The proposed contract was shared on Issue #35 with Dylan, Hanrong and Daira.
+PR #31's requested fixes are pushed separately and still await Yra's approval.
+Events remain deferred; no weather/construction data enters QPASS training.
+
 ### Configured saved serving and AWS preparation — Issue #26
 
 Use any virtual environment with Python and dependencies matching the artifact;

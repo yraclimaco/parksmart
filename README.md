@@ -30,6 +30,16 @@ recommendations use the existing pipeline dataset and baseline, loaded once at
 startup. Missing resources return explicit 503s; no sample prediction fallback
 is used. The API never builds the dataset or runs notebooks per request.
 
+`POST /trip-alerts` adds optional Open-Meteo hourly forecasts and published UCSD
+construction notices for a selected registry location and/or destination. It is
+shared by the website and iOS app and runs separately from recommendations.
+Source failures, stale caches and dates outside the forecast range are explicit;
+alerts never change parking estimates, eligibility, ranking or routes. See the
+[shared contract, examples and setup](docs/trip_alerts.md),
+[weather source/rules](docs/weather_source.md) and
+[construction coverage/matching](docs/construction_source.md).
+Set `PARKSMART_TRIP_ALERTS_ENABLED=false` to disable external alert calls.
+
 `POST /routes` returns driving and walking routes (free public OSRM servers by
 default, no key needed), and recommendations use mapped walking routes for the
 top picks; see [routes](docs/routing.md). Website hosting on AWS Amplify is

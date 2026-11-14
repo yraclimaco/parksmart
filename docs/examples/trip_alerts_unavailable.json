@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "is_example": true,
+  "arrival_time": "2026-11-18T09:30:00-08:00",
+  "time_zone": "America/Los_Angeles",
+  "weather": {
+    "status": "unavailable",
+    "source_name": "Open-Meteo",
+    "source_url": "https://open-meteo.com/",
+    "last_checked_at": null,
+    "last_attempt_at": "2026-11-14T08:00:00Z",
+    "alerts": [],
+    "forecast": null,
+    "limitations": [
+      "Illustrative source failure; no values were invented."
+    ]
+  },
+  "construction": {
+    "status": "unavailable",
+    "source_name": "UC San Diego construction alerts",
+    "source_url": "https://admin-enterprise-gis.ucsd.edu/server/rest/services/Construction/Construction_Alert_Approved/MapServer",
+    "last_checked_at": null,
+    "last_attempt_at": "2026-11-14T08:00:00Z",
+    "alerts": [],
+    "forecast": null,
+    "limitations": [
+      "Illustrative source failure; no values were invented."
+    ]
+  },
+  "limitations": [
+    "Illustrative contract example; not live trip information.",
+    "Trip alerts are informational and do not change parking availability or ranking.",
+    "Construction notices do not establish whole-lot closure or route avoidance."
+  ]
+}
