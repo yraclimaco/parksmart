@@ -8,5 +8,7 @@
   },
   "arrival_time": "2026-11-03T10:00:00-08:00",
   "permit_type": "S",
-  "starting_location": null
+  "starting_location": null,
+  "preference": "balanced",
+  "max_walk_minutes": null
 }

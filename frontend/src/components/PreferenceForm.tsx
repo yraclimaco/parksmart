@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, Check, MapPin, Star, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { PERMIT_OPTIONS } from '../constants.ts';
+import { DEFAULT_PRIORITY, PERMIT_OPTIONS, PRIORITY_OPTIONS, WALK_LIMIT_OPTIONS } from '../constants.ts';
 import { POPULAR_DESTINATIONS, findDestination, searchDestinations } from '../data/destinations.ts';
 import { maxArrivalDate } from '../utils/arrival.ts';
 import { loadFavorites, toggleFavorite } from '../utils/favorites.ts';
@@ -75,6 +75,8 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   const [favorites, setFavorites] = useState<string[]>(() => loadFavorites());
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+
+  const priority = formData.priority ?? DEFAULT_PRIORITY;
 
   // No destination until the user picks one (or drops a pin on the map)
   const selectedDestination = findDestination(formData.destinationId) ?? null;
@@ -446,6 +448,41 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
         </div>
       </div>
 
+      {/* What matters most: walk vs availability, then a personal walking limit */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[13px] font-semibold text-ink">Prioritize</label>
+          <span className="text-[11px] text-muted text-right whitespace-nowrap">
+            {PRIORITY_OPTIONS.find((p) => p.value === priority)?.description}
+          </span>
+        </div>
+        <SegmentedControl
+          label="Prioritize"
+          layoutId="priority-thumb"
+          options={PRIORITY_OPTIONS.map((option) => ({ key: option.value, label: option.label, value: option.value }))}
+          selected={priority}
+          onSelect={(value) => onChange({ priority: value })}
+        />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[13px] font-semibold text-ink">Max walk</label>
+          <span className="text-[11px] text-muted">From parking to your destination</span>
+        </div>
+        <SegmentedControl
+          label="Maximum walking time"
+          layoutId="walk-limit-thumb"
+          options={WALK_LIMIT_OPTIONS.map((option) => ({
+            key: String(option.value),
+            label: option.label,
+            value: option.value,
+          }))}
+          selected={formData.maxWalkMinutes ?? null}
+          onSelect={(value) => onChange({ maxWalkMinutes: value })}
+        />
+      </div>
+
       {/* Primary Action Button */}
       <button
         type="submit"
@@ -464,3 +501,52 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
     </form>
   );
 };
+
+/** Pill radio group in the same style as the permit picker. */
+function SegmentedControl<T>({
+  label,
+  layoutId,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  layoutId: string;
+  options: Array<{ key: string; label: string; value: T }>;
+  selected: T;
+  onSelect: (value: T) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="grid gap-0.5 p-0.5 bg-paper border border-line rounded-[10px]"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((option) => {
+        const isSelected = option.value === selected;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => onSelect(option.value)}
+            className={`relative py-1.5 text-xs font-semibold rounded-[10px] transition-colors duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer ${
+              isSelected ? 'text-white' : 'text-muted hover:text-navy'
+            }`}
+          >
+            {isSelected && (
+              <motion.span
+                layoutId={layoutId}
+                className="absolute inset-0 rounded-[8px] bg-navy"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span className="relative">{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}

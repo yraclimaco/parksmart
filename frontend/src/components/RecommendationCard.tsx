@@ -117,17 +117,18 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           {lot.name}
         </button>
       </h3>
-      <div className={`mt-1 flex items-center gap-1.5 text-[13px] ${muted}`}>
-        <Footprints className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-        <span>
-          {walkingMinutes === null ? (
-            <>Walk time unavailable</>
-          ) : (
-            <>
-              <span className={`font-semibold ${strong}`}>{walkingMinutes} min walk</span> to {destinationName}
-            </>
-          )}
-        </span>
+      <div className={`mt-1.5 flex items-center gap-2 ${muted}`}>
+        <Footprints className={`shrink-0 ${hero ? 'w-6 h-6' : 'w-5 h-5'}`} aria-hidden="true" />
+        {walkingMinutes === null ? (
+          <span className="text-[13px]">Walk time unavailable</span>
+        ) : (
+          <span className="text-[13px]">
+            <span className={`font-serif font-semibold tabular-nums ${hero ? 'text-[26px]' : 'text-[22px]'} ${strong}`}>
+              {walkingMinutes} min
+            </span>{' '}
+            walk to {destinationName}
+          </span>
+        )}
       </div>
 
       {/* Availability: the same readout the map's lot card shows */}
@@ -137,6 +138,13 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
       {/* One-line reasoning */}
       <p className={`mt-3 text-[13px] leading-relaxed ${hero ? 'text-white/90' : 'text-ink'}`}>{reason}</p>
+      {/* Why this pick suits the chosen priority (backend results only) */}
+      {fromBackend && estimate.fitReason && (
+        <p className={`mt-1.5 text-[12px] leading-snug ${hero ? 'text-white/75' : 'text-muted'}`}>
+          <span className="font-semibold">Why it fits: </span>
+          {estimate.fitReason}
+        </p>
+      )}
 
       {/* Non-D permits that get in only through D stalls: the Sept 18 D restriction is unresolved */}
       {fromBackend && (

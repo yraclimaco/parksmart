@@ -11,10 +11,18 @@ describe('availabilityStatus', () => {
     expect(availabilityStatus(0).level).toBe('nearlyFull');
   });
 
+  it('uses the experts\' tiers: green 20-100, yellow 10-20, red under 10', () => {
+    expect(PLENTY_THRESHOLD).toBe(20);
+    expect(availabilityStatus(20).level).toBe('plenty');
+    expect(availabilityStatus(19).level).toBe('filling');
+    expect(availabilityStatus(11).level).toBe('filling');
+  });
+
   it('matches the backend: "Often nearly full" means 10% open or less', () => {
     // src/ranking.py NEAR_FULL_FRACTION = 0.10 in the ParkSmart backend
     expect(NEARLY_FULL_MAX).toBe(10);
     expect(availabilityStatus(9).label).toBe('Usually full');
-    expect(availabilityStatus(30).label).toBe('Getting tight');
+    expect(availabilityStatus(15).label).toBe('Getting tight');
+    expect(availabilityStatus(50).label).toBe('Spaces open');
   });
 });

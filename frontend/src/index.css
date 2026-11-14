@@ -15,6 +15,15 @@
   --color-muted: #566277;
 }
 
+/* The app is one fixed screen (map + planner). Lock the page so phones cannot
+   rubber-band or pan it sideways; only the planner list scrolls, vertically. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   font-family: var(--font-sans);
   color: var(--color-ink);

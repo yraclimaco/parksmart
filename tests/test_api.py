@@ -203,6 +203,8 @@ def test_unready_estimator_is_503(app_factory):
     {"arrival_time": "2027-03-14T02:30:00"},
     {"destination": {"name": "Test", "coordinates": {"latitude": 91, "longitude": 0}}},
     {"permitType": "S"},
+    {"preference": "closest"}, {"max_walk_minutes": 2}, {"max_walk_minutes": 21},
+    {"max_walk_minutes": 7.5},
 ])
 def test_invalid_inputs_are_422(client, changes):
     response = client.post("/recommendations", json={**REQUEST, **changes})
@@ -291,3 +293,32 @@ def test_cors_origins_reject_bad_ports(value):
 def test_cors_origins_reject_invalid_or_non_ascii_hosts(value):
     with pytest.raises(ValueError, match="punycode"):
         main.allowed_origins({main.CORS_ORIGINS_ENV: value})
+
+
+GEISEL_REQUEST = {**REQUEST, "destination": {
+    "name": "Geisel", "coordinates": {"latitude": 32.8811, "longitude": -117.2376}}}
+
+
+def test_preference_and_walk_limit_are_applied_and_echoed(client):
+    default = client.post("/recommendations", json=GEISEL_REQUEST).json()
+    assert default["preference"] == "balanced"
+    assert default["max_walk_minutes"] == 20
+    assert [o["rank"] for o in default["options"]] == list(
+        range(1, len(default["options"]) + 1))
+    assert default["options"][0] == default["first_choice"]
+    assert default["first_choice"]["fit_reason"]
+    assert default["first_choice"]["walking_time_source"] == "straight_line"
+
+    chosen = client.post("/recommendations", json={
+        **GEISEL_REQUEST, "preference": "shorter_walk", "max_walk_minutes": 10,
+    }).json()
+    assert chosen["preference"] == "shorter_walk"
+    assert chosen["max_walk_minutes"] == 10
+    for option in chosen["options"]:
+        assert option["estimated_walking_minutes"] <= 10
+    assert any("10-minute walking limit" in note for note in chosen["limitations"])
+
+
+def test_older_clients_without_new_fields_still_work(client):
+    body = client.post("/recommendations", json=REQUEST).json()
+    assert body["status"] == "ready" and body["preference"] == "balanced"

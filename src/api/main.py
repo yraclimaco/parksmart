@@ -239,6 +239,8 @@ def create_app(dataset_path=DEFAULT_DATASET, registry_path=DEFAULT_REGISTRY,
                 request.permit_type, request.arrival_time,
                 destination=coordinates.model_dump() if coordinates else None,
                 walk_router=walk_router(application.state.routes),
+                preference=request.preference,
+                max_walk_minutes=request.max_walk_minutes,
             )
         except ValueError as error:
             # Request syntax, permit and time errors are validated by Pydantic.

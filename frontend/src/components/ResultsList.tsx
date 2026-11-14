@@ -43,8 +43,6 @@ interface ResultsListProps {
   onRestoreSearch: (request: ParkingPlannerRequest) => void;
   /** Show the "enter your trip details" prompt instead of results. */
   showIntroPrompt: boolean;
-  /** "Your usual" card, shown in place of the generic prompt when a trip is saved. */
-  usualTripCard?: React.ReactNode;
   /** True when trip details changed since the search; results are greyed out. */
   isStale: boolean;
   /** Time every availability number describes (follows the arrival time unless the Time tool is used). */
@@ -75,7 +73,6 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   searchHistory,
   onRestoreSearch,
   showIntroPrompt,
-  usualTripCard,
   isStale,
   availabilityTime,
   confirmedLotId,
@@ -96,10 +93,6 @@ export const ResultsList: React.FC<ResultsListProps> = ({
     setVisibleCount(INITIAL_VISIBLE);
     previousVisibleRef.current = INITIAL_VISIBLE;
   }, [recommendations]);
-
-  if (showIntroPrompt && !isLoading && usualTripCard) {
-    return <div className="pt-2">{usualTripCard}</div>;
-  }
 
   if (showIntroPrompt && !isLoading) {
     return (
@@ -147,7 +140,9 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <h4 className="text-sm font-bold text-navy">{EMPTY_TITLES[api.status]}</h4>
           <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">{api.explanation}</p>
           <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">
-            Try a different time, destination or permit.
+            {searchedRequest?.maxWalkMinutes != null
+              ? 'Try a longer max walk, a different time, destination or permit.'
+              : 'Try a different time, destination or permit.'}
           </p>
         </div>
         <Limitations notes={api.limitations} />

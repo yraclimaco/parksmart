@@ -542,3 +542,212 @@ def test_unchecked_picks_after_the_budget_runs_out_get_the_mixed_note():
                        walk_router=lambda o, d: answers.pop() if answers else {})
     assert result.first_choice.walking_source == ranking.WALK_UNCHECKED
     assert ranking.MIXED_ROUTED_NOTE in result.limitations
+
+
+# Walk vs availability preference (Yra's website review) ---------------------
+
+NEAR_TIGHT_MID_OPEN = [("near", "S", "", 0.2), ("mid", "S", "", 0.9)]
+
+
+def _pick(preference, rows=NEAR_TIGHT_MID_OPEN, **kwargs):
+    return recommend(_candidates(rows), LOCATIONS, "S", WEEKDAY_MORNING,
+                     DESTINATION, preference=preference, **kwargs)
+
+
+def test_balanced_is_the_default_and_keeps_original_weights():
+    assert ranking.PREFERENCE_WEIGHTS[ranking.BALANCED] == (
+        AVAILABILITY_WEIGHT, WALKING_WEIGHT)
+    default = recommend(_candidates(NEAR_TIGHT_MID_OPEN), LOCATIONS, "S",
+                        WEEKDAY_MORNING, DESTINATION)
+    assert default.preference == ranking.BALANCED
+    assert (default.first_choice.location["location_id"]
+            == _pick(ranking.BALANCED).first_choice.location["location_id"])
+
+
+def test_shorter_walk_prefers_the_closer_tighter_lot():
+    assert _pick(ranking.SHORTER_WALK).first_choice.location["location_id"] == "near"
+    assert _pick(ranking.BALANCED).first_choice.location["location_id"] == "mid"
+
+
+def test_more_availability_prefers_the_more_open_lot():
+    rows = [("near", "S", "", 0.6), ("mid", "S", "", 0.75)]
+    assert _pick(ranking.BALANCED, rows).first_choice.location["location_id"] == "near"
+    assert (_pick(ranking.MORE_AVAILABILITY, rows).first_choice
+            .location["location_id"] == "mid")
+
+
+def test_every_weight_pair_sums_to_one():
+    for availability, walking in ranking.PREFERENCE_WEIGHTS.values():
+        assert availability + walking == pytest.approx(1)
+
+
+def test_personal_walk_limit_filters_and_is_disclosed():
+    result = _pick(ranking.BALANCED, max_walk_minutes=5)
+    assert result.first_choice.location["location_id"] == "near"
+    assert result.backup_choice is None
+    assert result.max_walk_minutes == 5
+    assert "Only parking within your 5-minute walking limit was considered." in (
+        result.limitations)
+    assert not any("5-minute" in note for note in _pick(ranking.BALANCED).limitations)
+
+
+def test_personal_walk_limit_is_not_claimed_without_a_destination():
+    result = recommend(_candidates(NEAR_TIGHT_MID_OPEN), LOCATIONS, "S",
+                       WEEKDAY_MORNING, None, max_walk_minutes=5)
+    assert result.max_walk_minutes == 5  # echoed, but nothing was filtered
+    assert any("No destination coordinates" in note for note in result.limitations)
+    assert not any("walking limit was considered" in note
+                   for note in result.limitations)
+
+
+def test_routed_walk_over_personal_limit_is_dropped():
+    result = _pick(ranking.BALANCED, max_walk_minutes=8,
+                   walk_router=_router({"near": 9}))
+    assert result.status == NO_SUITABLE_LOCATION
+    assert result.counts["too_far_routed"] == 1  # near: 9 min routed
+    assert result.counts["too_far"] == 1  # mid: 9 min straight line
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"preference": "closest"}, {"max_walk_minutes": 2},
+    {"max_walk_minutes": ranking.MAX_WALK_MINUTES + 1},
+])
+def test_bad_settings_are_rejected(kwargs):
+    with pytest.raises(ValueError):
+        recommend(_candidates(NEAR_TIGHT_MID_OPEN), LOCATIONS, "S",
+                  WEEKDAY_MORNING, DESTINATION, **kwargs)
+
+
+def test_options_are_ranked_and_include_the_picks():
+    lots, candidates = _row_of_lots(15)
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION)
+    options = result.options
+    assert len(options) == ranking.MAX_RANKED_OPTIONS
+    assert [o.rank for o in options] == list(range(1, len(options) + 1))
+    assert options[0] is result.first_choice and options[1] is result.backup_choice
+    api = result.to_api()
+    assert [o["rank"] for o in api["options"]] == [o.rank for o in options]
+    assert api["preference"] == ranking.BALANCED
+    assert api["max_walk_minutes"] == ranking.MAX_WALK_MINUTES
+
+
+@pytest.mark.parametrize("preference", ranking.PREFERENCES)
+def test_fit_reasons_are_short_and_never_talk_about_probability(preference):
+    lots, candidates = _row_of_lots(8)
+    candidates["estimated_available_fraction"] = [0.1, 0.9, 0.3, 0.8, 0.2,
+                                                  0.6, 0.4, 0.05]
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       preference=preference)
+    for option in result.options:
+        assert option.fit_reason
+        assert len(option.fit_reason) <= ranking.MAX_TEXT_LENGTH
+        assert not re.search(r"chance|probab|likely", option.fit_reason, re.I)
+        assert len(option.explanation) <= ranking.MAX_TEXT_LENGTH
+
+
+def test_shorter_walk_fit_reason_matches_the_numbers():
+    result = _pick(ranking.SHORTER_WALK)
+    first, backup = result.first_choice, result.backup_choice
+    assert first.fit_reason.startswith("Shortest walk of your 2 options")
+    assert "more space in past surveys (90% vs 20% open)" in backup.fit_reason
+
+
+@pytest.mark.parametrize("preference", ranking.PREFERENCES)
+def test_single_option_fit_reason_has_nothing_to_compare(preference):
+    rows = [("near", "S", "", 0.6)]
+    reason = _pick(preference, rows, max_walk_minutes=5).first_choice.fit_reason
+    assert reason.startswith("Your only option: a ")
+    assert "1 options" not in reason and "((" not in reason
+
+
+def test_more_availability_fit_reason_matches_the_numbers():
+    rows = [("near", "S", "", 0.6), ("mid", "S", "", 0.75)]
+    result = _pick(ranking.MORE_AVAILABILITY, rows)
+    assert result.first_choice.fit_reason.startswith("Most space in past surveys")
+    assert "(60% vs 75% open), but a shorter walk" in result.backup_choice.fit_reason
+
+
+def test_walking_time_source_is_reported():
+    plain = _pick(ranking.BALANCED).first_choice.to_api()
+    assert plain["walking_time_source"] == ranking.WALK_STRAIGHT_LINE
+    routed = _pick(ranking.BALANCED, walk_router=_router({"near": 4, "mid": 9}))
+    assert routed.first_choice.to_api()["walking_time_source"] == ranking.WALK_ROUTED
+    no_dest = recommend(_candidates(NEAR_TIGHT_MID_OPEN), LOCATIONS, "S",
+                        WEEKDAY_MORNING).first_choice.to_api()
+    assert no_dest["walking_time_source"] is None
+    assert no_dest["fit_reason"].startswith("Ranked on past availability only")
+
+
+def test_unavailable_results_have_no_options():
+    result = recommend(_candidates([("near", "S", "", None)]), LOCATIONS, "S",
+                       WEEKDAY_MORNING, DESTINATION)
+    assert result.status == PREDICTIONS_UNAVAILABLE
+    assert result.to_api()["options"] == []
+
+
+def test_schema_preferences_match_ranking():
+    from src.api.schemas import Preference
+    assert set(get_args(Preference)) == set(ranking.PREFERENCES)
+
+
+# Preference review fixes ------------------------------------------------------
+
+def test_more_space_with_a_location_lacking_coordinates_does_not_crash():
+    # Review case: the most open location has no walking time (no coordinates)
+    no_pin = _location("nopin", 32.8805)
+    no_pin["coordinates"] = None
+    result = recommend(_candidates([("near", "S", "", 0.5), ("nopin", "S", "", 0.95)]),
+                       [*LOCATIONS, no_pin], "S", WEEKDAY_MORNING, DESTINATION,
+                       preference=ranking.MORE_AVAILABILITY)
+    reasons = {o.location["location_id"]: o.fit_reason for o in result.options}
+    assert reasons["nopin"].startswith("No walking time for this location")
+    assert "Less space than NOPIN (50% vs 95% open); ranked lower" in reasons["near"]
+
+
+@pytest.mark.parametrize("limit", [5.9, 10.0, True, "10"])
+def test_walk_limit_must_be_a_whole_number(limit):
+    with pytest.raises(ValueError, match="whole number"):
+        ranking.check_settings(ranking.BALANCED, limit)
+
+
+def test_exact_ties_say_tied_and_rounding_never_makes_two_winners():
+    tied = _pick(ranking.MORE_AVAILABILITY,
+                 [("near", "S", "", 0.6), ("mid", "S", "", 0.6)])
+    assert all(o.fit_reason.startswith("Tied for the most space") for o in tied.options)
+    close = _pick(ranking.MORE_AVAILABILITY,
+                  [("near", "S", "", 0.534), ("mid", "S", "", 0.536)])
+    winners = [o for o in close.options if o.fit_reason.startswith("Most space")]
+    assert [o.location["location_id"] for o in winners] == ["mid"]
+
+
+def test_routed_walks_are_not_compared_with_straight_line_guesses():
+    # lot0 is routed (8 min); lot6 stays an unchecked straight-line estimate
+    lots, candidates = _row_of_lots(7)
+    result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
+                       preference=ranking.SHORTER_WALK,
+                       walk_router=_router({f"lot{i}": 8 + i for i in range(5)}))
+    routed = [o for o in result.options if o.walking_source == ranking.WALK_ROUTED]
+    unchecked = [o for o in result.options
+                 if o.walking_source == ranking.WALK_UNCHECKED]
+    assert routed and unchecked
+    assert routed[0].fit_reason.startswith("Shortest walk")
+    for option in unchecked:
+        assert "(straight-line)" in option.fit_reason
+        assert not any(o.location["name"] in option.fit_reason for o in routed)
+
+
+def test_website_priority_weights_match_the_backend():
+    text = Path("frontend/src/constants.ts").read_text()
+    block = text[text.index("export const PRIORITY_OPTIONS"):]
+    block = block[:block.index("];")]
+    website = {}
+    for value, availability, walking in re.findall(
+            r"value: '(\w+)'.*?availabilityWeight: ([\w.]+),\s*walkingWeight: ([\w.]+)",
+            block, re.S):
+        website[value] = (availability, walking)
+    assert set(website) == set(ranking.PREFERENCES)
+    for key, (availability, walking) in website.items():
+        if key == ranking.BALANCED:  # written as the shared SCORING_WEIGHTS
+            assert "SCORING_WEIGHTS" in availability
+            continue
+        assert (float(availability), float(walking)) == ranking.PREFERENCE_WEIGHTS[key]

@@ -619,13 +619,18 @@ The proposed shared interface for all teammates is in `docs/api_proposal.md`. `s
 `current_groups()` with those estimates, and returns a first choice and
 distinct backup (`to_api()` matches `ParkingChoice`); limited estimates and
 unverified dates appear in explanations and limitations. Missing estimates are
-reported, never filled in. Rule sources, weights, walking assumptions and
+reported, never filled in. Requests may add `preference` (`shorter_walk`,
+`balanced` default, `more_availability`; `PREFERENCE_WEIGHTS`) and
+`max_walk_minutes` (3–20); responses echo both and add a ranked `options` list
+whose choices carry `rank`, `walking_time_source` and `fit_reason`. Never call
+the availability percentage a probability of finding parking. Rule sources, weights, walking assumptions and
 tie-breaking are in `docs/recommendations.md`; update it and the rule tests
 when permit rules change. Tests:
 `python -m pytest tests/test_eligibility.py tests/test_ranking.py tests/test_availability.py tests/test_ucsd_calendar.py -q`.
 `src/recommender.Recommender.from_files()` loads all of this once and answers
 requests with `.recommend(permit, arrival, destination)`; try it with
 `python -m src.recommender --permit S --arrival 2026-11-03T09:00 --lat 32.8811 --lon -117.2376`
+(optional `--preference shorter_walk|balanced|more_availability`, `--max-walk MINUTES`)
 (needs the integrated dataset). Tests: `python -m pytest tests/test_recommender.py -q`.
 `POST /recommendations` now calls this recommender; the original integration
 handoff is `docs/recommendations_handoff.md`, and current setup/limitations are

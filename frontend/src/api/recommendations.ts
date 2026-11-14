@@ -15,7 +15,14 @@
 import { API_BASE_URL } from '../config.ts';
 import { ALL_PARKING } from '../data/parkingLots.ts';
 import { findDestination } from '../data/destinations.ts';
-import type { ParkingLot, ParkingPlannerRequest, ParkingRecommendation } from '../types.ts';
+import { DEFAULT_PRIORITY } from '../constants.ts';
+import type {
+  BackendEstimate,
+  ParkingLot,
+  ParkingPlannerRequest,
+  ParkingRecommendation,
+  TripPriority,
+} from '../types.ts';
 import { withTimeout } from './timeout.ts';
 
 export interface ApiCoordinates {
@@ -29,11 +36,17 @@ export interface ApiLocation {
   coordinates: ApiCoordinates | null;
 }
 
+export type ApiWalkingSource = 'routed' | 'straight_line' | 'straight_line_unchecked';
+
 export interface ApiChoice {
   location: ApiLocation;
   estimated_available_fraction: number | null;
   estimated_walking_minutes: number | null;
   explanation: string;
+  /** Newer backends only (walk vs availability preference). */
+  walking_time_source?: ApiWalkingSource | null;
+  fit_reason?: string | null;
+  rank?: number | null;
 }
 
 /** Backend result states. predictions_unavailable is the proposed addition from #20. */
@@ -45,6 +58,10 @@ export interface ApiRecommendationResponse {
   arrival_time: string;
   first_choice: ApiChoice | null;
   backup_choice: ApiChoice | null;
+  /** Ranked locations, best first, including the picks. Missing from older backends. */
+  options?: ApiChoice[];
+  preference?: TripPriority;
+  max_walk_minutes?: number;
   explanation: string;
   limitations: string[];
 }
@@ -54,6 +71,10 @@ export interface ApiRecommendationRequest {
   /** Local UCSD time without an offset, e.g. "2026-10-29T10:00:00". */
   arrival_time: string;
   permit_type: string;
+  /** Left out for the default ("balanced"). */
+  preference?: TripPriority;
+  /** Left out for the backend's default (20 minutes). */
+  max_walk_minutes?: number;
 }
 
 /** What the website does with a request: show results, or explain why it can't. */
@@ -79,6 +100,10 @@ export function toApiRequest(request: ParkingPlannerRequest): ApiRecommendationR
     },
     arrival_time: `${request.arrivalDate}T${request.arrivalTime}:00`,
     permit_type: request.permitType,
+    // Sent only when changed from the defaults, so a backend without the
+    // preference feature (which rejects unknown fields) still answers
+    ...(request.priority && request.priority !== DEFAULT_PRIORITY ? { preference: request.priority } : {}),
+    ...(request.maxWalkMinutes != null ? { max_walk_minutes: request.maxWalkMinutes } : {}),
   };
 }
 
@@ -182,6 +207,10 @@ export function parseResponse(data: unknown): ApiRecommendationResponse | null {
   if (typeof explanation !== 'string') return null;
   if (!Array.isArray(limitations) || !limitations.every((note) => typeof note === 'string')) return null;
   if (!isChoiceOrNull(first_choice) || !isChoiceOrNull(backup_choice)) return null;
+  const { options } = data;
+  if (options !== undefined && (!Array.isArray(options) || !options.every((o) => o !== null && isChoiceOrNull(o)))) {
+    return null;
+  }
   if (status === 'ready' && first_choice === null) return null;
   if (status !== 'ready' && (first_choice !== null || backup_choice !== null)) return null;
   return data as unknown as ApiRecommendationResponse;
@@ -202,18 +231,52 @@ export function toRecommendations(response: ApiRecommendationResponse): ParkingR
           score: 0,
           reason: choice.explanation,
           access: { status: 'never' as const },
-          estimate: {
-            availablePercent:
-              choice.estimated_available_fraction === null
-                ? null
-                : Math.round(choice.estimated_available_fraction * 100),
-            walkingMinutes:
-              choice.estimated_walking_minutes === null ? null : Math.round(choice.estimated_walking_minutes),
-            isExample: response.is_example,
-          },
+          estimate: toEstimate(choice, response.is_example),
         }]
       : []
   );
+}
+
+/** Backend numbers and reasons for one choice, as the cards and detail card use them. */
+export function toEstimate(choice: ApiChoice, isExample: boolean): BackendEstimate {
+  return {
+    availablePercent:
+      choice.estimated_available_fraction === null ? null : Math.round(choice.estimated_available_fraction * 100),
+    walkingMinutes:
+      choice.estimated_walking_minutes === null ? null : Math.round(choice.estimated_walking_minutes),
+    isExample,
+    walkingSource: choice.walking_time_source ?? null,
+    fitReason: choice.fit_reason ?? null,
+    explanation: choice.explanation,
+    rank: choice.rank ?? null,
+  };
+}
+
+/** One ranked location for map markers and the detail card. */
+export interface RankedOption {
+  /** "First choice", "Backup", then "#3", "#4", ... */
+  badgeLabel: string;
+  estimate: BackendEstimate;
+}
+
+/**
+ * Ranked options keyed by location ID, so clicking any ranked marker can show its
+ * estimate, walk and fit reason. Falls back to the two picks for older backends.
+ */
+export function toRankedOptions(response: ApiRecommendationResponse): Record<string, RankedOption> {
+  const choices =
+    response.options && response.options.length > 0
+      ? response.options
+      : [response.first_choice, response.backup_choice].filter((c): c is ApiChoice => c !== null);
+  const ranked: Record<string, RankedOption> = {};
+  choices.forEach((choice, index) => {
+    const rank = choice.rank ?? index + 1;
+    ranked[choice.location.location_id] = {
+      badgeLabel: rank === 1 ? 'First choice' : rank === 2 ? 'Backup' : `#${rank}`,
+      estimate: toEstimate(choice, response.is_example),
+    };
+  });
+  return ranked;
 }
 
 /**
@@ -266,6 +329,7 @@ function isChoiceOrNull(value: unknown): boolean {
   return (
     isNullableNumber(value.estimated_available_fraction, 0, 1) &&
     isNullableNumber(value.estimated_walking_minutes, 0, Number.POSITIVE_INFINITY) &&
-    typeof value.explanation === 'string'
+    typeof value.explanation === 'string' &&
+    (value.fit_reason === undefined || value.fit_reason === null || typeof value.fit_reason === 'string')
   );
 }

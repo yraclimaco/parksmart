@@ -24,7 +24,6 @@ A desktop-first web prototype for UCSD parking planning. This prototype uses sam
 
 - **Full-Screen Map Canvas**: Satellite imagery by default, with a Map / Satellite toggle in the top right. Automatically fits bounds to all lots and active destination with panel offset padding (left: 404px, edges: ~60px).
 - **Floating Glass Panel (`380px` wide)**: Positioned on the left with Apple Maps style frosted glass (`bg-white/45`, `backdrop-blur-2xl`, boosted saturation), a neutral palette, and color reserved for availability.
-- **Corner State Simulator**: A dedicated developer switcher in the bottom-right corner to test all 4 required UI states (`Normal`, `Loading`, `Empty`, `Error`).
 
 ---
 

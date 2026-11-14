@@ -53,7 +53,7 @@ export const AvailabilityMeter: React.FC<AvailabilityMeterProps> = ({
             {percent}%
             <span className={`ml-1.5 font-sans text-[13px] font-medium ${dark ? 'text-white/70' : 'text-muted'}`}>open</span>
           </div>
-          <div className={`mt-1 text-xs ${dark ? 'text-white/70' : 'text-muted'}`}>Estimated for {timeLabel}</div>
+          <div className={`mt-1 text-xs ${dark ? 'text-white/70' : 'text-muted'}`}>Based on historical patterns for {timeLabel}</div>
         </div>
         <span
           className="px-2.5 py-1 rounded-md text-[13px] font-semibold"

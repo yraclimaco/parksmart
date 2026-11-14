@@ -35,10 +35,12 @@ website walkthrough have not been recorded. Record feedback and outcomes below.
 | Public locations | Supported registry entries only; verified coordinates or null |
 | Trip input | `destination`, `arrival_time`, `permit_type`, optional `starting_location` |
 | Destination/origin | `name`, optional complete `latitude`/`longitude` coordinates; no geocoding |
+| Preference (optional) | `preference`: `shorter_walk`, `balanced` (default, 65/35 availability/walking) or `more_availability`; weights in `src.ranking.PREFERENCE_WEIGHTS`. `max_walk_minutes`: whole minutes 3–20, null means 20. Both are optional, so older clients keep working; unknown values return 422 |
 | Permits | A, B, S, SR, D, V (pay-station visitor); other values return 422 |
 | Time | America/Los_Angeles; naive local or explicit instant normalized to UCSD time; DST ambiguity requires offset |
 | Predictions | Facility/category/subtype/level plus weekday, survey time and quarter; returns 0–1 `prediction` or NaN, and `baseline_group` |
 | Recommender | `.recommend(permit, arrival, destination=coordinates)`; `.to_api()` returns choices, status, explanation and limitations |
+| Ranked options | Responses echo `preference` and `max_walk_minutes` and add `options`: up to 12 ranked locations (first choice and backup included, empty unless `ready`). Each choice carries `rank`, `walking_time_source` (`routed`, `straight_line` or `straight_line_unchecked`; null without a walking time) and `fit_reason`. Percentages are shares of spaces open in past surveys, never a chance of finding a space |
 | Result | `ready`, `no_suitable_location`, `predictions_unavailable`; null backup when only one location qualifies |
 | Units | Availability fraction 0–1; walking minutes; null for unknown values |
 | Routes (Issue #25) | `POST /routes` with `mode` (`driving`/`walking`), `origin`, `destination`; returns GeoJSON `[lon, lat]` `geometry`, meters, miles, minutes, `traffic_aware: false`. Examples: `docs/examples/backend/route_*.json`; details: `docs/routing.md` |

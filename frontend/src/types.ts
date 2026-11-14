@@ -85,7 +85,21 @@ export interface BackendEstimate {
   walkingMinutes: number | null;
   /** The backend marked the whole response as a static example. */
   isExample: boolean;
+  /** Where the walking time came from; null when unknown or from an older backend. */
+  walkingSource?: 'routed' | 'straight_line' | 'straight_line_unchecked' | null;
+  /** Why this location ranks where it does for the chosen priority. */
+  fitReason?: string | null;
+  /** Backend explanation (permit, estimate basis, walk). */
+  explanation?: string;
+  /** 1-based backend rank. */
+  rank?: number | null;
 }
+
+/**
+ * What matters most when ranking parking. Same keys as the backend's
+ * `preference` (src/ranking.py PREFERENCE_WEIGHTS in yraclimaco/parksmart).
+ */
+export type TripPriority = 'shorter_walk' | 'balanced' | 'more_availability';
 
 /**
  * User inputs payload submitted from the preference form.
@@ -95,6 +109,10 @@ export interface ParkingPlannerRequest {
   arrivalDate: string;
   arrivalTime: string;
   permitType: PermitType;
+  /** Missing means 'balanced' (older saved searches have none). */
+  priority?: TripPriority;
+  /** Personal walking limit in minutes; missing or null means the 20-minute default. */
+  maxWalkMinutes?: number | null;
 }
 
 /**
@@ -107,7 +125,3 @@ export interface ParkingPlannerResponse {
   isSampleData: true;
 }
 
-/**
- * Developer state simulation options for verifying edge cases.
- */
-export type DevSimulationState = 'normal' | 'loading' | 'empty' | 'error';

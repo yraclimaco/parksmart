@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SCORING_WEIGHTS } from '../constants.ts';
+import { DEFAULT_PRIORITY, PRIORITY_OPTIONS, SCORING_WEIGHTS } from '../constants.ts';
 import { findDestination } from './destinations.ts';
 import {
   ParkingLot,
   ParkingPlannerRequest,
   ParkingPlannerResponse,
   ParkingRecommendation,
+  TripPriority,
 } from '../types.ts';
 import { ALL_PARKING } from './parkingLots.ts';
 import { lotAccess, parseArrival } from '../utils/permitRules.ts';
@@ -134,17 +135,23 @@ export function relativeReason(lot: ParkingLot, first: ParkingLot): string {
 
 /**
  * SCORING ALGORITHM:
- * Evaluates parking options based on 65% expected availability and 35% walking convenience.
+ * Weighs expected availability against walking convenience using the chosen priority
+ * (PRIORITY_OPTIONS; "balanced" is 65% availability, 35% walking).
  * Shorter walks receive higher scores on a normalized 0-100 scale.
  *
  * @param availabilityPercent - Value between 0 and 100
  * @param walkingMinutes - Walking duration in minutes
+ * @param priority - What matters most; defaults to balanced
  * @returns Composite score out of 100
  */
 export function calculateParkingScore(
   availabilityPercent: number,
-  walkingMinutes: number
+  walkingMinutes: number,
+  priority: TripPriority = DEFAULT_PRIORITY
 ): number {
+  const weights =
+    PRIORITY_OPTIONS.find((option) => option.value === priority) ??
+    PRIORITY_OPTIONS.find((option) => option.value === DEFAULT_PRIORITY)!;
   // Normalize walking convenience: 0 min = 100, 20+ min = 0
   const normalizedWalkConvenience = Math.max(
     0,
@@ -156,10 +163,9 @@ export function calculateParkingScore(
     )
   );
 
-  // 65% availability + 35% walking convenience
   const score =
-    availabilityPercent * SCORING_WEIGHTS.AVAILABILITY_WEIGHT +
-    normalizedWalkConvenience * SCORING_WEIGHTS.WALKING_WEIGHT;
+    availabilityPercent * weights.availabilityWeight +
+    normalizedWalkConvenience * weights.walkingWeight;
 
   return Math.round(score * 10) / 10;
 }
@@ -189,13 +195,14 @@ export function getSampleRecommendations(
     const access = lotAccess(request.permitType, lot.spaceCategories, arrival);
     if (access.status !== 'always' && access.status !== 'until') return [];
     const walkingMinutes = estimateWalkingTime(lot, request.destinationId);
-    if (walkingMinutes > MAX_RECOMMENDED_WALK_MINUTES) return []; // too far to be a useful pick
+    // Too far to be a useful pick, or past the user's own walking limit
+    if (walkingMinutes > (request.maxWalkMinutes ?? MAX_RECOMMENDED_WALK_MINUTES)) return [];
     // Availability expected at the arrival time (sample time-of-day model)
     const estimatedAvailabilityPercent = availabilityAt(lot, arrival);
     return [{
       lot: { ...lot, walkingMinutes, estimatedAvailabilityPercent },
       access,
-      score: calculateParkingScore(estimatedAvailabilityPercent, walkingMinutes),
+      score: calculateParkingScore(estimatedAvailabilityPercent, walkingMinutes, request.priority),
     }];
   });
 

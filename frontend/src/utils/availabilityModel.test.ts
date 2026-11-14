@@ -31,7 +31,7 @@ describe('availabilityAt', () => {
 
 describe('tightFrom', () => {
   it('finds a morning time for a busy lot and none on a quiet weekend', () => {
-    const t = tightFrom(lot(50), wed(12));
+    const t = tightFrom(lot(15), wed(12));
     expect(t).not.toBeNull();
     expect(t!.getHours()).toBeLessThan(11);
     expect(tightFrom(lot(95), new Date(2026, 9, 24, 12))).toBeNull();

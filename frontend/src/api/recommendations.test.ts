@@ -6,6 +6,7 @@ import {
   fetchRecommendations,
   parseResponse,
   toApiRequest,
+  toRankedOptions,
   type ApiRecommendationResponse,
 } from './recommendations.ts';
 
@@ -61,6 +62,18 @@ describe('toApiRequest', () => {
     });
   });
 
+  it('leaves out default priority and walking limit so older backends still answer', () => {
+    const body = toApiRequest({ ...REQUEST, priority: 'balanced', maxWalkMinutes: null });
+    expect(body).not.toHaveProperty('preference');
+    expect(body).not.toHaveProperty('max_walk_minutes');
+  });
+
+  it('sends the chosen priority and walking limit', () => {
+    const body = toApiRequest({ ...REQUEST, priority: 'shorter_walk', maxWalkMinutes: 10 });
+    expect(body?.preference).toBe('shorter_walk');
+    expect(body?.max_walk_minutes).toBe(10);
+  });
+
   it('returns null for an unknown destination', () => {
     expect(toApiRequest({ ...REQUEST, destinationId: 'nowhere' })).toBeNull();
   });
@@ -78,13 +91,13 @@ describe('fetchRecommendations', () => {
     if (outcome.kind !== 'ok') return;
     const [first, backup] = outcome.recommendations;
     expect(first.badgeLabel).toBe('First choice');
-    expect(first.estimate).toEqual({ availablePercent: 62, walkingMinutes: 8, isExample: false });
+    expect(first.estimate).toMatchObject({ availablePercent: 62, walkingMinutes: 8, isExample: false });
     expect(first.reason).toBe('Why gilman-ps');
     // Known IDs reuse the website's verified pin
     expect(Number.isFinite(first.lot.latitude)).toBe(true);
     expect(backup.badgeLabel).toBe('Backup');
     // Unknown stays unknown: null, never 0
-    expect(backup.estimate).toEqual({ availablePercent: null, walkingMinutes: null, isExample: false });
+    expect(backup.estimate).toMatchObject({ availablePercent: null, walkingMinutes: null, isExample: false });
   });
 
   it('keeps a ready result without a backup', async () => {
@@ -197,5 +210,40 @@ describe('resolveRecommendationSource', () => {
     expect(resolveRecommendationSource(' API ')).toBe('api');
     expect(resolveRecommendationSource(undefined)).toBe('sample');
     expect(resolveRecommendationSource('anything')).toBe('sample');
+  });
+});
+
+describe('ranked options', () => {
+  it('keys every ranked option by location with its rank label and fit reason', () => {
+    const ranked = (id: string, rank: number) => ({
+      ...choice(id, 0.5, 6),
+      rank,
+      fit_reason: `Fits ${id}`,
+      walking_time_source: 'routed' as const,
+    });
+    const response = ready({ options: [ranked('gilman-ps', 1), ranked('p406', 2), ranked('p402', 3)] });
+    expect(parseResponse(response)).not.toBeNull();
+    const options = toRankedOptions(response);
+    expect(Object.keys(options)).toEqual(['gilman-ps', 'p406', 'p402']);
+    expect(options['p402'].badgeLabel).toBe('#3');
+    expect(options['p402'].estimate).toMatchObject({
+      availablePercent: 50,
+      walkingMinutes: 6,
+      fitReason: 'Fits p402',
+      walkingSource: 'routed',
+      rank: 3,
+    });
+  });
+
+  it('falls back to the two picks for an older backend without options', () => {
+    const options = toRankedOptions(ready());
+    expect(Object.keys(options)).toEqual(['gilman-ps', 'p406']);
+    expect(options['p406'].badgeLabel).toBe('Backup');
+    expect(options['gilman-ps'].estimate.fitReason).toBeNull();
+  });
+
+  it('rejects malformed options', () => {
+    expect(parseResponse({ ...ready(), options: 'nope' })).toBeNull();
+    expect(parseResponse({ ...ready(), options: [{ location: null }] })).toBeNull();
   });
 });

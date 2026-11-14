@@ -21,7 +21,7 @@ from .availability import AvailabilityEstimator
 from .location_registry import (DEFAULT_DATASET, DEFAULT_REGISTRY,
                                 current_groups, load_registry)
 from .parking_benchmarks import load_analysis_dataset
-from .ranking import recommend
+from .ranking import BALANCED, PREFERENCES, recommend
 
 
 class Recommender:
@@ -68,7 +68,7 @@ class Recommender:
                    estimator)
 
     def recommend(self, permit, arrival, destination=None, departure=None,
-                  walk_router=None):
+                  walk_router=None, preference=BALANCED, max_walk_minutes=None):
         """Rank parking for one request.
 
         Args:
@@ -79,16 +79,21 @@ class Recommender:
             walk_router: optional routed-walking callable for the top
                 choices (``src.routing.walk_router``); None keeps
                 straight-line walking estimates.
+            preference: ``shorter_walk``, ``balanced`` or
+                ``more_availability`` (``src.ranking.PREFERENCES``).
+            max_walk_minutes: optional personal walking limit.
         Returns:
             ``src.ranking.RecommendationResult``; ``to_api()`` gives the
             response fields.
         Raises:
-            ValueError: unknown permit or invalid times.
+            ValueError: unknown permit or preference, an invalid walking
+                limit, or invalid times.
         """
         groups = self.estimator.attach(self.candidates, arrival)
         return recommend(groups, self.locations, permit, arrival,
                          destination=destination, departure=departure,
-                         walk_router=walk_router)
+                         walk_router=walk_router, preference=preference,
+                         max_walk_minutes=max_walk_minutes)
 
 
 def main(argv=None):
@@ -100,6 +105,10 @@ def main(argv=None):
     parser.add_argument("--departure", help="optional ISO datetime")
     parser.add_argument("--lat", type=float, help="destination latitude")
     parser.add_argument("--lon", type=float, help="destination longitude")
+    parser.add_argument("--preference", choices=PREFERENCES, default=BALANCED,
+                        help="what to weigh most (default: balanced)")
+    parser.add_argument("--max-walk", type=int, metavar="MINUTES",
+                        help="personal walking limit, whole minutes")
     parser.add_argument("--dataset", default=DEFAULT_DATASET)
     parser.add_argument("--registry", default=DEFAULT_REGISTRY)
     args = parser.parse_args(argv)
@@ -112,7 +121,7 @@ def main(argv=None):
                  else None)
     result = Recommender.from_files(args.dataset, args.registry).recommend(
         args.permit, datetime.fromisoformat(args.arrival), destination,
-        departure)
+        departure, preference=args.preference, max_walk_minutes=args.max_walk)
     print(json.dumps(result.to_api(), indent=2))
 
 
