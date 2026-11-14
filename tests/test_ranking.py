@@ -591,6 +591,15 @@ def test_personal_walk_limit_filters_and_is_disclosed():
     assert not any("5-minute" in note for note in _pick(ranking.BALANCED).limitations)
 
 
+def test_personal_walk_limit_is_not_claimed_without_a_destination():
+    result = recommend(_candidates(NEAR_TIGHT_MID_OPEN), LOCATIONS, "S",
+                       WEEKDAY_MORNING, None, max_walk_minutes=5)
+    assert result.max_walk_minutes == 5  # echoed, but nothing was filtered
+    assert any("No destination coordinates" in note for note in result.limitations)
+    assert not any("walking limit was considered" in note
+                   for note in result.limitations)
+
+
 def test_routed_walk_over_personal_limit_is_dropped():
     result = _pick(ranking.BALANCED, max_walk_minutes=8,
                    walk_router=_router({"near": 9}))

@@ -339,7 +339,8 @@ def recommend(candidates, locations, permit, arrival, destination=None,
         ranked = _apply_routed_walks(ranked, registry, destination, walk_router,
                                      counts, walk_limit, preference)
     limitations = _limitations(counts, walking_known, arrival, departure)
-    if walk_limit != MAX_WALK_MINUTES:
+    # Without a destination no walking time exists, so a limit cannot apply
+    if walk_limit != MAX_WALK_MINUTES and walking_known:
         limitations.append(f"Only parking within your {walk_limit}-minute "
                            "walking limit was considered.")
     settings = {"preference": preference, "max_walk_minutes": walk_limit}
