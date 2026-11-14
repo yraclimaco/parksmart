@@ -652,6 +652,14 @@ def test_shorter_walk_fit_reason_matches_the_numbers():
     assert "more space in past surveys (90% vs 20% open)" in backup.fit_reason
 
 
+@pytest.mark.parametrize("preference", ranking.PREFERENCES)
+def test_single_option_fit_reason_has_nothing_to_compare(preference):
+    rows = [("near", "S", "", 0.6)]
+    reason = _pick(preference, rows, max_walk_minutes=5).first_choice.fit_reason
+    assert reason.startswith("Your only option: a ")
+    assert "1 options" not in reason and "((" not in reason
+
+
 def test_more_availability_fit_reason_matches_the_numbers():
     rows = [("near", "S", "", 0.6), ("mid", "S", "", 0.75)]
     result = _pick(ranking.MORE_AVAILABILITY, rows)

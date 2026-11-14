@@ -534,12 +534,15 @@ def _fit_reason(choice, pools, best_open, most_open, open_ties, count,
                                        o.location["location_id"]))
     kind = "" if choice.walking_source == WALK_ROUTED else " (straight-line)"
     is_most_open = choice.estimated_available_fraction == most_open
+    if count == 1:  # nothing to compare with, whichever the preference
+        return (f"Your only option: a {walk:g} min walk{kind}, about {percent}% "
+                "open in past surveys.")
     if preference == SHORTER_WALK:
         extra = walk - shortest
         if extra <= 0:
             ties = sum(o.estimated_walking_minutes == shortest for o in pool)
             lead = "Tied for the shortest walk" if ties > 1 else "Shortest walk"
-            return f"{lead} of your {count} options ({walk:g} min{kind})."
+            return f"{lead} of your {count} options: {walk:g} min{kind}."
         if choice.estimated_available_fraction > closest.estimated_available_fraction:
             return (f"{extra:g} min longer walk{kind} than {_name(closest)}, but "
                     f"more space in past surveys ({percent}% vs "
