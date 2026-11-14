@@ -140,7 +140,9 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <h4 className="text-sm font-bold text-navy">{EMPTY_TITLES[api.status]}</h4>
           <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">{api.explanation}</p>
           <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">
-            Try a different time, destination or permit.
+            {searchedRequest?.maxWalkMinutes != null
+              ? 'Try a longer max walk, a different time, destination or permit.'
+              : 'Try a different time, destination or permit.'}
           </p>
         </div>
         <Limitations notes={api.limitations} />
