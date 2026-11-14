@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { SCORING_WEIGHTS } from '../constants.ts';
+import { PRIORITY_OPTIONS, SCORING_WEIGHTS } from '../constants.ts';
 import { DEFAULT_DESTINATION_ID } from './destinations.ts';
 import { availabilityAt } from '../utils/availabilityModel.ts';
 import { ParkingPlannerRequest, PermitType } from '../types.ts';
@@ -165,5 +165,36 @@ describe('recommendation availability matches the map card', () => {
       const base = SAMPLE_LOTS.find((l) => l.locationId === rec.lot.locationId)!;
       expect(availabilityAt(base, arrival)).toBe(rec.lot.estimatedAvailabilityPercent);
     }
+  });
+});
+
+describe('priority and walking limit', () => {
+  it('uses each priority weighting', () => {
+    expect(calculateParkingScore(100, 20, 'shorter_walk')).toBe(20);
+    expect(calculateParkingScore(0, 0, 'shorter_walk')).toBe(80);
+    expect(calculateParkingScore(100, 20, 'more_availability')).toBe(85);
+    expect(calculateParkingScore(100, 20, 'balanced')).toBe(calculateParkingScore(100, 20));
+  });
+
+  it('every priority weighting sums to 1 and balanced keeps the original weights', () => {
+    for (const option of PRIORITY_OPTIONS) {
+      expect(option.availabilityWeight + option.walkingWeight).toBeCloseTo(1);
+    }
+    const balanced = PRIORITY_OPTIONS.find((o) => o.value === 'balanced')!;
+    expect(balanced.availabilityWeight).toBe(SCORING_WEIGHTS.AVAILABILITY_WEIGHT);
+  });
+
+  it('shorter walk ranks a closer lot first, even when it is usually fuller', () => {
+    expect(calculateParkingScore(20, 3, 'shorter_walk')).toBeGreaterThan(
+      calculateParkingScore(90, 9, 'shorter_walk')
+    );
+    expect(calculateParkingScore(20, 3, 'balanced')).toBeLessThan(calculateParkingScore(90, 9, 'balanced'));
+  });
+
+  it('leaves out lots beyond the personal walking limit', () => {
+    const request = { ...makeRequest('S'), maxWalkMinutes: 5 };
+    const results = getSampleRecommendations(request).recommendations;
+    for (const rec of results) expect(rec.lot.walkingMinutes).toBeLessThanOrEqual(5);
+    expect(results.length).toBeLessThan(getSampleRecommendations(makeRequest('S')).recommendations.length);
   });
 });

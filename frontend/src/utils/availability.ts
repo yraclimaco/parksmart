@@ -8,8 +8,11 @@
  * shared by map pins, recommendation cards and the lot detail card.
  */
 
-/** Percent of spaces open at or above which a lot counts as having plenty of space. */
-export const PLENTY_THRESHOLD = 75;
+/**
+ * Percent of spaces open at or above which a lot shows green. Tiers follow the Nov 6, 2026
+ * domain-expert advice: green 20-100%, yellow 10-20%, red under 10%.
+ */
+export const PLENTY_THRESHOLD = 20;
 /**
  * Percent of spaces open at or below which a lot counts as "nearly full". Matches the
  * backend's "Often nearly full" wording (NEAR_FULL_FRACTION = 0.10 in src/ranking.py),
@@ -29,7 +32,7 @@ export interface AvailabilityStatus {
 }
 
 const STATUS: Record<AvailabilityLevel, AvailabilityStatus> = {
-  plenty: { level: 'plenty', label: 'Usually open', color: '#1E8E5A', textColor: '#136B42' },
+  plenty: { level: 'plenty', label: 'Spaces open', color: '#1E8E5A', textColor: '#136B42' },
   filling: { level: 'filling', label: 'Getting tight', color: '#D98A00', textColor: '#835300' },
   nearlyFull: { level: 'nearlyFull', label: 'Usually full', color: '#C0392B', textColor: '#A12116' },
 };

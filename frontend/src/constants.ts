@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { PermitType } from './types.ts';
+import { PermitType, TripPriority } from './types.ts';
 
 /**
  * OpenFreeMap free, keyless Positron vector tile style URL.
@@ -92,8 +92,9 @@ export const ANIMATION_TIMINGS = {
 
 
 /**
- * Scoring weights for recommendation engine:
- * 65% expected availability, 35% walking convenience.
+ * Default ("balanced") scoring weights for recommendation engine:
+ * 65% expected availability, 35% walking convenience. Other priorities use
+ * PRIORITY_OPTIONS below.
  */
 export const SCORING_WEIGHTS = {
   AVAILABILITY_WEIGHT: 0.65,
@@ -102,6 +103,51 @@ export const SCORING_WEIGHTS = {
   MAX_WALK_BENCHMARK_MINUTES: 20,
 } as const;
 
+
+/**
+ * Ranking priorities the user can pick. Weights match the backend's
+ * PREFERENCE_WEIGHTS (src/ranking.py); "balanced" is the original 65/35.
+ * The two non-default weightings are starting points to review with experts.
+ */
+export const PRIORITY_OPTIONS: Array<{
+  value: TripPriority;
+  label: string;
+  description: string;
+  availabilityWeight: number;
+  walkingWeight: number;
+}> = [
+  {
+    value: 'shorter_walk',
+    label: 'Shorter walk',
+    description: 'Closer parking, even if it is usually fuller',
+    availabilityWeight: 0.2,
+    walkingWeight: 0.8,
+  },
+  {
+    value: 'balanced',
+    label: 'Balanced',
+    description: 'Weighs walking time and past availability',
+    availabilityWeight: SCORING_WEIGHTS.AVAILABILITY_WEIGHT,
+    walkingWeight: SCORING_WEIGHTS.WALKING_WEIGHT,
+  },
+  {
+    value: 'more_availability',
+    label: 'More space',
+    description: 'More open spaces, even if it is farther',
+    availabilityWeight: 0.85,
+    walkingWeight: 0.15,
+  },
+];
+
+export const DEFAULT_PRIORITY: TripPriority = 'balanced';
+
+/** Walking-limit choices in minutes; null is the default 20-minute limit. */
+export const WALK_LIMIT_OPTIONS: Array<{ value: number | null; label: string }> = [
+  { value: 5, label: '5 min' },
+  { value: 10, label: '10 min' },
+  { value: 15, label: '15 min' },
+  { value: null, label: '20 min' },
+];
 
 /**
  * Permit metadata with plain-language labels

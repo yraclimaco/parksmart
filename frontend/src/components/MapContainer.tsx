@@ -266,7 +266,8 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         ...MAP_PADDING,
         // While the lot card is open, treat the strip it covers as hidden too
         bottom: isDetailOpen ? DETAIL_CARD_INSET_PX : MAP_PADDING.bottom,
-        left: isPanelOpen ? Math.min(MAP_PADDING.left, viewportWidth / 2) : MAP_PADDING.right,
+        // Fixed, so opening/closing the panel (which overlays the map) never moves the camera
+        left: Math.min(MAP_PADDING.left, viewportWidth / 2),
       };
   const paddingRef = useRef(padding);
   paddingRef.current = padding;
@@ -736,10 +737,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     });
   }, [selectedLocationId, lots]);
 
-  // Opening/closing the panel only shifts the map's visual center; zoom stays put.
+  // Phone only: opening/closing the bottom sheet shifts the map's visual center; zoom stays put.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isLoadedRef.current) return;
+    // Desktop: the panel overlays the map, so there is nothing to shift. Only the phone's
+    // bottom sheet changes the padding.
+    if (!map || !isLoadedRef.current || window.innerWidth >= 640) return;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     map.easeTo({ padding: paddingRef.current, duration: prefersReducedMotion ? 0 : 300 });
   }, [isPanelOpen]);
@@ -766,12 +769,33 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       </div>
 
       {/* Map controls, mounted inside the map's top-right control row (left of zoom):
-          row 1 is Time + Map/Satellite, row 2 is Drop pin right under Map/Satellite.
+          one row: Drop pin, Time, Map/Satellite.
           Every button is 34px tall so the rows line up. */}
       {basemapControlEl &&
         createPortal(
-          <div className="relative flex flex-col items-end gap-2">
+          <div className="relative flex items-start justify-end">
             <div className="flex items-start gap-2">
+              <button
+                type="button"
+                aria-pressed={isPinMode || hasDroppedPin}
+                onClick={() => {
+                  if (hasDroppedPin) {
+                    onClearPin();
+                    setIsPinMode(false);
+                  } else {
+                    setIsPinMode((on) => !on);
+                  }
+                }}
+                className={CONTROL_BUTTON}
+                data-tone="sun"
+              >
+                {hasDroppedPin ? (
+                  <MapPinOff className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                )}
+                {hasDroppedPin ? 'Remove pin' : isPinMode ? 'Tap the map' : 'Drop pin'}
+              </button>
               {showSampleAvailability && (
                 <button
                   type="button"
@@ -813,28 +837,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 ))}
               </div>
             </div>
-
-            <button
-              type="button"
-              aria-pressed={isPinMode || hasDroppedPin}
-              onClick={() => {
-                if (hasDroppedPin) {
-                  onClearPin();
-                  setIsPinMode(false);
-                } else {
-                  setIsPinMode((on) => !on);
-                }
-              }}
-              className={CONTROL_BUTTON}
-              data-tone="sun"
-            >
-              {hasDroppedPin ? (
-                <MapPinOff className="w-4 h-4" aria-hidden="true" />
-              ) : (
-                <MapPin className="w-4 h-4" aria-hidden="true" />
-              )}
-              {hasDroppedPin ? 'Remove pin' : isPinMode ? 'Tap the map' : 'Drop pin'}
-            </button>
 
             {pinMessage && (
               <p

@@ -4,44 +4,42 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Menu } from 'lucide-react';
+import { ChevronDown, ChevronUp, Menu } from 'lucide-react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { MapContainer } from './components/MapContainer.tsx';
 import { PreferenceForm } from './components/PreferenceForm.tsx';
 import { ResultsList } from './components/ResultsList.tsx';
-import { DevStateControl } from './components/DevStateControl.tsx';
 import { LotDetailCard } from './components/LotDetailCard.tsx';
-import { UsualTripCard } from './components/UsualTripCard.tsx';
 import { SCRUB_MAX, SCRUB_MIN, TimeScrubber } from './components/TimeScrubber.tsx';
 import ucsdLogo from './assets/ucsd-logo.png';
-import { ANIMATION_TIMINGS, isOnCampus } from './constants.ts';
-import { findDestination, getDestination, makePinDestinationId } from './data/destinations.ts';
+import parkSmartLogo from './assets/parksmart-logo.png';
+import { ANIMATION_TIMINGS, DEFAULT_PRIORITY, PRIORITY_OPTIONS, isOnCampus } from './constants.ts';
+import { findDestination, makePinDestinationId } from './data/destinations.ts';
 import { getArrivalError } from './utils/arrival.ts';
-import { UsualTrip, forgetUsualTrip, loadUsualTrip, nextUsualDate, saveUsualTrip } from './utils/usualTrip.ts';
-import { tightFrom } from './utils/availabilityModel.ts';
 import { parseArrival } from './utils/permitRules.ts';
 import { SAMPLE_LOTS, getSampleRecommendations } from './data/sampleRecommendations.ts';
 import { RECOMMENDATION_SOURCE } from './config.ts';
-import { fetchRecommendations } from './api/recommendations.ts';
+import { fetchRecommendations, toRankedOptions, type RankedOption } from './api/recommendations.ts';
 import { DirectionsPanel } from './components/DirectionsPanel.tsx';
 import { useRoutes } from './hooks/useRoutes.ts';
 import type { ResultInfo } from './components/ResultsList.tsx';
 import {
   ParkingPlannerRequest,
   ParkingRecommendation,
-  DevSimulationState,
 } from './types.ts';
 
 /** How many earlier searches "Recent" keeps for this visit. */
 const MAX_HISTORY = 5;
 
-/** Same destination, date, time and permit. */
+/** Same destination, date, time, permit, priority and walking limit. */
 function sameRequest(a: ParkingPlannerRequest, b: ParkingPlannerRequest): boolean {
   return (
     a.destinationId === b.destinationId &&
     a.arrivalDate === b.arrivalDate &&
     a.arrivalTime === b.arrivalTime &&
-    a.permitType === b.permitType
+    a.permitType === b.permitType &&
+    (a.priority ?? DEFAULT_PRIORITY) === (b.priority ?? DEFAULT_PRIORITY) &&
+    (a.maxWalkMinutes ?? null) === (b.maxWalkMinutes ?? null)
   );
 }
 
@@ -83,11 +81,9 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-/** The state simulator is for developers: shown in dev builds, or in production with ?dev in the URL. */
 /** True when searches go to the backend; sample-only map features are then hidden. */
 const USE_API = RECOMMENDATION_SOURCE === 'api';
 
-const showDevTools = import.meta.env.DEV || new URLSearchParams(window.location.search).has('dev');
 
 /** "HH:MM" to minutes after midnight, clamped to the scrubber's range. */
 function minutesOf(time: string): number {
@@ -110,13 +106,14 @@ export default function App() {
   // date and time start at right now.
   // "Your usual" only exists after a real search (saved in this browser only); it is
   // offered as a card, never prefilled into the form.
-  const [usualTrip, setUsualTrip] = useState<UsualTrip | null>(() => loadUsualTrip());
 
   const [formInputs, setFormInputs] = useState<ParkingPlannerRequest>(() => ({
     destinationId: '',
     arrivalDate: getTodayDateString(),
     arrivalTime: getCurrentTimeString(),
     permitType: 'S',
+    priority: DEFAULT_PRIORITY,
+    maxWalkMinutes: null,
   }));
 
   // Earlier searches this visit, most recent first (the current one is not included).
@@ -135,6 +132,9 @@ export default function App() {
   // Backend results: where they came from, its status message and limitations, or
   // the error to show. Sample searches set source 'sample' and nothing else.
   const [resultInfo, setResultInfo] = useState<ResultInfo | null>(null);
+  // Backend ranking for every ranked location, so any ranked pin's card can show
+  // its estimate, walk and why it fits the chosen priority. Empty for sample data.
+  const [rankedOptions, setRankedOptions] = useState<Record<string, RankedOption>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const requestRef = useRef<AbortController | null>(null);
 
@@ -186,7 +186,6 @@ export default function App() {
   const isMobile = useIsMobile();
 
   // 5. Dev State Simulator
-  const [devState, setDevState] = useState<DevSimulationState>('normal');
 
   // Phone: the lot card needs the space, so tuck the planner away while they are open
   useEffect(() => {
@@ -218,9 +217,14 @@ export default function App() {
       setIsDetailOpen(false); // a new search shows results in the panel, not the pin card
       setConfirmedLotId(null);
 
-      const finish = (results: ParkingRecommendation[], info: ResultInfo) => {
+      const finish = (
+        results: ParkingRecommendation[],
+        info: ResultInfo,
+        options: Record<string, RankedOption> = {}
+      ) => {
         setRecommendations(results);
         setResultInfo(info);
+        setRankedOptions(options);
         // Move the search being replaced into history (unless it is the same trip)
         const previous = searchedRequestRef.current;
         if (previous && !sameRequest(previous, inputs)) {
@@ -234,17 +238,6 @@ export default function App() {
 
         // Pre-select the First Choice recommendation lot by default
         setSelectedLocationId(results[0]?.lot.locationId ?? null);
-
-        // Remember this trip as "your usual" (this browser only). A dropped pin is a
-        // one-off spot, not a place to offer again, so it is not saved.
-        if (findDestination(inputs.destinationId)?.isPin) return;
-        const usual: UsualTrip = {
-          destinationId: inputs.destinationId,
-          permitType: inputs.permitType,
-          arrivalTime: inputs.arrivalTime,
-        };
-        saveUsualTrip(usual);
-        setUsualTrip(usual);
       };
 
       if (USE_API) {
@@ -258,18 +251,23 @@ export default function App() {
             if (outcome.kind === 'error') {
               setRecommendations([]);
               setResultInfo(null);
+              setRankedOptions({});
               setErrorMessage(outcome.message);
               setIsLoading(false);
               return;
             }
             const { response } = outcome;
-            finish(outcome.recommendations, {
-              source: 'api',
-              status: response.status,
-              explanation: response.explanation,
-              limitations: response.limitations,
-              isExample: response.is_example,
-            });
+            finish(
+              outcome.recommendations,
+              {
+                source: 'api',
+                status: response.status,
+                explanation: response.explanation,
+                limitations: response.limitations,
+                isExample: response.is_example,
+              },
+              toRankedOptions(response)
+            );
           })
           .catch(() => {
             // Aborted by a newer search; that search owns the loading state.
@@ -301,9 +299,6 @@ export default function App() {
   // Handle Form Submission
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (devState !== 'normal') {
-      setDevState('normal');
-    }
     runPlanner();
   };
 
@@ -353,7 +348,6 @@ export default function App() {
 
   // Handle retry from error state
   const handleRetry = () => {
-    setDevState('normal');
     runPlanner();
   };
 
@@ -361,7 +355,6 @@ export default function App() {
   const handleResetFilters = () => {
     const updated: ParkingPlannerRequest = { ...formInputs, permitType: 'S' };
     setFormInputs(updated);
-    setDevState('normal');
     runPlanner(updated);
   };
 
@@ -399,47 +392,7 @@ export default function App() {
   // Re-run an earlier search from "Recent"
   const handleRestoreSearch = (request: ParkingPlannerRequest) => {
     setFormInputs(request);
-    setDevState('normal');
     runPlanner(request);
-  };
-
-  // Instant answer for the usual trip, shown before the first search
-  const usualPreview = useMemo(() => {
-    if (!usualTrip) return null;
-    const request: ParkingPlannerRequest = {
-      destinationId: usualTrip.destinationId,
-      permitType: usualTrip.permitType,
-      arrivalTime: usualTrip.arrivalTime,
-      arrivalDate: nextUsualDate(usualTrip.arrivalTime),
-    };
-    const arrival = parseArrival(request.arrivalDate, request.arrivalTime);
-    if (!arrival) return null;
-    if (!findDestination(request.destinationId)) return null;
-    // The instant answer comes from sample data, so it is skipped when using the backend
-    const topPick = USE_API ? null : getSampleRecommendations(request).recommendations[0] ?? null;
-    const tight = topPick ? tightFrom(topPick.lot, arrival) : null;
-    const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    const isToday = request.arrivalDate === getTodayDateString();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = request.arrivalDate === toDateString(tomorrow);
-    return {
-      request,
-      destinationName: getDestination(request.destinationId).name,
-      whenLabel: `${isToday ? 'today' : isTomorrow ? 'tomorrow' : arrival.toLocaleDateString('en-US', { weekday: 'long' })} at ${fmt(arrival)}`,
-      topPick,
-      tightAt: tight ? fmt(tight) : null,
-    };
-  }, [usualTrip]);
-
-  const handleShowUsual = () => {
-    if (!usualPreview) return;
-    setFormInputs(usualPreview.request);
-    runPlanner(usualPreview.request);
-  };
-  const handleForgetUsual = () => {
-    forgetUsualTrip();
-    setUsualTrip(null);
   };
 
   // Results go stale when any trip detail changes after the search that produced them
@@ -448,20 +401,22 @@ export default function App() {
     (searchedRequest.destinationId !== formInputs.destinationId ||
       searchedRequest.permitType !== formInputs.permitType ||
       searchedRequest.arrivalDate !== formInputs.arrivalDate ||
-      searchedRequest.arrivalTime !== formInputs.arrivalTime);
+      searchedRequest.arrivalTime !== formInputs.arrivalTime ||
+      (searchedRequest.priority ?? DEFAULT_PRIORITY) !== (formInputs.priority ?? DEFAULT_PRIORITY) ||
+      (searchedRequest.maxWalkMinutes ?? null) !== (formInputs.maxWalkMinutes ?? null));
 
   // Inline validation for the arrival date/time (empty or already passed)
   const arrivalError = getArrivalError(formInputs);
 
   // First choice / backup IDs for labeling pins (hidden while results are stale)
   const rankedLotIds = useMemo(() => {
-    if (isStale || devState !== 'normal') return { first: null, backup: null, third: null };
+    if (isStale) return { first: null, backup: null, third: null };
     return {
       first: recommendations[0]?.lot.locationId ?? null,
       backup: recommendations[1]?.lot.locationId ?? null,
       third: recommendations[2]?.lot.locationId ?? null,
     };
-  }, [recommendations, isStale, devState]);
+  }, [recommendations, isStale]);
 
   // Confirming a spot also selects it, so the highlighted card, the map pin and
   // the route always point at the same lot. Undoing keeps the selection.
@@ -494,20 +449,16 @@ export default function App() {
     );
   }, []);
 
-  // Derive active rendering state based on normal computation or dev simulator
-  const activeIsLoading = devState === 'loading' || isLoading;
-  const activeIsError = devState === 'error' || (devState === 'normal' && errorMessage !== null);
-  const activeRecommendations = useMemo(() => {
-    if (devState === 'empty') return [];
-    if (devState === 'error' || devState === 'loading') return [];
-    return recommendations;
-  }, [devState, recommendations]);
+  // Rendering state for the results list
+  const activeIsLoading = isLoading;
+  const activeIsError = errorMessage !== null;
+  const activeRecommendations = recommendations;
 
   // Routes follow the selected result (first choice after a search, or whichever card
   // or pin the user picks). Only real backend results have routes; stale results and
   // sample data do not.
   const routedRecommendation =
-    USE_API && !isStale && devState === 'normal'
+    USE_API && !isStale
       ? activeRecommendations.find((rec) => rec.lot.locationId === selectedLocationId) ?? null
       : null;
   const routedDestination = searchedRequest ? findDestination(searchedRequest.destinationId) ?? null : null;
@@ -522,7 +473,7 @@ export default function App() {
   return (
     // reducedMotion="user" turns off Motion animations for people who ask their OS for less motion
     <MotionConfig reducedMotion="user">
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-100 font-sans text-navy select-none">
+    <div className="relative w-full h-screen h-[100dvh] overflow-hidden overscroll-none bg-slate-100 font-sans text-navy select-none">
       {/* Full-Screen MapLibre GL Map */}
       <MapContainer
         lots={SAMPLE_LOTS}
@@ -558,22 +509,41 @@ export default function App() {
         startPoint={routedRecommendation ? startPoint : null}
       />
 
-      {/* Hamburger toggle: stays in the top-left whether the panel is open or closed */}
+      {/* Desktop: hamburger toggle in the top-left whether the panel is open or closed */}
       <button
         type="button"
         onClick={() => setIsPanelOpen((open) => !open)}
         aria-label={isPanelOpen ? 'Hide planner panel' : 'Show planner panel'}
         aria-expanded={isPanelOpen}
         aria-controls="planner-panel"
-        className={`absolute top-[22px] left-4 max-sm:left-[29px] ${
-          isPanelOpen ? 'max-sm:top-[calc(50%+23px)]' : 'top-4 max-sm:left-4'
-        } z-30 w-9 h-9 rounded-[10px] flex items-center justify-center text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
+        className={`max-sm:hidden absolute left-4 ${isPanelOpen ? 'top-[22px]' : 'top-4'} z-30 w-9 h-9 rounded-[10px] flex items-center justify-center text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
           isPanelOpen
             ? ''
             : 'bg-white border border-line shadow-[0_1px_2px_rgba(24,43,73,0.08),0_4px_12px_rgba(24,43,73,0.1)]'
         }`}
       >
         <Menu className="w-5 h-5" aria-hidden="true" />
+      </button>
+
+      {/* Phones: an arrow tab on the sheet's top edge slides the planner down and back up */}
+      <button
+        type="button"
+        onClick={() => setIsPanelOpen((open) => !open)}
+        aria-label={isPanelOpen ? 'Hide planner panel' : 'Show planner panel'}
+        aria-expanded={isPanelOpen}
+        aria-controls="planner-panel"
+        className={`sm:hidden absolute left-1/2 -translate-x-1/2 z-30 h-8 px-4 rounded-full bg-white border border-line text-navy flex items-center justify-center gap-1 text-[12px] font-semibold shadow-[0_2px_10px_rgba(24,43,73,0.18)] transition-[top,bottom] duration-300 ease-out motion-reduce:transition-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
+          isPanelOpen ? 'top-[calc(50%-16px)]' : 'top-[calc(100%-80px)]'
+        }`}
+      >
+        {isPanelOpen ? (
+          <ChevronDown className="w-5 h-5" aria-hidden="true" />
+        ) : (
+          <>
+            <ChevronUp className="w-5 h-5" aria-hidden="true" />
+            <span>Planner</span>
+          </>
+        )}
       </button>
 
       {/* Planner: a solid sheet on the left edge (a bottom sheet on phones), slides out when hidden */}
@@ -590,17 +560,12 @@ export default function App() {
       >
         <div className="flex-1 flex flex-col bg-white border-r border-line max-sm:border max-sm:rounded-2xl shadow-[4px_0_24px_rgba(24,43,73,0.12)] max-sm:shadow-[0_4px_24px_rgba(24,43,73,0.2)] overflow-hidden">
           {/* Panel header. Left padding leaves room for the hamburger button that sits on top. */}
-          <header className="pl-[60px] pr-4 pt-[22px] pb-3.5 border-b-2 border-gold shrink-0">
+          <header className="pl-[60px] max-sm:pl-4 pr-4 pt-[22px] pb-3.5 border-b-2 border-gold shrink-0">
             {/* One 36px row, centered on the hamburger button that sits on top of its left end */}
             <div className="flex items-center justify-between gap-3 h-9">
               <div className="flex items-center gap-2 min-w-0">
-                <div
-                  aria-hidden="true"
-                  className="w-9 h-9 rounded-lg bg-navy flex items-center justify-center text-sun font-serif font-semibold text-[20px] leading-none"
-                >
-                  <span className="-translate-y-px">P</span>
-                </div>
-                <h1 className="font-serif text-[26px] font-semibold text-navy tracking-[-0.01em] leading-none -translate-y-px">
+                <img src={parkSmartLogo} alt="" aria-hidden="true" className="w-9 h-9 block shrink-0" />
+                <h1 className="font-serif text-[26px] font-semibold text-navy tracking-[-0.01em] leading-none">
                   ParkSmart
                 </h1>
               </div>
@@ -614,7 +579,10 @@ export default function App() {
           </header>
 
           {/* Internally Scrollable Body */}
-          <div id="planner-scroll" className="flex-1 overflow-y-auto px-5 py-4 space-y-4 overscroll-contain focus:outline-none">
+          <div
+            id="planner-scroll"
+            className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4 overscroll-contain touch-pan-y focus:outline-none"
+          >
             {/* Preference Form Section */}
             <section aria-labelledby="planner-preferences-title">
               <h2 id="planner-preferences-title" className="sr-only">
@@ -657,20 +625,7 @@ export default function App() {
                 searchedRequest={searchedRequest}
                 searchHistory={searchHistory}
                 onRestoreSearch={handleRestoreSearch}
-                showIntroPrompt={searchedRequest === null && devState === 'normal'}
-                usualTripCard={
-                  usualPreview && (
-                    <UsualTripCard
-                      destinationName={usualPreview.destinationName}
-                      whenLabel={usualPreview.whenLabel}
-                      topPick={usualPreview.topPick}
-                      tightAt={usualPreview.tightAt}
-                      showPreview={!USE_API}
-                      onShowOptions={handleShowUsual}
-                      onForget={handleForgetUsual}
-                    />
-                  )
-                }
+                showIntroPrompt={searchedRequest === null}
                 isStale={isStale}
                 availabilityTime={previewTime}
                 confirmedLotId={confirmedLotId}
@@ -679,8 +634,8 @@ export default function App() {
                 onSelectLot={handleSelectLot}
                 onRetry={handleRetry}
                 onResetFilters={handleResetFilters}
-                errorMessage={devState === 'normal' ? errorMessage : null}
-                resultInfo={devState === 'normal' ? resultInfo : null}
+                errorMessage={errorMessage}
+                resultInfo={resultInfo}
                 directions={
                   routedRecommendation && routedDestination ? (
                     <DirectionsPanel
@@ -743,7 +698,9 @@ export default function App() {
                 rankLabel={
                   isStale
                     ? null
-                    : activeRecommendations.find((r) => r.lot.locationId === selectedLot.locationId)?.badgeLabel ?? null
+                    : rankedOptions[selectedLot.locationId]?.badgeLabel ??
+                      activeRecommendations.find((r) => r.lot.locationId === selectedLot.locationId)?.badgeLabel ??
+                      null
                 }
                 isConfirmed={confirmedLotId === selectedLot.locationId}
                 onConfirm={() => handleConfirmLot(selectedLot.locationId)}
@@ -751,7 +708,13 @@ export default function App() {
                 backendEstimate={
                   isStale
                     ? null
-                    : activeRecommendations.find((r) => r.lot.locationId === selectedLot.locationId)?.estimate ?? null
+                    : rankedOptions[selectedLot.locationId]?.estimate ??
+                      activeRecommendations.find((r) => r.lot.locationId === selectedLot.locationId)?.estimate ??
+                      null
+                }
+                priorityLabel={
+                  PRIORITY_OPTIONS.find((o) => o.value === (searchedRequest?.priority ?? DEFAULT_PRIORITY))?.label ??
+                  null
                 }
                 onPlanFor={(date) =>
                   handleFormChange({
@@ -766,12 +729,6 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      {showDevTools && (
-        <DevStateControl
-          currentState={devState}
-          onStateChange={(state) => setDevState(state)}
-        />
-      )}
     </div>
     </MotionConfig>
   );

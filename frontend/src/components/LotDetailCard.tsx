@@ -37,7 +37,16 @@ interface LotDetailCardProps {
    */
   backendMode?: boolean;
   backendEstimate?: BackendEstimate | null;
+  /** Priority the shown results were ranked with, e.g. "Shorter walk". */
+  priorityLabel?: string | null;
 }
+
+/** How the walking time was worked out, in plain words. */
+const WALK_SOURCE_LABELS: Record<string, string> = {
+  routed: 'mapped walking path',
+  straight_line: 'straight-line estimate',
+  straight_line_unchecked: 'straight-line estimate; path not checked',
+};
 
 /**
  * Apple Maps style place card for a single parking structure. Opens when any pin is
@@ -57,6 +66,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
   onClose,
   backendMode = false,
   backendEstimate = null,
+  priorityLabel = null,
 }) => {
   const percent = availabilityAt(lot, availabilityTime);
   const tight = tightFrom(lot, availabilityTime);
@@ -67,7 +77,17 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
   const access = lotAccess(userPermit, lot.spaceCategories, when);
   const permitWorks = access.status === 'always' || access.status === 'until';
   const usable = usableCategories(userPermit, lot.spaceCategories, when);
-  const walkMinutes = destination ? estimateWalkingTime(lot, destination.id) : null;
+  // With the backend, its walking time is shown for ranked lots (routed when
+  // available); other pins keep the website's straight-line estimate, labeled
+  const backendWalk = backendMode ? backendEstimate?.walkingMinutes ?? null : null;
+  const walkMinutes = !destination
+    ? null
+    : backendWalk ?? estimateWalkingTime(lot, destination.id);
+  const walkSource = !backendMode
+    ? null
+    : backendWalk !== null && backendEstimate?.walkingSource
+      ? WALK_SOURCE_LABELS[backendEstimate.walkingSource] ?? null
+      : 'straight-line estimate';
 
   return (
     <motion.div
@@ -118,14 +138,29 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
       {backendMode ? (
         <div className="mt-4">
           {backendEstimate ? (
-            <AvailabilityMeter
-              percent={backendEstimate.availablePercent}
-              timeLabel={(arrival ?? availabilityTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-              size="lg"
-            />
+            <>
+              <AvailabilityMeter
+                percent={backendEstimate.availablePercent}
+                timeLabel={(arrival ?? availabilityTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                size="lg"
+              />
+              {/* Say what the percent means: a past share of open spaces, not a probability */}
+              <p className="mt-2 text-[12px] text-muted">
+                Share of spaces that were open in past surveys at this time, not the chance of finding a space.
+              </p>
+              {backendEstimate.fitReason && (
+                <div className="mt-3 px-3 py-2.5 rounded-xl bg-paper text-[13px]">
+                  <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">
+                    Why it fits{priorityLabel ? `: ${priorityLabel}` : ''}
+                  </p>
+                  <p className="mt-0.5 text-navy">{backendEstimate.fitReason}</p>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-[13px] text-muted">
-              No estimate here. Only lots recommended for your search show a historical estimate.
+              No estimate here. Only parking ranked for your search (permit, time and walking limit) shows a
+              historical estimate.
             </p>
           )}
         </div>
@@ -185,6 +220,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
             <span>
               <span className="font-medium">{walkMinutes} min walk</span>
               <span className="text-muted"> to {destination.name}</span>
+              {walkSource && <span className="block text-[11px] text-muted">{walkSource}</span>}
             </span>
           </div>
         )}
