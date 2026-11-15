@@ -9,10 +9,10 @@ website and backend for Issue #32, and what we chose not to build.
 | Advice | What changed |
 | --- | --- |
 | Make walking distance prominent ("emphasize walk") | Walk time is shown large, with a footprints icon, at the top of each result card. |
-| Color-code availability; colors read faster than text | Green 20–100% open, yellow 10–20%, red under 10%, on cards, bars and map pins. Each color also has a text label ("Spaces open", "Usually full"). |
+| Color-code availability; colors read faster than text | Green 20–100% open, yellow 10–20%, red under 10%, on cards, bars and map pins. Each color also has a text label ("Usually open", "Usually tight", "Usually full"), worded as past-survey patterns, not live availability. |
 | Say availability comes from historical patterns | Cards read "Based on historical patterns for 10:00 AM"; the page footer and every result list say these are historical estimates, not live availability. |
 | Let users trade walking against availability | A Prioritize control (Shorter walk, Balanced, More space) and a Max walk limit (5, 10, 15, 20 minutes). Scoring runs in the shared backend (`preference` and `max_walk_minutes` on `POST /recommendations`), so the website and the iOS app can share the same behavior. |
-| Explain why a pick ranks where it does | Each ranked location carries a `fit_reason`, for example "8 min longer walk than Pangea, but more space in past surveys (53% vs 9% open)". |
+| Explain why a pick ranks where it does | Each ranked location carries a `fit_reason`, for example "16 min walk (mapped path); 53% open in past surveys. Ranks below Pangea Parking Structure: 7 min longer walk, though more space (53% vs 9% open)". |
 | Do not mistake an estimate for a guarantee | Percentages are described as the share of spaces open in past surveys, never as a chance of finding a space. |
 
 ## Not building for the final version

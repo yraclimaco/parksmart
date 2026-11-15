@@ -1,5 +1,6 @@
 """Tests for first-choice/backup ranking (Issue #20)."""
 
+import random
 import re
 from datetime import datetime
 from pathlib import Path
@@ -648,8 +649,10 @@ def test_fit_reasons_are_short_and_never_talk_about_probability(preference):
 def test_shorter_walk_fit_reason_matches_the_numbers():
     result = _pick(ranking.SHORTER_WALK)
     first, backup = result.first_choice, result.backup_choice
-    assert first.fit_reason.startswith("Shortest walk of your 2 options")
-    assert "more space in past surveys (90% vs 20% open)" in backup.fit_reason
+    assert ("Ahead of MID: 6 min shorter walk, despite less space "
+            "(20% vs 90% open).") in first.fit_reason
+    assert ("Ranks below NEAR: 6 min longer walk, though more space "
+            "(90% vs 20% open).") in backup.fit_reason
 
 
 @pytest.mark.parametrize("preference", ranking.PREFERENCES)
@@ -663,8 +666,10 @@ def test_single_option_fit_reason_has_nothing_to_compare(preference):
 def test_more_availability_fit_reason_matches_the_numbers():
     rows = [("near", "S", "", 0.6), ("mid", "S", "", 0.75)]
     result = _pick(ranking.MORE_AVAILABILITY, rows)
-    assert result.first_choice.fit_reason.startswith("Most space in past surveys")
-    assert "(60% vs 75% open), but a shorter walk" in result.backup_choice.fit_reason
+    assert ("Ahead of NEAR: more space (75% vs 60% open), despite 6 min longer "
+            "walk.") in result.first_choice.fit_reason
+    assert ("Ranks below MID: less space (60% vs 75% open), though 6 min "
+            "shorter walk.") in result.backup_choice.fit_reason
 
 
 def test_walking_time_source_is_reported():
@@ -701,7 +706,7 @@ def test_more_space_with_a_location_lacking_coordinates_does_not_crash():
                        preference=ranking.MORE_AVAILABILITY)
     reasons = {o.location["location_id"]: o.fit_reason for o in result.options}
     assert reasons["nopin"].startswith("No walking time for this location")
-    assert "Less space than NOPIN (50% vs 95% open); ranked lower" in reasons["near"]
+    assert "Ranks below NOPIN: less space (50% vs 95% open)." in reasons["near"]
 
 
 @pytest.mark.parametrize("limit", [5.9, 10.0, True, "10"])
@@ -710,18 +715,19 @@ def test_walk_limit_must_be_a_whole_number(limit):
         ranking.check_settings(ranking.BALANCED, limit)
 
 
-def test_exact_ties_say_tied_and_rounding_never_makes_two_winners():
+def test_equal_space_is_not_called_more_or_less_space():
     tied = _pick(ranking.MORE_AVAILABILITY,
                  [("near", "S", "", 0.6), ("mid", "S", "", 0.6)])
-    assert all(o.fit_reason.startswith("Tied for the most space") for o in tied.options)
+    assert all("space" not in o.fit_reason.split("surveys.")[1]
+               for o in tied.options)
+    # 53.4% and 53.6% round to different whole percents, so they are reported
     close = _pick(ranking.MORE_AVAILABILITY,
-                  [("near", "S", "", 0.534), ("mid", "S", "", 0.536)])
-    winners = [o for o in close.options if o.fit_reason.startswith("Most space")]
-    assert [o.location["location_id"] for o in winners] == ["mid"]
+                  [("near", "S", "", 0.534), ("mid", "S", "", 0.534)])
+    assert all("space (" not in o.fit_reason for o in close.options)
 
 
 def test_routed_walks_are_not_compared_with_straight_line_guesses():
-    # lot0 is routed (8 min); lot6 stays an unchecked straight-line estimate
+    # lot0-4 are routed; lot5 and lot6 keep unchecked straight-line estimates
     lots, candidates = _row_of_lots(7)
     result = recommend(candidates, lots, "S", WEEKDAY_MORNING, DESTINATION,
                        preference=ranking.SHORTER_WALK,
@@ -730,10 +736,119 @@ def test_routed_walks_are_not_compared_with_straight_line_guesses():
     unchecked = [o for o in result.options
                  if o.walking_source == ranking.WALK_UNCHECKED]
     assert routed and unchecked
-    assert routed[0].fit_reason.startswith("Shortest walk")
+    for option in routed:
+        assert "(mapped path)" in option.fit_reason
     for option in unchecked:
-        assert "(straight-line)" in option.fit_reason
-        assert not any(o.location["name"] in option.fit_reason for o in routed)
+        assert "(straight-line estimate)" in option.fit_reason
+    first = result.first_choice
+    for option in result.options[1:]:
+        if (option.walking_source == ranking.WALK_ROUTED) != (
+                first.walking_source == ranking.WALK_ROUTED):
+            assert "longer walk" not in option.fit_reason
+            assert "shorter walk" not in option.fit_reason
+
+
+def _mixed_source_result(seed, preference):
+    """Eight locations whose walks are partly mapped paths, partly estimates.
+
+    Mapped paths run longer than the straight line, as in the routing pilot,
+    and only the locations the router is asked about get one.
+    """
+    rng = random.Random(seed)
+    lots = [_location(f"l{i}", 32.8800 + 0.0012 * (i + 1)) for i in range(8)]
+    rows = [(lot["location_id"], "S", "", round(rng.uniform(0.02, 0.98), 2))
+            for lot in lots]
+    extra = {lot["location_id"]: rng.randint(0, 6) for lot in lots}
+
+    def router(origins, destination):
+        return {loc: ranking.walking_minutes(
+                    next(l for l in lots if l["location_id"] == loc)["coordinates"],
+                    destination) + extra[loc] for loc in origins}
+    return recommend(_candidates(rows), lots, "S", WEEKDAY_MORNING, DESTINATION,
+                     preference=preference, walk_router=router)
+
+
+@pytest.mark.parametrize("seed", range(12))
+@pytest.mark.parametrize("preference", ranking.PREFERENCES)
+def test_fit_reasons_agree_with_the_final_ranking(seed, preference):
+    result = _mixed_source_result(seed, preference)
+    options = result.options
+    assert len(options) >= 2
+    first = options[0]
+    for position, option in enumerate(options):
+        reason = option.fit_reason
+        reference = options[1] if position == 0 else first
+        # No claim that depends on a pool or contradicts the rank
+        assert not re.search(r"Shortest|Most space|Tied for|ranked lower", reason)
+        if position:
+            assert "Ahead of" not in reason
+            assert (f"Ranks below {_name(first)}" in reason
+                    or f"Same walk and space as {_name(first)}" in reason)
+        else:
+            assert "Ranks below" not in reason
+        # Each walk is labeled with its own kind
+        label = ("(mapped path)" if option.walking_source == ranking.WALK_ROUTED
+                 else "(straight-line estimate)")
+        assert label in reason
+        # Every number claimed matches the options, and walks are only
+        # compared between the same kind
+        same_kind = ((option.walking_source == ranking.WALK_ROUTED)
+                     == (reference.walking_source == ranking.WALK_ROUTED))
+        for amount, direction in re.findall(r"([\d.]+) min (longer|shorter) walk",
+                                            reason):
+            assert same_kind
+            gap = option.estimated_walking_minutes - reference.estimated_walking_minutes
+            assert float(amount) == abs(gap)
+            assert (gap > 0) == (direction == "longer")
+        for direction, mine, theirs in re.findall(
+                r"(more|less) space \((\d+)% vs (\d+)% open\)", reason):
+            assert int(mine) == round(option.estimated_available_fraction * 100)
+            assert int(theirs) == round(reference.estimated_available_fraction * 100)
+            assert (int(mine) > int(theirs)) == (direction == "more")
+
+
+def test_the_mixed_source_scenario_really_mixes_walk_kinds():
+    # Guards the regression above: with these seeds both kinds must appear
+    seen = set()
+    for seed in range(12):
+        for option in _mixed_source_result(seed, ranking.BALANCED).options:
+            seen.add(option.walking_source == ranking.WALK_ROUTED)
+    assert seen == {True, False}
+
+
+def _name(choice):
+    return choice.location["name"]
+
+
+def test_walk_exactly_at_the_limit_is_kept_for_estimates_and_mapped_paths():
+    mid = next(loc for loc in LOCATIONS if loc["location_id"] == "mid")
+    at_limit = ranking.walking_minutes(mid["coordinates"], DESTINATION)
+
+    def ids(result):
+        return {o.location["location_id"] for o in result.options}
+
+    # Straight-line estimate equal to the limit stays; one minute under drops it
+    assert "mid" in ids(_pick(ranking.BALANCED, max_walk_minutes=at_limit))
+    assert "mid" not in ids(_pick(ranking.BALANCED, max_walk_minutes=at_limit - 1))
+    # Mapped path equal to the limit stays; one minute over drops it
+    kept = _pick(ranking.BALANCED, max_walk_minutes=at_limit,
+                 walk_router=_router({"near": at_limit, "mid": at_limit}))
+    assert {"near", "mid"} <= ids(kept)
+    assert all(o.walking_source == ranking.WALK_ROUTED for o in kept.options)
+    over = _pick(ranking.BALANCED, max_walk_minutes=at_limit,
+                 walk_router=_router({"near": at_limit + 1, "mid": at_limit}))
+    assert "near" not in ids(over) and "mid" in ids(over)
+    assert over.counts["too_far_routed"] == 1
+
+
+def test_default_summary_wording_is_unchanged_and_other_preferences_are_named():
+    default = _pick(ranking.BALANCED).explanation
+    assert default == ("MID scored highest on expected availability and "
+                       "walking distance.")
+    assert _pick(ranking.SHORTER_WALK).explanation.endswith(
+        "walking distance (shorter walk first).")
+    assert _pick(ranking.MORE_AVAILABILITY).explanation.endswith(
+        "walking distance (more space first).")
 
 
 def test_website_priority_weights_match_the_backend():

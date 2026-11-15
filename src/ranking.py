@@ -379,8 +379,10 @@ def recommend(candidates, locations, permit, arrival, destination=None,
             limitations.append(f"{label} estimate is limited: "
                                f"{choice.estimate_note}.")
     summary = (f"{first.location['name']} scored highest on expected "
-               "availability and walking distance "
-               f"({PREFERENCE_LABELS[preference]}).")
+               "availability and walking distance")
+    # The default keeps its original wording; other preferences are named
+    summary += ("." if preference == BALANCED
+                else f" ({PREFERENCE_LABELS[preference]}).")
     if backup is None:
         summary += " No second suitable location was found."
     return RecommendationResult(READY, first, backup, summary, limitations,
@@ -488,101 +490,132 @@ def _note_walking_sources(limitations, picks, counts,
 
 
 def _fit_reasons(options, preference, walking_known):
-    """One short sentence per ranked option saying why it ranks where it does.
+    """One short sentence per ranked option, consistent with the final order.
 
-    Each option is compared, on the factor the user prioritized, with the
-    closest and the most open of the ranked ``options``. Walking times are only
-    compared within the same kind (mapped path vs straight-line estimate), so a
-    routed walk is never called longer than an unchecked straight-line guess.
-    Best and tied-best use exact values, not rounded percents. Percentages are
-    shares of spaces open in past surveys, never a chance of finding a space.
+    The first choice is compared with the runner-up and every other option with
+    the first choice, so a sentence can never say an option "ranks lower" or
+    "wins" in a way that contradicts its rank. Only measured differences are
+    stated, never superlatives such as "shortest" across the whole list. Walking
+    times are compared only when both are the same kind (mapped path vs
+    straight-line estimate), and each walk is labeled with its kind, so a mapped
+    walk is never called longer than an unchecked straight-line guess.
+    Percentages are shares of spaces open in past surveys, never a chance of
+    finding a space.
 
     Args:
         options: ranked Choice objects, best first (at least one).
-        preference: key of PREFERENCE_WEIGHTS.
+        preference: key of PREFERENCE_WEIGHTS (sets which difference comes first).
         walking_known: whether a destination was given.
     Returns:
         List of strings (at most MAX_TEXT_LENGTH characters), in option order.
     """
-    most_open = max(o.estimated_available_fraction for o in options)
-    open_ties = sum(o.estimated_available_fraction == most_open for o in options)
-    best_open = max(options, key=lambda o: (o.estimated_available_fraction,
-                                            o.location["location_id"]))
-    pools = {}
-    for option in options:
-        if option.estimated_walking_minutes is not None:
-            pools.setdefault(option.walking_source == WALK_ROUTED, []).append(option)
     reasons = []
-    for choice in options:
-        text = _fit_reason(choice, pools, best_open, most_open, open_ties,
-                           len(options), preference, walking_known)
+    for position, choice in enumerate(options):
+        if len(options) == 1:
+            reference = None  # nothing to compare with
+        else:
+            reference = options[1] if position == 0 else options[0]
+        text = _fit_reason(choice, reference, position == 0, preference,
+                           walking_known)
         reasons.append(text if len(text) <= MAX_TEXT_LENGTH
                        else text[:MAX_TEXT_LENGTH - 1] + "\u2026")
     return reasons
 
 
-def _fit_reason(choice, pools, best_open, most_open, open_ties, count,
-                preference, walking_known):
+def _fit_reason(choice, reference, is_first, preference, walking_known):
     """Fit sentence for one option; see _fit_reasons for the rules.
 
     Args:
         choice: the option to describe.
-        pools: ranked options with a walking time, grouped by walking source
-            (True for mapped paths, False for straight-line estimates).
-        best_open: the most open option (ties broken by location ID).
-        most_open: that option's available fraction.
-        open_ties: how many options share ``most_open``.
-        count: number of ranked options.
+        reference: the option it is compared with (the runner-up for the first
+            choice, the first choice otherwise); None when it is the only one.
+        is_first: whether ``choice`` is the first choice.
         preference: key of PREFERENCE_WEIGHTS.
         walking_known: whether a destination was given.
     Returns:
         One sentence, not yet cut to MAX_TEXT_LENGTH.
     """
     percent = _percent(choice)
-    walk = choice.estimated_walking_minutes
     if not walking_known:
         return (f"Ranked on past availability only (about {percent}% of spaces "
                 "open); no destination was given.")
+    walk = choice.estimated_walking_minutes
     if walk is None:
         return (f"No walking time for this location, so its walk scored 0; "
                 f"about {percent}% open in past surveys.")
-    pool = pools[choice.walking_source == WALK_ROUTED]
-    shortest = min(o.estimated_walking_minutes for o in pool)
-    closest = min(pool, key=lambda o: (o.estimated_walking_minutes,
-                                       o.location["location_id"]))
-    kind = "" if choice.walking_source == WALK_ROUTED else " (straight-line)"
-    is_most_open = choice.estimated_available_fraction == most_open
-    if count == 1:  # nothing to compare with, whichever the preference
-        return (f"Your only option: a {walk:g} min walk{kind}, about {percent}% "
-                "open in past surveys.")
-    if preference == SHORTER_WALK:
-        extra = walk - shortest
-        if extra <= 0:
-            ties = sum(o.estimated_walking_minutes == shortest for o in pool)
-            lead = "Tied for the shortest walk" if ties > 1 else "Shortest walk"
-            return f"{lead} of your {count} options: {walk:g} min{kind}."
-        if choice.estimated_available_fraction > closest.estimated_available_fraction:
-            return (f"{extra:g} min longer walk{kind} than {_name(closest)}, but "
-                    f"more space in past surveys ({percent}% vs "
-                    f"{_percent(closest)}% open).")
-        return (f"{extra:g} min longer walk{kind} than {_name(closest)}; ranked "
-                "lower for a shorter walk.")
-    if preference == MORE_AVAILABILITY:
-        if is_most_open:
-            lead = "Tied for the most space" if open_ties > 1 else "Most space"
-            return (f"{lead} in past surveys of your {count} options "
-                    f"(about {percent}% open).")
-        compared = f"Less space than {_name(best_open)} ({percent}% vs " \
-                   f"{_percent(best_open)}% open)"
-        other_walk = best_open.estimated_walking_minutes
-        same_kind = (best_open.walking_source == WALK_ROUTED) == (
-            choice.walking_source == WALK_ROUTED)
-        if other_walk is not None and same_kind and walk < other_walk:
-            return f"{compared}, but a shorter walk ({walk:g} min{kind})."
-        return f"{compared}; ranked lower for more space."
-    return (f"Balances a {walk:g}-min walk{kind} (shortest {shortest:g}) with "
-            f"about {percent}% open in past surveys (most "
-            f"{_percent(best_open)}%).")
+    own = (f"{walk:g} min walk ({_walk_kind(choice)}); {percent}% open in past "
+           "surveys.")
+    if reference is None:
+        return f"Your only option: a {own}"
+    gains, losses = _differences(choice, reference, preference)
+    name = _name(reference)
+    if is_first:
+        if not gains:
+            return f"{own} Highest combined score for your priority."
+        extra = f", despite {_join(losses)}" if losses else ""
+        return f"{own} Ahead of {name}: {_join(gains)}{extra}."
+    if not losses:
+        # Ranked lower yet no measured loss: either the walks are different
+        # kinds (not compared) or walk and space tie (location ID breaks it)
+        if _walk_gap(choice, reference) is None:
+            return (f"{own} Ranks below {name} on combined score; walk times "
+                    "of different kinds are not compared.")
+        return (f"{own} Same walk and space as {name}; listed after it as a "
+                "tie-break.")
+    extra = f", though {_join(gains)}" if gains else ""
+    return f"{own} Ranks below {name}: {_join(losses)}{extra}."
+
+
+def _differences(choice, reference, preference):
+    """Measured ways ``choice`` is better (gains) or worse (losses) than ``reference``.
+
+    Returns:
+        (gains, losses): lists of phrases, the factor the user prioritized
+        first. Walking time counts only when both walks are the same kind;
+        space counts only when the whole percents differ.
+    """
+    gains, losses = {}, {}
+    walk_gap = _walk_gap(choice, reference)
+    if walk_gap:
+        (losses if walk_gap > 0 else gains)["walk"] = (
+            f"{abs(walk_gap):g} min {'longer' if walk_gap > 0 else 'shorter'} walk")
+    mine, theirs = _percent(choice), _percent(reference)
+    if mine != theirs:
+        better = (choice.estimated_available_fraction
+                  > reference.estimated_available_fraction)
+        (gains if better else losses)["space"] = (
+            f"{'more' if better else 'less'} space ({mine}% vs {theirs}% open)")
+    order = (("space", "walk") if preference == MORE_AVAILABILITY
+             else ("walk", "space"))
+    return ([gains[k] for k in order if k in gains],
+            [losses[k] for k in order if k in losses])
+
+
+def _walk_gap(choice, reference):
+    """Walking minutes ``choice`` takes beyond ``reference``; None if not comparable.
+
+    Walks are comparable only when both exist and are the same kind: mapped
+    paths (WALK_ROUTED) against mapped paths, estimates against estimates.
+    """
+    mine, theirs = (choice.estimated_walking_minutes,
+                    reference.estimated_walking_minutes)
+    if mine is None or theirs is None:
+        return None
+    if (choice.walking_source == WALK_ROUTED) != (
+            reference.walking_source == WALK_ROUTED):
+        return None
+    return mine - theirs
+
+
+def _walk_kind(choice):
+    """Name the kind of walking time, for fit reasons."""
+    return ("mapped path" if choice.walking_source == WALK_ROUTED
+            else "straight-line estimate")
+
+
+def _join(phrases):
+    """Join difference phrases into one clause."""
+    return " and ".join(phrases)
 
 
 def _percent(choice):

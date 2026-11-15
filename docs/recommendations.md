@@ -129,11 +129,19 @@ accessible placards; carpool registration; ParkMobile V (C7); posted closures.
    represents it. First choice and backup are always different locations.
    The response's `options` lists up to 12 ranked locations (first choice and
    backup included) with `rank`, `walking_time_source` and a `fit_reason`, so
-   the website can show any ranked pin's estimate. A fit reason compares the
-   location with the closest and the most open options on the chosen
-   priority (for example "7 min longer walk than Pangea Parking Structure, but
-   more space in past surveys (53% vs 9% open)"). Percentages are shares of
-   spaces open in past surveys, never a chance of finding a space.
+   the website can show any ranked pin's estimate. A fit reason is built from
+   the final order: the first choice is compared with the runner-up and every
+   other option with the first choice (for example "16 min walk (mapped path);
+   53% open in past surveys. Ranks below Pangea Parking Structure: 7 min longer
+   walk, though more space (53% vs 9% open)."). It states only measured
+   differences, never "shortest" or "most" across the list, and never says an
+   option ranks higher or lower than its rank. Walks are compared only when
+   both are the same kind (mapped path vs straight-line estimate) and each walk
+   is labeled with its kind. The chosen preference only decides which
+   difference is listed first. Percentages are shares of spaces open in past
+   surveys, never a chance of finding a space. The summary sentence keeps its
+   original wording for `balanced`; the other preferences add "(shorter walk
+   first)" or "(more space first)".
    **Routed walks (Issue #25):** when the backend has routing configured, the
    top 5 locations by this straight-line score get mapped walking routes
    (`walk_router` in `src/routing.py`, in parallel, through the shared FOSSGIS
@@ -203,8 +211,9 @@ built from that dict, so these are the only steps:
 
 1. Add the entry (weights should sum to 1) and a short label in
    `PREFERENCE_LABELS`, and a constant for the name like `SHORTER_WALK`.
-2. Add a branch for it in `_fit_reason` so its "why it fits" sentence names
-   the factor it prioritizes (the balanced sentence is the fallback).
+2. Fit reasons need no new text: they are built from the final ranking. If the
+   preference should list the walk or the space difference first, adjust the
+   order in `_differences` (`MORE_AVAILABILITY` lists space first).
 3. Add the matching option to the website (`PRIORITY_OPTIONS` in
    ParkSmart-Website `src/constants.ts`, same weights) and sync `frontend/`;
    `test_website_priority_weights_match_the_backend` fails if they differ.
