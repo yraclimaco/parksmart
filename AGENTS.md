@@ -199,7 +199,10 @@ It is independent of `/recommendations`; source calls never change predictions,
 eligibility, ranking or route geometry. Weather uses Open-Meteo hourly forecasts
 (UTC hour ending at/after arrival, up to the actual returned 16-day range).
 Missing values stay null; ParkSmart rain/heat/wind suggestions are not official
-weather warnings. UCSD construction layers 0–2 are requested in WGS84 and matched
+weather warnings. For an exact-hour arrival, precipitation is explicitly labeled
+as the preceding hour (10:00 arrival means 09:00–10:00); temperature and wind
+refer to the 10:00 sample, not the following hour. UCSD construction layers 0–2
+are requested in WGS84 and matched
 by published effective windows and geometry within 200 m of trip points.
 Published notices do not establish entire-lot closure or route avoidance;
 upstream completeness and update frequency remain unverified.
@@ -211,6 +214,10 @@ from `partial`, `unavailable`, `out_of_range`, `missing_location` and `stale`.
 Successful retrieval and last-attempt timestamps stay separate. Refreshes have
 four-second source budgets; a bounded two-worker service shares a 6.5-second
 response budget. Source calls do not occur at startup or during recommendations.
+When workers are busy, cache-only reads still serve matching fresh data or
+explicitly stale usable snapshots. They reapply arrival/location matching without
+HTTP calls or changes to retrieval/attempt timestamps; cache misses do not evict
+other entries or start work outside the worker limit.
 `PARKSMART_TRIP_ALERTS_ENABLED=false` disables external alert calls. No new
 dependency, model retraining, paid API or AWS provisioning is added.
 

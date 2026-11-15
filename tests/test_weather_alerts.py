@@ -113,6 +113,37 @@ def test_exact_hour_uses_that_hour_without_shift():
     assert result.forecast["location"] == asdict(DESTINATION)
 
 
+def test_exact_hour_precipitation_is_labeled_as_the_hour_before_arrival():
+    document = payload()
+    document["hourly"]["temperature_2m"] = [20, 21, 22]
+    document["hourly"]["precipitation_probability"] = [80, 10, 90]
+    document["hourly"]["precipitation"] = [2.5, 0, 7.5]
+    weather, http, _ = provider(document)
+    result = weather.get(START, [DESTINATION])
+    assert result.status == "available"
+    assert result.forecast["forecast_time"] == START
+    assert result.forecast["temperature_c"] == 20
+    assert result.forecast["period_start"] == START - timedelta(hours=1)
+    assert result.forecast["period_end"] == START
+    assert result.forecast["precipitation_probability_percent"] == 80
+    assert result.forecast["precipitation_mm"] == 2.5
+    assert len(result.alerts) == 1
+    alert = result.alerts[0]
+    assert alert["relevant_from"] == START - timedelta(hours=1)
+    assert alert["relevant_until"] == START
+    assert "hour before arrival" in alert["message"]
+    assert "2026-11-13 17:00 to 2026-11-13 18:00 UTC" in alert["message"]
+    assert "does not cover the hour after arrival" in alert["message"]
+    assert any("exact-hour arrival" in text for text in result.limitations)
+    assert any("hour before arrival" in text for text in alert["limitations"])
+    # The following sample has different values and is not used at the boundary.
+    following = weather.get(START + timedelta(minutes=1), [DESTINATION])
+    assert following.forecast["precipitation_probability_percent"] == 10
+    assert following.forecast["precipitation_mm"] == 0
+    assert following.alerts == []
+    assert len(http.calls) == 1
+
+
 def test_threshold_values_create_three_typed_context_alerts():
     document = payload()
     document["hourly"]["precipitation_probability"][1] = 50
@@ -249,6 +280,55 @@ def test_cache_shared_across_arrivals_and_round_equivalent_coordinates():
     result = weather.get(ARRIVAL + timedelta(minutes=5), [nearby])
     assert len(http.calls) == 1
     assert result.forecast["location"]["name"] == "Nearby"
+
+
+def test_cache_only_miss_does_not_fetch_or_invent_attempt_timestamps():
+    weather, http, _ = provider()
+    result = weather.get_cached(ARRIVAL, [DESTINATION])
+    assert result.status == "unavailable"
+    assert result.forecast is None and result.alerts == []
+    assert result.last_checked_at is None and result.last_attempt_at is None
+    assert any("No usable cached weather data" in text
+               for text in result.limitations)
+    assert any("did not start a source refresh" in text
+               for text in result.limitations)
+    assert http.calls == []
+
+
+def test_cache_only_fresh_data_uses_same_matching_and_original_provenance():
+    document = payload()
+    document["hourly"]["temperature_2m"] = [20, 21, 22]
+    weather, http, clock = provider(document)
+    original = weather.get(ARRIVAL, [DESTINATION])
+    clock.advance(60)
+    http.payload = SourceError("Cache-only reads must not fetch")
+    result = weather.get_cached(ARRIVAL + timedelta(hours=1), [DESTINATION])
+    assert result.status == "available"
+    assert result.forecast["forecast_time"] == START + timedelta(hours=2)
+    assert result.forecast["temperature_c"] == 22
+    assert result.last_checked_at == original.last_checked_at == NOW
+    assert result.last_attempt_at == original.last_attempt_at == NOW
+    assert len(http.calls) == 1
+
+
+def test_cache_only_stale_and_expired_reads_do_not_refresh_timestamps():
+    document = payload()
+    document["hourly"]["precipitation_probability"][1] = 70
+    weather, http, clock = provider(document)
+    weather.get(ARRIVAL, [DESTINATION])
+    clock.advance(901)
+    stale = weather.get_cached(ARRIVAL, [DESTINATION])
+    assert stale.status == "stale"
+    assert stale.forecast["precipitation_probability_percent"] == 70
+    assert stale.last_checked_at == NOW and stale.last_attempt_at == NOW
+    assert len(stale.alerts) == 1
+    assert any("stale" in text for text in stale.alerts[0]["limitations"])
+    clock.advance(2700)
+    expired = weather.get_cached(ARRIVAL, [DESTINATION])
+    assert expired.status == "unavailable"
+    assert expired.forecast is None and expired.alerts == []
+    assert expired.last_checked_at == NOW and expired.last_attempt_at == NOW
+    assert len(http.calls) == 1
 
 
 @pytest.mark.parametrize("bad_refresh", [SourceError("timeout"), {"error": True}])

@@ -80,6 +80,31 @@ def test_lru_capacity_evicts_oldest_key():
     assert len(cache._entries) == 2
 
 
+def test_cache_only_miss_never_creates_entry_or_evicts_fresh_data():
+    cache = CachedJSON(max_entries=1)
+    expected = cache.get("warm", lambda: {"value": 3}, 10, 60)
+    missing = cache.get("cold", lambda: pytest.fail("cache-only fetch"), 10, 60,
+                        allow_refresh=False)
+    assert missing.state == "unavailable" and missing.data is None
+    assert missing.last_checked_at is missing.last_attempt_at is None
+    result = cache.get("warm", lambda: pytest.fail("fresh data was evicted"),
+                       10, 60, allow_refresh=False)
+    assert result == expected
+    assert list(cache._entries) == ["warm"]
+
+
+def test_cache_only_stale_read_preserves_provenance_without_refresh_attempt():
+    clock = Clock()
+    cache = CachedJSON(monotonic=clock.monotonic, utcnow=clock.utcnow)
+    expected = cache.get("warm", lambda: {"value": 3}, 10, 60)
+    clock.elapsed = 11
+    result = cache.get("warm", lambda: pytest.fail("cache-only fetch"),
+                       10, 60, allow_refresh=False)
+    assert result.state == "stale" and result.data == expected.data
+    assert result.last_checked_at == expected.last_checked_at
+    assert result.last_attempt_at == expected.last_attempt_at
+
+
 def test_refresh_single_flight_returns_busy_without_waiting():
     cache = CachedJSON()
     started, release = Event(), Event()

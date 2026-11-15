@@ -106,7 +106,7 @@ Each source result has these fields:
 | `no_relevant` | A fresh construction snapshot was checked and no notices matched under the documented rules; this is not proof of no construction. |
 | `partial` | Some matching/forecast information is usable, but fields or source coverage are incomplete. Show its limitations. |
 | `stale` | An older usable snapshot survived a failed/in-progress refresh. Show the old retrieval time and stale label, even if its alert list is empty. |
-| `unavailable` | No usable source information, disabled provider or exhausted/busy source capacity. Do not display an all-clear message. |
+| `unavailable` | No usable source information, a disabled provider, or busy source capacity with no usable cache. Do not display an all-clear message. |
 | `out_of_range` | The arrival cannot be served by the actual forecast timeline. No historical/nearest-day substitution. |
 | `missing_location` | No usable coordinates for this source; no invented location match. |
 
@@ -125,6 +125,12 @@ refer to the selected whole-hour timestamp; precipitation describes the
 preceding hour. Weather suggestions are ParkSmart walking-comfort rules, not
 official weather warnings. Keep visible Open-Meteo attribution and the linked
 licence described in [weather_source.md](weather_source.md).
+
+At an exactly hourly arrival, the sample is not advanced: a **10:00 arrival**
+uses temperature/wind at 10:00, but precipitation amount/probability for
+**09:00–10:00**, the hour before arrival. It does not describe 10:00–11:00.
+The response's period fields, exact-hour limitation and precipitation message
+label that prior interval explicitly; the source window is not interpolated.
 
 Construction uses published approved geometry/dates, a 200 m advisory buffer,
 exact notice IDs for grouping and verified WGS84 coordinates. Public-impact date
@@ -151,7 +157,11 @@ Source HTTP refreshes have a four-second budget, bounded socket waits and a
 2 MiB response cap; redirects and retries are disabled. Construction pagination
 shares its budget across all layers/pages. The service permits at most two
 source jobs per process and a shared 6.5-second alert response budget. Saturation
-returns explicit unavailable states rather than an unbounded queue. Already
+serves trip-matched fresh cache data, or a clearly labeled stale snapshot within
+its age limit, using cache-only provider reads. These reads do not make HTTP
+calls, create cache entries or advance retrieval/attempt timestamps. Only when
+there is no usable cache does a busy source report unavailable; no unbounded
+queue is created. With a free worker the normal refresh path is unchanged. Already
 started work can finish within the underlying transport bounds after the
 response deadline. Recommendations use a separate handler and need no alert
 request to finish.
@@ -192,8 +202,7 @@ run the explicit smoke command, retain its flags/timestamps and check a real
 website/iOS request. Confirm HTTPS/CORS, external egress, source terms/traffic,
 per-process cache behavior and artifact compatibility before deployment.
 
-PR #31's three review findings were addressed in `60b14e64`; the PR remains
-awaiting Yra's approval/merge. Its approved historical method stays unchanged.
+The approved historical prediction method stays unchanged.
 Events are deferred: the official
 [widget guide](https://calendarhelp.ucsd.edu/training/event-widgets.html) describes
 display filters, but precise machine-readable event time/location semantics
@@ -215,13 +224,28 @@ Daira's actual hosted URL/access and a successful current construction feature
 query remain external verification dependencies. Neither is represented as a
 completed cloud/source check.
 
-Final offline verification passed **1,027 tests and 39 subtests** (38 warnings)
+These verification/integration follow-ups are tracked separately from this PR's
+code-review revisions: [live UCSD feature queries #38](https://github.com/yraclimaco/parksmart/issues/38),
+[AWS-hosted smoke/deployment #33](https://github.com/yraclimaco/parksmart/issues/33),
+[website integration #32](https://github.com/yraclimaco/parksmart/issues/32) and
+[iOS integration #34](https://github.com/yraclimaco/parksmart/issues/34).
+
+Initial offline verification of `df17301` passed **1,027 tests and 39 subtests** (38 warnings)
 on Windows/Python 3.12.10. It includes provider date/location matching, expired
 and incomplete notices, UTC/DST handling, stale cache provenance and backoff,
 bounded concurrency/deadlines, HTTP and Lambda-adapter contracts, and unchanged
 recommendations during source/client failures. The DS3 review's smoke-tool DST
 and misleading-completeness findings were fixed and regression-tested; the
 review report stays local and uncommitted.
+
+Review revisions, after merging `main` at `394a747`, passed all **139 targeted
+alert tests** and the full **1,060 tests plus 39 subtests** (38 warnings).
+Concurrent worker-saturation regressions verify that fresh and explicitly stale
+cached alerts remain available without HTTP calls or timestamp changes.
+Additional regressions cover cache-only misses/expiry/rematching and different
+neighboring precipitation values at an exact-hour arrival. Both the prediction
+and trip-alert AGENTS.md sections were retained; obsolete approval status was
+removed. The refreshed DS3 report remains local and uncommitted.
 
 The early contract and implementation/dependency checkpoint were shared with
 Dylan, Hanrong and Daira in [the issue thread](https://github.com/yraclimaco/parksmart/issues/35#issuecomment-6874624866).

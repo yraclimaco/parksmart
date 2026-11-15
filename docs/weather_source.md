@@ -37,7 +37,10 @@ present fixtures as observed weather.
 ## Query and location
 
 `WeatherProvider(http, cache, utcnow=None).get(arrival, targets)` selects the first
-parking target, otherwise the destination. It does not geocode display names or
+parking target, otherwise the destination. Optional `allow_refresh=False`, also
+exposed as `get_cached(arrival, targets)`, reads existing cached data through the
+same arrival matching and validation path, without HTTP calls or changes to
+retrieval/attempt timestamps. It does not geocode display names or
 send a user's starting position. The request rounds coordinates to three decimal
 places, uses those same coordinates in its cache key, and asks for:
 
@@ -80,6 +83,16 @@ timestamp. For example, a 09:30 arrival uses the 10:00 sample:
 | `temperature_c`, `apparent_temperature_c`, `wind_speed_kmh`, `weather_code` | Instantaneous model values at 10:00; an approximation for the arrival |
 | `precipitation_mm` | Model precipitation total during the preceding 09:00–10:00 hour |
 | `precipitation_probability_percent` | Probability of more than 0.1 mm precipitation during that preceding hour |
+
+For an arrival at **exactly 10:00**, temperature/wind/weather code use the
+instantaneous 10:00 sample, and precipitation amount/probability describe
+**09:00–10:00**, the hour before arrival. They do not describe 10:00–11:00 or the
+walk after arrival. `period_start`/`period_end` retain that precipitation window;
+an exact-hour limitation and any precipitation suggestion explicitly state the
+preceding-arrival-hour window and its UTC bounds. This preserves source values
+and existing fields; the backend does not silently choose the following sample
+or label the preceding hour as a forecast for the next hour. For a 09:30 arrival,
+the same 10:00 precipitation sample instead covers the hour containing arrival.
 
 The documentation specifies a fixed UTC offset for its ISO timestamps even when
 the response spans a daylight-saving transition. Unix timestamps avoid that
@@ -143,6 +156,13 @@ total-age limit expires, failures are `unavailable`, without old forecast values
 Missing location, source failures and unknown fields do not break parking
 recommendations or create simulated weather.
 
+When source workers are busy, `get_cached` permits the service to return an
+existing matched forecast immediately. Fresh cached data keeps its normal
+`available`/`partial` outcome; older usable data is `stale`, and a missing or
+expired snapshot is `unavailable`. Cache-only reads do not create a source
+attempt, refresh old timestamps or start background HTTP work. The same actual
+forecast range, exact-hour labels, null handling and target matching apply.
+
 The cache bounds memory, not the provider's total quota. A retained coordinate
 key needs at most four successful refreshes/hour/process. Many coordinates, LRU
 churn, failure retries, multiple workers or shared-IP users increase usage. Keep
@@ -163,3 +183,7 @@ tests outside this provider module. Grid validation tests cover malformed,
 out-of-bounds and unrelated locations, stale-cache preservation, missing-grid
 limitations and an ordinary nearby grid. Every suggestion message explicitly
 identifies its information as a forecast, including when rendered alone.
+Boundary tests use different neighboring-hour precipitation values to verify
+that an exact-hour arrival keeps the preceding-hour source sample and labels it
+explicitly. Cache-only tests cover absent, fresh, stale and expired snapshots,
+matching a different arrival against the same snapshot, and unchanged provenance.

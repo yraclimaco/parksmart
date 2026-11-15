@@ -2,7 +2,7 @@
 
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from threading import Event
 from types import SimpleNamespace
 
@@ -12,8 +12,11 @@ from fastapi.testclient import TestClient
 
 from src.api.alert_schemas import TripAlertsResponse
 from src.api.main import create_app
-from src.trip_alerts.contracts import ProviderResult
+from src.trip_alerts.cache import CachedJSON
+from src.trip_alerts.construction import ConstructionProvider, LAYERS
+from src.trip_alerts.contracts import AlertTarget, ProviderResult
 from src.trip_alerts.service import TripAlertService
+from src.trip_alerts.weather import WeatherProvider
 
 ARRIVAL = "2026-11-18T09:30:00-08:00"
 REQUEST = {"arrival_time": ARRIVAL, "parking_location_id": "gilman-ps"}
@@ -149,6 +152,85 @@ def test_bounded_parallel_capacity_does_not_queue_more_jobs():
             release.set()
         pending.result(timeout=3)
     service.close()
+
+
+@pytest.mark.parametrize("age,status", [(0, "available"), (1000, "stale")])
+def test_busy_workers_serve_matching_cached_alerts_without_http(age, status):
+    arrival = datetime(2026, 11, 18, 17, 30, tzinfo=timezone.utc)
+    end = arrival.replace(hour=18, minute=0)
+    target = AlertTarget("parking", "Gilman", 32.88, -117.24, "gilman-ps")
+    elapsed = [0]
+    cache = CachedJSON(monotonic=lambda: elapsed[0],
+                       utcnow=lambda: CHECKED + timedelta(seconds=elapsed[0]))
+    calls = []
+
+    class HTTP:
+        def get_json(self, url, params=None, deadline=None):
+            calls.append(url)
+            if "open-meteo" in url:
+                return {"latitude": target.latitude, "longitude": target.longitude,
+                    "hourly_units": {"time": "unixtime", "temperature_2m": "°C",
+                        "apparent_temperature": "°C", "precipitation_probability": "%",
+                        "precipitation": "mm", "wind_speed_10m": "km/h",
+                        "weather_code": "wmo code"},
+                    "hourly": {"time": [int(end.timestamp())],
+                        "temperature_2m": [20], "apparent_temperature": [20],
+                        "precipitation_probability": [80], "precipitation": [2],
+                        "wind_speed_10m": [5], "weather_code": [61]}}
+            layer = int(url.split("/")[-2])
+            features = [] if layer else [{"attributes": {
+                "objectid": 1, "AlertID": "example", "AlertType": "Pedestrian",
+                "Subject": "Fixture work", "Status": "Approved",
+                "Project_Alert_Status": "APPROVED",
+                "Public_Impact_Date": int(CHECKED.timestamp() * 1000),
+                "Public_Impact_End_Date": int((end + timedelta(days=1)).timestamp() * 1000),
+            }, "geometry": {"x": target.longitude, "y": target.latitude}}]
+            return {"geometryType": LAYERS[layer], "features": features,
+                    "spatialReference": {"wkid": 4326}}
+
+    http = HTTP()
+    providers = (WeatherProvider(http, cache, utcnow=lambda: CHECKED),
+                 ConstructionProvider(http, cache))
+    expected = [provider.get(arrival, [target]) for provider in providers]
+    assert all(result.status == "available" and result.alerts for result in expected)
+    before = list(calls)
+    elapsed[0] = age
+    release = Event()
+
+    class Occupied(Provider):
+        def __init__(self, delegate):
+            super().__init__(wait=release)
+            self.delegate = delegate
+
+        def get(self, arrival, targets):
+            super().get(arrival, targets)
+            return self.delegate.get(arrival, targets)
+
+        def get_cached(self, arrival, targets):
+            return self.delegate.get_cached(arrival, targets)
+
+    weather, construction = [Occupied(provider) for provider in providers]
+    service = TripAlertService(weather, construction)
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(service.get, arrival, [target])
+            assert weather.started.wait(timeout=3) and construction.started.wait(timeout=3)
+            try:
+                cached = service.get(arrival, [target])
+                assert all(result["status"] == status for result in cached.values())
+                assert all(result["alerts"] for result in cached.values())
+                assert calls == before
+                for name, original in zip(("weather", "construction"), expected):
+                    assert cached[name]["last_checked_at"] == original.last_checked_at
+                    assert cached[name]["last_attempt_at"] == original.last_attempt_at
+                    assert cached[name]["alerts"][0]["locations"][0]["location_id"] == (
+                        target.location_id)
+            finally:
+                release.set()
+            pending.result(timeout=3)
+    finally:
+        release.set()
+        service.close()
 
 
 def test_source_timeout_retains_slots_until_workers_finish(monkeypatch):

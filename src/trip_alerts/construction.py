@@ -290,13 +290,28 @@ class ConstructionProvider:
             raise SourceError("Construction source budget expired")
         return records
 
-    def get(self, arrival, targets):
+    def get_cached(self, arrival, targets):
+        """Return cached notices for an aware arrival and trip points without HTTP.
+
+        Args:
+            arrival: Aware requested arrival, checked against source date windows.
+            targets: AlertTarget coordinates to rematch against cached geometry.
+        Returns:
+            ProviderResult retaining successful/attempt timestamps. Fresh data
+            is filtered normally, stale data stays stale, and absent/expired
+            snapshots are unavailable; no refresh or source attempt is made.
+        """
+        return self.get(arrival, targets, allow_refresh=False)
+
+    def get(self, arrival, targets, *, allow_refresh=True):
         """Return source-attributed notices relevant to an aware arrival and points.
 
         Args:
             arrival: Aware datetime; date-only windows use Los Angeles dates.
             targets: AlertTarget parking/destination coordinates; labels are not
                 matched or geocoded. No targets returns missing_location.
+            allow_refresh: False reads only a usable cached snapshot, without
+                network requests, refresh attempts or timestamp changes.
         Returns:
             ProviderResult with deduplicated alerts, retrieval times and honest
             partial/stale/unavailable states. The model/ranking is never changed.
@@ -306,8 +321,9 @@ class ConstructionProvider:
         if not targets:
             return ProviderResult("missing_location", SOURCE_NAME, SOURCE_URL,
                                   limitations=["Trip coordinates are required."])
-        snapshot = self.cache.get(CACHE_KEY, self._load, CACHE_TTL_SECONDS,
-                                  MAX_STALE_SECONDS)
+        snapshot = self.cache.get(
+            CACHE_KEY, self._load, CACHE_TTL_SECONDS, MAX_STALE_SECONDS,
+            allow_refresh=allow_refresh)
         result = ProviderResult(
             "unavailable", SOURCE_NAME, SOURCE_URL,
             snapshot.last_checked_at, snapshot.last_attempt_at,
@@ -315,7 +331,9 @@ class ConstructionProvider:
         )
         if snapshot.data is None:
             result.limitations.append(
-                "Published construction data could not be retrieved.")
+                "Published construction data could not be retrieved."
+                if allow_refresh else
+                "No usable cached construction data is available.")
             return result
         notices, unknown = {}, False
         instant = arrival.astimezone(timezone.utc)
@@ -396,7 +414,8 @@ class ConstructionProvider:
         if snapshot.state == "stale":
             result.status = "stale"
             result.limitations.append(
-                "Cached construction data could not be refreshed.")
+                "Cached construction data could not be refreshed."
+                if allow_refresh else "Cached construction data is stale.")
         else:
             result.status = ("partial" if unknown else
                              ("available" if notices else "no_relevant"))

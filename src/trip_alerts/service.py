@@ -69,12 +69,31 @@ class TripAlertService:
             LOGGER.exception("Trip alert source %s failed", name)
             return unavailable_source(name, "Source information is unavailable.")
 
+    def _get_cached_source(self, name, arrival, targets):
+        """Return this trip's usable cache-only result, or None without fetching.
+
+        Optional injected providers without get_cached retain the busy fallback.
+        Built-in providers reapply time/location rules to raw cached data and
+        preserve successful retrieval and last-attempt timestamps.
+        """
+        read_cache = getattr(self.providers[name], "get_cached", None)
+        if not callable(read_cache):
+            return None
+        try:
+            result = read_cache(arrival, targets)
+            if isinstance(result, ProviderResult) and result.status != "unavailable":
+                return result
+        except Exception:
+            LOGGER.exception("Trip alert source %s cache read failed", name)
+        return None
+
     def get(self, arrival, targets):
         """Return weather/construction dictionaries for aware arrival and points.
 
-        At most two source jobs exist per process; saturation returns unavailable
-        immediately rather than queuing unbounded jobs. Both providers share a
-        response deadline and remain independent of recommendation handlers.
+        At most two source jobs exist per process. Saturation serves matching
+        fresh/stale cached data without fetching; only a missing usable cache
+        returns unavailable. Both providers share a response deadline and remain
+        independent of recommendation handlers.
         """
         deadline = time.monotonic() + ALERT_REQUEST_BUDGET_SECONDS
         futures, results = {}, {}
@@ -82,8 +101,9 @@ class TripAlertService:
             if not self.enabled:
                 results[name] = unavailable_source(name, "Trip alerts are disabled.")
             elif not self._slots.acquire(blocking=False):
-                results[name] = unavailable_source(
-                    name, "Source refresh capacity is busy; retry shortly.")
+                results[name] = self._get_cached_source(name, arrival, targets) or (
+                    unavailable_source(
+                        name, "Source refresh capacity is busy; retry shortly."))
             else:
                 try:
                     future = self._pool.submit(self._get_source, name, arrival, targets)

@@ -102,6 +102,69 @@ def test_same_raw_cache_is_refiltered_by_arrival_and_locations(clocks):
     assert len(http.calls) == 3
 
 
+def test_cached_only_notices_refilter_dates_and_locations_without_http(clocks):
+    http = HTTPFixture({0: [page(0, [feature()])]})
+    source = provider(http, clocks)
+    original = source.get(ARRIVAL, [TARGET])
+    calls = list(http.calls)
+    http.fail = True
+    clocks[0][0] = 60
+
+    cached = source.get_cached(ARRIVAL, [TARGET])
+    later = source.get_cached(ARRIVAL + timedelta(days=2), [TARGET])
+    far = AlertTarget("destination", TARGET.name, 32.9, -117.2)
+    elsewhere = source.get(ARRIVAL, [far], allow_refresh=False)
+
+    assert cached.status == "available" and cached.alerts
+    assert later.status == elsewhere.status == "no_relevant"
+    assert later.alerts == elsewhere.alerts == []
+    for result in (cached, later, elsewhere):
+        assert result.last_checked_at == original.last_checked_at
+        assert result.last_attempt_at == original.last_attempt_at
+    assert http.calls == calls
+
+
+def test_cached_only_stale_then_expired_snapshot_keeps_original_timestamps(clocks):
+    http = HTTPFixture({0: [page(0, [feature()])]})
+    source = provider(http, clocks)
+    original = source.get(ARRIVAL, [TARGET])
+    calls = list(http.calls)
+    http.fail = True
+    clocks[0][0] = 601
+
+    stale = source.get_cached(ARRIVAL, [TARGET])
+    irrelevant = source.get_cached(ARRIVAL + timedelta(days=2), [TARGET])
+    assert stale.status == "stale" and stale.alerts
+    assert irrelevant.status == "stale" and irrelevant.alerts == []
+
+    clocks[0][0] = 86400
+    expired = source.get_cached(ARRIVAL, [TARGET])
+    assert expired.status == "unavailable" and expired.alerts == []
+    for result in (stale, irrelevant, expired):
+        assert result.last_checked_at == original.last_checked_at
+        assert result.last_attempt_at == original.last_attempt_at
+    assert http.calls == calls
+
+
+def test_cached_only_cold_or_failed_source_makes_no_attempt(clocks):
+    http = HTTPFixture()
+    source = provider(http, clocks)
+    cold = source.get_cached(ARRIVAL, [TARGET])
+    assert cold.status == "unavailable" and cold.alerts == []
+    assert cold.last_checked_at is cold.last_attempt_at is None
+    assert http.calls == []
+
+    http.fail = True
+    failed = source.get(ARRIVAL, [TARGET])
+    calls = list(http.calls)
+    clocks[0][0] = 60  # Past retry cooldown; cache-only still must not attempt HTTP.
+    cached_failure = source.get_cached(ARRIVAL, [TARGET])
+    assert cached_failure.status == "unavailable" and cached_failure.alerts == []
+    assert cached_failure.last_checked_at is None
+    assert cached_failure.last_attempt_at == failed.last_attempt_at == ARRIVAL
+    assert http.calls == calls
+
+
 @pytest.mark.parametrize("changes", [
     {"Status": "Cancelled"}, {"Project_Alert_Status": "INACTIVE"},
     {"Public_Impact_End_Date": milliseconds("2026-11-12T00:00:00-08:00")},

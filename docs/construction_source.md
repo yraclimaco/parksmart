@@ -71,6 +71,14 @@ and pages. The shared cache backs off failed refreshes for 30 seconds and may
 return an explicitly stale snapshot only while its total age is under 24 hours.
 Failed attempts retain the last successful retrieval timestamp.
 
+When no worker permit is available, the service calls
+`ConstructionProvider.get_cached(arrival, targets)`. This reads and refilters
+the raw snapshot for the current trip without HTTP, a refresh attempt or changed
+timestamps. Fresh cached notices can be returned immediately; a usable stale
+snapshot remains explicitly stale. An absent snapshot or one aged 24 hours is
+unavailable. Changing the arrival or trip point never reuses another trip's
+filtered notices.
+
 Only explicitly approved/active statuses are eligible. An inactive/cancelled/
 completed status or a nonmatching date window is excluded. The complete public
 impact date pair is preferred. If unavailable, a complete alert-date pair may

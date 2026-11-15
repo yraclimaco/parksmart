@@ -50,8 +50,10 @@ FIELDS = {
 }
 TIMING_LIMITATION = (
     "The selected forecast is the next whole UTC hour at or after arrival. "
-    "Precipitation covers the preceding hour; temperature, wind and weather "
-    "code are values at the ending timestamp."
+    "Precipitation amount and probability cover the preceding hour; "
+    "temperature, wind and weather code are values at the ending timestamp. "
+    "For an exact-hour arrival, that precipitation hour ends at arrival and "
+    "covers the hour before arrival, not the following hour."
 )
 ADVICE_LIMITATION = (
     "Weather suggestions use ParkSmart planning thresholds, not official "
@@ -59,7 +61,7 @@ ADVICE_LIMITATION = (
 )
 STALE_LIMITATION = (
     "This forecast is stale; the last successful retrieval time is retained "
-    "and a failed refresh does not make it current."
+    "and cached reads or failed refreshes do not make it current."
 )
 
 
@@ -176,12 +178,14 @@ class WeatherProvider:
         self.cache = cache
         self.utcnow = utcnow or (lambda: datetime.now(timezone.utc))
 
-    def get(self, arrival, targets):
+    def get(self, arrival, targets, *, allow_refresh=True):
         """Return ProviderResult for an aware arrival and verified trip targets.
 
         Parking is preferred over destination. Queries use rounded coordinates
         and share one cached response across arrival times. Unsupported hours,
         past arrivals and unusable values never produce fabricated forecasts.
+        Set allow_refresh=False to read existing cache data without HTTP calls
+        or changes to retrieval/attempt timestamps.
         """
         if arrival.tzinfo is None or arrival.utcoffset() is None:
             raise ValueError("Weather arrival must include a UTC offset.")
@@ -226,16 +230,21 @@ class WeatherProvider:
             return _validated_payload(document, latitude, longitude)
 
         cached = self.cache.get(key, load, ttl_seconds=CACHE_SECONDS,
-                                max_stale_seconds=MAX_STALE_SECONDS)
+                                max_stale_seconds=MAX_STALE_SECONDS,
+                                allow_refresh=allow_refresh)
         provenance = {
             "last_checked_at": cached.last_checked_at,
             "last_attempt_at": cached.last_attempt_at,
         }
         if cached.data is None:
+            limitation = (
+                "The weather source is unavailable; no forecast or weather "
+                "suggestions are available." if allow_refresh else
+                "No usable cached weather data is available; this cache-only "
+                "read did not start a source refresh.")
             return ProviderResult(
                 "unavailable", SOURCE_NAME, SOURCE_URL, **provenance,
-                limitations=["The weather source is unavailable; no forecast "
-                             "or weather suggestions are available."],
+                limitations=[limitation],
             )
         data = cached.data
         limitations = [TIMING_LIMITATION, ADVICE_LIMITATION]
@@ -275,12 +284,18 @@ class WeatherProvider:
             limitations.append("Some forecast fields are unavailable and remain "
                                "unknown: " + ", ".join(missing) + ".")
         start = forecast_time - timedelta(hours=1)
+        if arrival == forecast_time:
+            limitations.append(
+                "For this exact-hour arrival, precipitation describes the hour "
+                f"before arrival ({start:%Y-%m-%d %H:%M} to "
+                f"{forecast_time:%Y-%m-%d %H:%M} UTC); the hour after arrival "
+                "is not represented.")
         forecast = {
             "location": asdict(target), "forecast_time": forecast_time,
             "period_start": start, "period_end": forecast_time, **selected,
         }
         alerts = self._suggestions(selected, target, start, forecast_time,
-                                   cached.last_checked_at, limitations)
+                                   cached.last_checked_at, limitations, arrival)
         status = "partial" if missing else "available"
         if cached.state == "stale":
             status = "stale"
@@ -289,16 +304,38 @@ class WeatherProvider:
             forecast=forecast, alerts=alerts, limitations=limitations,
         )
 
-    def _suggestions(self, values, target, start, end, checked, limitations):
+    def get_cached(self, arrival, targets):
+        """Return matching cached weather without refreshing or altering provenance.
+
+        Args:
+            arrival: Aware requested arrival, using the same UTC hour selection.
+            targets: Parking/destination AlertTarget instances.
+        Returns:
+            ProviderResult from the normal parsing path: fresh, explicitly stale,
+            missing/out-of-range, or unavailable when no usable cache exists.
+        """
+        return self.get(arrival, targets, allow_refresh=False)
+
+    def _suggestions(self, values, target, start, end, checked, limitations, arrival):
         """Return only planning suggestions justified by known threshold values."""
         messages = []
         rain = values["precipitation_probability_percent"]
         heat = values["apparent_temperature_c"]
         wind = values["wind_speed_kmh"]
         if rain is not None and rain >= RAIN_PROBABILITY_PERCENT:
-            messages.append(("precipitation", "Forecast precipitation could affect the "
-                             f"walk ({rain:g}% probability); consider rain "
-                             "protection around arrival."))
+            period = (f"{start:%Y-%m-%d %H:%M} to "
+                      f"{end:%Y-%m-%d %H:%M} UTC")
+            if arrival == end:
+                message = (
+                    "Forecast precipitation probability for the hour before "
+                    f"arrival ({period}) is {rain:g}%; it does not cover the "
+                    "hour after arrival.")
+            else:
+                message = (
+                    "Forecast precipitation probability for the hour containing "
+                    f"arrival ({period}) is {rain:g}%; consider rain protection "
+                    "for the walk.")
+            messages.append(("precipitation", message))
         if heat is not None and heat >= HEAT_APPARENT_C:
             messages.append(("heat", f"Forecast feels-like temperature is "
                              f"{heat:g}°C around arrival; consider water and "

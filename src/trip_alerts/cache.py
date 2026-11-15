@@ -70,7 +70,7 @@ class CachedJSON:
             entry.checked, entry.attempted, error or entry.error,
         )
 
-    def get(self, key, loader, ttl_seconds, max_stale_seconds):
+    def get(self, key, loader, ttl_seconds, max_stale_seconds, *, allow_refresh=True):
         """Return cached/fetched JSON without waiting on another in-flight refresh.
 
         Args:
@@ -78,6 +78,8 @@ class CachedJSON:
             loader: Zero-argument bounded loader, raising SourceError on failure.
             ttl_seconds: Fresh duration from successful retrieval, in seconds.
             max_stale_seconds: Maximum total snapshot age that may be served.
+            allow_refresh: False performs a cache-only read. It never calls the
+                loader, creates a missing entry or records a refresh attempt.
         Returns:
             CachedPayload. Failure retries back off for 30 seconds; stale values
             retain their original retrieval time and are always marked stale.
@@ -85,6 +87,16 @@ class CachedJSON:
         if ttl_seconds <= 0 or max_stale_seconds < ttl_seconds:
             raise ValueError("Cache ages must be positive and stale age >= TTL")
         with self._lock:
+            if not allow_refresh:
+                entry = self._entries.get(key)
+                if entry is None:
+                    return CachedPayload(None, "unavailable", None, None)
+                self._entries.move_to_end(key)
+                if (entry.data is not None
+                        and self.monotonic() - entry.stored_at < ttl_seconds):
+                    return CachedPayload(entry.data, "fresh", entry.checked,
+                                         entry.attempted)
+                return self._snapshot(entry, max_stale_seconds)
             entry = self._entries.setdefault(key, _Entry())
             self._entries.move_to_end(key)
             while len(self._entries) > self.max_entries:
