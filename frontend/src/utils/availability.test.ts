@@ -22,7 +22,13 @@ describe('availabilityStatus', () => {
     // src/ranking.py NEAR_FULL_FRACTION = 0.10 in the ParkSmart backend
     expect(NEARLY_FULL_MAX).toBe(10);
     expect(availabilityStatus(9).label).toBe('Usually full');
-    expect(availabilityStatus(15).label).toBe('Getting tight');
-    expect(availabilityStatus(50).label).toBe('Spaces open');
+    expect(availabilityStatus(15).label).toBe('Usually tight');
+    expect(availabilityStatus(50).label).toBe('Usually open');
+  });
+
+  it('words every label as a historical pattern, never as live availability', () => {
+    for (const percent of [5, 15, 50]) {
+      expect(availabilityStatus(percent).label).toMatch(/^Usually /);
+    }
   });
 });

@@ -53,7 +53,7 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 
 ## Time Scrubber and "Your Usual"
 
-- **Time scrubber** (top of the map): drag or press play to watch every pin recolor as campus fills and empties through the day. "Use this time" copies the previewed time into the arrival time. Availability by time comes from `src/utils/availabilityModel.ts`, a **sample** daily curve; swap `availabilityAt` for the real forecast when the backend connects. Labels pair numbers with plain words (Usually open / Getting tight / Usually full). The percent is the share of spaces open in past surveys, not a chance of finding a space.
+- **Time scrubber** (top of the map): drag or press play to watch every pin recolor as campus fills and empties through the day. "Use this time" copies the previewed time into the arrival time. Availability by time comes from `src/utils/availabilityModel.ts`, a **sample** daily curve; swap `availabilityAt` for the real forecast when the backend connects. Labels pair numbers with plain words about past surveys (Usually open / Usually tight / Usually full). The percent is the share of spaces open in past surveys, not a chance of finding a space.
 - **Your usual**: only appears after you have searched. The last search is saved in this browser only (`localStorage`, `src/utils/usualTrip.ts`); next visit a card answers it instantly (the form is not prefilled), with "Forget my usual" to clear it.
 
 ---
@@ -172,8 +172,9 @@ VITE_RECOMMENDATION_SOURCE=api npm run dev
   to sample data.
 - Selecting a spot ("Select this spot") also selects its card and map pin, so the
   highlighted card, the pin and the route always describe the same lot.
-- Availability labels: **Usually open** at 75% open or more, **Usually full** at 10%
-  or less (the backend's "Often nearly full" cutoff), **Getting tight** between.
+- Availability labels (all worded as historical patterns, never live availability):
+  **Usually open** at 20% open or more (green), **Usually full** at 10% or less (red;
+  the backend's "Often nearly full" cutoff), **Usually tight** between (yellow).
 - Sample-only features are hidden in API mode: pin availability dots, the Time
   tool, the "Your usual" instant answer, and the lot card's sample availability and
   permit hours. The lot card shows the backend's estimate only for recommended lots.
