@@ -1,5 +1,9 @@
 # Availability prediction handoff and evaluation - Issue #18
 
+Follow-up: [Issue #27 error analysis and recency experiments](issue27_predictions.md)
+retain historical averages. [Versioned release preparation](model_storage.md)
+reproduces the approved model separately from these original experiment outputs.
+
 ## Run and integrate
 
 From the repository root, with requirements installed and the integrated CSV built:
