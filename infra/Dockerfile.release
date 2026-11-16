@@ -1,0 +1,13 @@
+# Local artifact preparation only. No dataset, model or credential is baked in.
+ARG LAMBDA_BASE_IMAGE=public.ecr.aws/lambda/python@sha256:696fcc2a052fc8f335f9b34c6ec4e50ad54dbe5dd35134ec997c4f97bd150b22
+FROM ${LAMBDA_BASE_IMAGE}
+COPY infra/requirements-lambda.txt /tmp/requirements-lambda.txt
+COPY infra/requirements-model-release.txt /tmp/requirements-model-release.txt
+RUN python -m pip install --no-cache-dir \
+    -r /tmp/requirements-lambda.txt -r /tmp/requirements-model-release.txt
+WORKDIR /workspace
+COPY src/ ./src/
+COPY scripts/prepare_serving_bundle.py scripts/verify_prediction_release.py ./scripts/
+COPY config/locations.json ./config/locations.json
+ENV AWS_EC2_METADATA_DISABLED=true PARKSMART_ROUTING_PROVIDER=none
+ENTRYPOINT ["/bin/sh"]

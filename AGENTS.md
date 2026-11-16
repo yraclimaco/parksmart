@@ -188,6 +188,7 @@ python -m src.download_qpass
 
 ## Running things
 
+
 ### Informational trip alerts — Issue #35
 
 Reusable providers, cache and orchestration live in `src/trip_alerts/`; the
@@ -231,6 +232,39 @@ Only run against the actual approved hosted URL when Daira supplies access;
 schema/source checks alone do not prove AWS hosting or a new upstream refresh.
 The proposed contract was shared on Issue #35 with Dylan, Hanrong and Daira.
 Events remain deferred; no weather/construction data enters QPASS training.
+
+### Full AWS deployment — Issue #33
+
+The reviewed demo is deployed in Oregon (`us-west-2`), using stack/ECR
+`parksmart-backend`, private S3 artifacts, and existing mentor-managed runtime
+and CloudFormation roles. Do not create replacement roles. Current URLs, image
+digests, sizes and operator verification are in `docs/deployment_resources.md`.
+Readiness, real first/backup recommendations, public cards/map markers and a
+shorter-walk preference search have passed operator checks. Routing is disabled;
+walks are estimates. Cold-start timeout, hosted alerts/failure-state checks,
+independent teammate verification remain open. Automated results are recorded in
+the resource log.
+
+`bash scripts/prepare_lambda_release.sh [new-release-id]` prepares a private
+release in the pinned linux/amd64 Lambda-compatible environment. Generation runs
+offline with read-only dataset input; outputs under `models/issue33/` are ignored.
+Never regenerate a model merely to update frontend or backend application code.
+`bash scripts/build_lambda_serving.sh [release-id] [image-tag]` stages only dependency pins
+in ignored `.lambda-build/` and builds locally. For application updates reusing a
+bundle, use a new image tag; see `infra/README.md`. Check actual serving-image
+readiness with `python3 scripts/check_lambda_local.py` against the local emulator.
+
+Pin deployed images by digest and preserve immutable S3 releases. Send each
+proposed change set to Yra before execution. The approved demo uses shared
+concurrency, API rate 1/burst 2, timeout 30s, memory 1024 MB and seven-day logs;
+no provisioned concurrency. Credits and billing alerts are not spending caps.
+Track resource additions for the account owner's billing review.
+
+Amplify uses manual ZIP deployment to the existing `parksmart-website` app,
+branch `demo`. Build with the deployed API URL and API mode, then upload only
+contents of `frontend/dist/`; follow `docs/frontend_deployment.md`. ZIPs and
+private artifacts must stay out of Git. VITE variables are public, never secrets.
+
 
 ### Prediction experiments and versioned storage preparation — Issue #27
 
@@ -301,9 +335,9 @@ cycles so warm requests reuse resources and do not refit/reload.
 
 `infra/` contains initial SAM/container configuration, serving dependencies,
 deployment gates, fundamentals and cleanup instructions. No deployment or AWS
-calls are authorized by adding those files. Keep DeploymentApproved=no and
-reserved concurrency zero until funded DS3 access/allowances and explicit
-deployment approval. No NAT/paid resources or public data bucket is configured.
+calls are authorized by adding those files. Keep DeploymentApproved=no until
+account allowances, open blockers and deployment approval are resolved. The
+Issue #33 demo uses approved shared concurrency, not the earlier reservation. No NAT/paid resources or public data bucket is configured.
 The local bundle helper is `python -m scripts.prepare_serving_bundle --s3-prefix
 releases/<release>`; output `.serving-bundle/` is private/gitignored. It copies
 existing approved resources only, never trains, rebuilds or uploads them.
@@ -312,7 +346,9 @@ existing approved resources only, never trains, rebuilds or uploads them.
 do not invent feed values, refresh old timestamps or blend them with predictions.
 See `docs/issue26_handoff.md` for saved-mode setup and verification results.
 Run the DS3 review using `docs/codeReviewer.md`; keep its report local.
-Container/SAM validation, deployment and collector integration remain pending.
+Container checks, SAM lint and the Issue #33 deployment have passed operator
+verification; see `docs/deployment_resources.md`. Collector integration remains
+pending.
 
 ### Availability prediction artifacts - Issue #18
 

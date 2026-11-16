@@ -42,13 +42,20 @@ Set `PARKSMART_TRIP_ALERTS_ENABLED=false` to disable external alert calls.
 
 `POST /routes` returns driving and walking routes (free public OSRM servers by
 default, no key needed), and recommendations use mapped walking routes for the
-top picks; see [routes](docs/routing.md). Website hosting on AWS Amplify is
-prepared in [frontend deployment](docs/frontend_deployment.md).
+top picks when routing is enabled; see [routes](docs/routing.md). Routing is
+disabled in the hosted demo, so its walking times are straight-line estimates.
 
-AWS backend files under `infra/` are preparation only; nothing is deployed.
-See [AWS setup, learning notes and deployment gates](infra/README.md) and
-[parking-feed proposal](docs/parking_status.md). No live-count endpoint is claimed
-before Hanrong's collector and mappings are ready.
+The AWS demo is live at [ParkSmart](https://demo.d2ru7u75tkpr69.amplifyapp.com).
+It uses the hosted FastAPI backend and saved historical-survey model. Public
+searches, recommendation cards, map markers, and walking preferences have been
+checked. Directions are currently unavailable because hosted routing is disabled.
+
+See the [backend deployment instructions](infra/README.md),
+[website update instructions](docs/frontend_deployment.md), and
+[resource log](docs/deployment_resources.md) for setup, updates, cleanup,
+verification results, and remaining limitations. The
+[parking-feed proposal](docs/parking_status.md) remains separate; no live-count
+endpoint is claimed before Hanrong's collector and mappings are ready.
 
 See [backend setup, learning walkthrough, and interface contract](docs/backend.md)
 for examples and [the short Dylan/Hanrong proposal](docs/api_proposal.md).
@@ -112,7 +119,7 @@ Intermediate Inventory groups/audits are in `data/interim/inventory/`; batch
 reports are in `results/capacity_matching/batch/`. Delivery copies are compressed
 CSVs in `results/capacity_matching/deliverables/`; pandas reads `.csv.gz` directly.
 The frontend contains the synced website; model artifacts are generated locally.
-Infrastructure remains planned.
+See the [deployment instructions](infra/README.md) for the current AWS demo.
 
 ## Git and GitHub workflow for DS3 projects
 

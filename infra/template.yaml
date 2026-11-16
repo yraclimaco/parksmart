@@ -8,6 +8,16 @@ Parameters:
     AllowedValues: ['no', 'yes']
     Default: 'no'
     Description: Set yes only after DS3 account, allowances, and mentor approval are verified.
+  BackendImageUri:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(\.cn)?/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$'
+    Description: Existing private ECR image pinned by digest; upload and test before creating the change set.
+  LambdaRuntimeRoleName:
+    Type: String
+    Default: ParkSmartLambdaRuntime
+    AllowedPattern: '[A-Za-z0-9+=,.@_-]+'
+    Description: Existing pathless Lambda execution role in this account, managed by the mentor.
   ArtifactBucket:
     Type: String
     Default: ''
@@ -15,17 +25,12 @@ Parameters:
   ReleasePrefix:
     Type: String
     Default: releases/demo
-    AllowedPattern: '[a-zA-Z0-9][a-zA-Z0-9/_-]*'
+    AllowedPattern: '[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9][a-zA-Z0-9._-]*)*'
     Description: Immutable release directory containing manifest and its three checked files.
   FrontendOrigins:
     Type: String
     Default: ''
     Description: Exact comma-separated website origins; no wildcard or credentials.
-  ReservedConcurrency:
-    Type: Number
-    AllowedValues: [0, 1]
-    Default: 0
-    Description: Zero disables invocations; enable one only for approved pilot verification.
 
 Rules:
   ApprovedDeploymentRequiresBucket:
@@ -33,6 +38,8 @@ Rules:
     Assertions:
       - Assert: !Not [!Equals [!Ref ArtifactBucket, '']]
         AssertDescription: ArtifactBucket must be nonempty when deployment is approved.
+      - Assert: !Not [!Equals [!Ref BackendImageUri, '']]
+        AssertDescription: BackendImageUri must identify an uploaded digest when deployment is approved.
 
 Conditions:
   DeployBackend: !Equals [!Ref DeploymentApproved, 'yes']
@@ -53,12 +60,14 @@ Resources:
     Condition: DeployBackend
     Properties:
       PackageType: Image
+      ImageUri: !Ref BackendImageUri
+      Role: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${LambdaRuntimeRoleName}'
       Architectures: [x86_64]
       MemorySize: 1024
       Timeout: 30
       EphemeralStorage:
         Size: 512
-      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      # Mentor-approved demo uses the account shared concurrency pool.
       Environment:
         Variables:
           PARKSMART_MODEL_MODE: saved
@@ -66,15 +75,11 @@ Resources:
           PARKSMART_BUNDLE_MANIFEST: !Sub 's3://${ArtifactBucket}/${ReleasePrefix}/manifest.json'
           PARKSMART_CACHE_DIR: /tmp/parksmart-serving
           PARKSMART_CORS_ORIGINS: !Ref FrontendOrigins
-          # Public-provider throttles are per process; routing is off until the
-          # approved one-instance pilot policy/credentials are configured.
+          # Provider throttles are per process; routing remains off until
+          # provider limits are reviewed for shared-concurrency deployment.
           PARKSMART_ROUTING_PROVIDER: none
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action: s3:GetObject
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ReleasePrefix}/*'
+      # Existing role owns S3 read and CloudWatch permissions; this stack
+      # neither creates an IAM role nor changes its policies.
       Events:
         Root:
           Type: HttpApi
@@ -94,6 +99,8 @@ Resources:
       Dockerfile: infra/Dockerfile
       DockerContext: ..
       DockerTag: parksmart-api-prep
+      DockerBuildArgs:
+        MODEL_REQUIREMENTS_FILE: .lambda-build/requirements-model.txt
 
   BackendLogs:
     Type: AWS::Logs::LogGroup

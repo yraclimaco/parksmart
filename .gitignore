@@ -57,3 +57,9 @@ results/issue3/*
 /.aws-sam/
 /infra/.aws-sam/
 /infra/samconfig.toml
+
+# Local serving-image dependency staging; never commit generated build inputs.
+/.lambda-build/
+
+# Local manual Amplify upload packages.
+/frontend/parksmart-site*.zip

@@ -1,10 +1,11 @@
 # Preparation only: no image is built/pushed by adding this file.
-# Pin the reviewed base image digest before deployment. Artifact Python patch
-# version must match this image exactly; /readiness rejects incompatible models.
-ARG LAMBDA_BASE_IMAGE=public.ecr.aws/lambda/python:3.12
+# Pinned to the locally verified linux/amd64 Python 3.12.16 base.
+# Artifacts must match the exact runtime/dependencies; readiness enforces this.
+ARG LAMBDA_BASE_IMAGE=public.ecr.aws/lambda/python@sha256:696fcc2a052fc8f335f9b34c6ec4e50ad54dbe5dd35134ec997c4f97bd150b22
 FROM ${LAMBDA_BASE_IMAGE}
 COPY infra/requirements-lambda.txt /tmp/requirements-lambda.txt
-COPY .serving-bundle/requirements-model.txt /tmp/requirements-model.txt
+ARG MODEL_REQUIREMENTS_FILE=.serving-bundle/requirements-model.txt
+COPY ${MODEL_REQUIREMENTS_FILE} /tmp/requirements-model.txt
 RUN python -m pip install --no-cache-dir \
     -r /tmp/requirements-lambda.txt -r /tmp/requirements-model.txt \
     --target ${LAMBDA_TASK_ROOT}

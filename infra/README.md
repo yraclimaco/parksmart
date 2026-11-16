@@ -1,9 +1,250 @@
-# AWS backend preparation — Issue #26
+# AWS backend deployment — Issues #26 and #33
 
-**Preparation only. No deployment or AWS calls were performed.** Week 7 deployment
-requires verified DS3 account access, mentor approval and checked allowances.
-Do not enable paid usage, switch billing plans, provision NAT, or run cloud commands
-below merely to prepare for the local demo. Nothing here is a spending guarantee.
+Issue #26 prepared the backend infrastructure; Issue #33 is validating and
+deploying one reviewed demo in Oregon. Yra confirmed credit coverage for the
+planned services. Track created resources and usage for his billing review;
+credits are not a hard spending cap. Do not enable paid upgrades, add unapproved
+services, or execute the first CloudFormation change set before his review.
+
+## Issue #33 deployment checkpoint — updated 2026-11-15
+
+Target region: **Oregon (`us-west-2`)**. The backend stack and private ECR
+repository are both named `parksmart-backend`. The assigned private artifact
+bucket is `parksmart-artifacts-684494100594`. Use the existing
+`ParkSmartLambdaRuntime` role for Lambda and `ParkSmartCloudFormationExecution`
+for deployment. These are deployment identifiers, not credentials; keep their
+configuration parameterized for migration.
+
+Local Docker Desktop is running on Apple Silicon. A local `linux/amd64` check
+of the Lambda image printed **Python 3.12.16** using this exact image reference:
+
+```text
+public.ecr.aws/lambda/python@sha256:696fcc2a052fc8f335f9b34c6ec4e50ad54dbe5dd35134ec997c4f97bd150b22
+```
+
+This verifies only the base image's Python version, not application readiness.
+Use this digest and `--platform linux/amd64` for subsequent release/build checks;
+the serving and preparation Dockerfiles now use this pinned default. Vivaan's documented
+Issue #27 verification used Python 3.12.10, so regenerate the approved model in
+this compatible container rather than changing artifact metadata. Follow
+`docs/model_storage.md` for the metadata-bound release and bundle commands.
+Preserve existing releases and use a new immutable release ID/prefix.
+
+Current status:
+
+- Console sign-in, temporary-password change and MFA completed by the operator.
+- AWS CLI is installed; SAM CLI installation was verified by the operator.
+- Local base image downloaded and Python version checked; no cloud resources
+  created or application artifacts uploaded during these checks.
+- Yra confirmed credits cover Amplify, Lambda, API Gateway, S3, ECR and CloudWatch
+  and authorized one demo deployment in Oregon. Record usage/resources for his
+  billing check. Oregon quota was checked: Total=10, Unreserved=10. Yra
+  approved shared concurrency for the demo; the template no longer reserves it.
+- Local Lambda-compatible bundle generation and configured-app verification
+  passed (operator-run): saved readiness, two successful requests with distinct
+  choices, one startup artifact load and fitting forbidden during serving.
+  The template reuses the existing runtime role. The revised template validation
+  and serving-image build passed in the operator terminal. The actual serving
+  container also passed Lambda-emulator requests: saved readiness and two requests
+  with distinct first/backup choices. This is local verification, not AWS startup.
+- Created resource: private ECR `parksmart-backend` in Oregon, URI
+  `684494100594.dkr.ecr.us-west-2.amazonaws.com/parksmart-backend`.
+  Lambda image-pull policy was confirmed by Yra. Both the original and updated
+  serving images were uploaded; digests and sizes are recorded in
+  `docs/deployment_resources.md`. Continue sending proposed CloudFormation change
+  sets to Yra **before execution**; do not use defaults that execute without review.
+- The backend stack reached UPDATE_COMPLETE after the reviewed image-and-CORS
+  update. `/readiness` returned HTTP 200 with saved predictions ready.
+- The updated frontend is deployed through manual Amplify hosting. Public
+  searches displayed first-choice and backup cards with matching map markers,
+  and a shorter-walk preference search also succeeded. GitHub authorization is
+  not configured for this manual deployment. See `docs/frontend_deployment.md`
+  for update instructions; share verified URLs with Dylan and Hanrong.
+- Cold-start latency, hosted alerts, failure-state checks and independent teammate
+  verification remain pending. Automated results are in the resource log.
+  Routing is disabled.
+
+The six approved bundle objects were uploaded successfully under
+`releases/issue33-lambda-2026-11-14/`, with AES256 and the manifest last. ECR
+image upload and the subsequent application update completed; image digests and
+sizes are recorded in `docs/deployment_resources.md`. The six S3 objects were
+inspected: 24,210,536 bytes total, all AES256. The approved credit coverage is
+reported by the account owner; actual usage remains subject to billing review.
+
+## Generate and check the Lambda-compatible release locally
+
+Docker Desktop must be running. SAM CLI is used later for template validation;
+it is not needed for this artifact-generation command. From the repository root:
+
+```bash
+bash scripts/prepare_lambda_release.sh
+```
+
+The helper builds `infra/Dockerfile.release` for `linux/amd64` using the pinned
+image above and model dependency versions documented in `docs/model_storage.md`.
+Only source, the public registry and dependency files enter the build context.
+Image pulls and Python package downloads require internet access during build.
+The generation container runs with networking disabled, no AWS credentials,
+a read-only mount of the existing analysis CSV, and a writable mount only for
+`models/issue33/`. It never rebuilds the dataset or changes model selection.
+
+It invokes the existing approved artifact generator, metadata-bound bundler and
+backend release verifier. A successful result must show saved readiness, distinct
+first/backup choices and one artifact load, with fitting forbidden during serving.
+Training occurs only during this explicit offline preparation, never requests.
+The new release is `models/issue33/issue33-lambda-2026-11-14/bundle/`, gitignored.
+Existing releases are refused; after a failed or completed attempt, use a new ID:
+
+```bash
+bash scripts/prepare_lambda_release.sh issue33-lambda-2026-11-14-r2
+```
+
+Operator-run verification on 2026-11-14 passed using the real local dataset.
+The release is `models/issue33/issue33-lambda-2026-11-14/bundle/`. Saved readiness
+was ready; both requests returned `torrey-pines-center-north-ps` first and
+`pangea-ps` as backup, with one artifact load and fitting forbidden during serving.
+Routing was disabled and generation ran without networking. No objects were
+uploaded. This verifies the preparation image, not Lambda invocation or live routing.
+Stop on dependency-install, compatibility or readiness failure; do not bypass
+version checks. The source checkout/hash provenance is recorded by the existing
+generator; the container has no Git history and may record a null source commit.
+Retain the reviewed checkout reference alongside the release metadata.
+
+This is local preparation, not AWS deployment or verification of cloud costs.
+Do not upload the image or generated files until the spending prerequisites,
+permissions and release checks are satisfied. The final serving image must use
+the same base digest and the generated dependency pins, then pass its own runtime
+readiness checks; the preparation image alone does not verify Lambda invocation.
+
+## Build the serving image locally
+
+After successful release preparation, run from the repository root:
+
+```bash
+bash scripts/build_lambda_serving.sh
+sam validate --lint --template-file infra/template.yaml --region us-west-2
+```
+
+The helper stages only the generated model dependency lock in ignored
+`.lambda-build/`, then builds `parksmart-backend:issue33-lambda-2026-11-14` using
+the pinned Lambda base and `linux/amd64`. It disables build provenance to avoid
+an extra attestation image index for Lambda. It does not log in, push an image,
+upload the bundle, or deploy resources. Build completion does not establish
+runtime readiness: invoke the actual serving container locally next.
+For a different prepared release, pass its ID as the helper's first argument.
+For an application-code update that reuses the same model bundle, pass a new
+image tag as the second argument:
+
+```bash
+bash scripts/build_lambda_serving.sh issue33-lambda-2026-11-14 issue33-ui-alerts-r2
+```
+
+This reuses the existing bundle's dependency lock without generating or training
+a model, and builds `parksmart-backend:issue33-ui-alerts-r2` locally. Choose a new
+tag for each application version before uploading to the immutable ECR repository.
+Omitting the second argument keeps the original behavior: the image tag equals
+the release ID. Neither form uploads or deploys anything.
+
+SAM's build metadata references that same staged dependency lock; prepare it
+with the helper before running `sam build`. The operator reported the serving
+image build, revised SAM template validation and local Lambda-format invocation
+passed. Track cloud resources and access blockers in `docs/deployment_resources.md`.
+
+### Invoke the serving container locally
+
+From the repository root, start the verified release image in one terminal:
+
+```bash
+docker run --rm --name parksmart-lambda-local --platform linux/amd64 \
+  --read-only --tmpfs /tmp:rw,size=512m -p 127.0.0.1:9000:8080 \
+  --mount "type=bind,source=$PWD/models/issue33/issue33-lambda-2026-11-14/bundle,target=/bundle,readonly" \
+  -e PARKSMART_ARTIFACT_PATH=/bundle/selected.pkl \
+  -e PARKSMART_DATASET_PATH=/bundle/analysis_dataset.csv \
+  -e PARKSMART_REGISTRY_PATH=/bundle/locations.json \
+  -e PARKSMART_ROUTING_PROVIDER=none -e AWS_EC2_METADATA_DISABLED=true \
+  parksmart-backend:issue33-lambda-2026-11-14
+```
+
+Keep it running. In a second terminal, from the repository root:
+
+```bash
+python3 scripts/check_lambda_local.py
+```
+
+The checker sends HTTP API v2 events through the local Lambda runtime emulator,
+then checks saved readiness and two supported first/backup responses. It uses
+only loopback, bypasses system proxies and prints a small summary. No AWS login,
+credentials, S3 URI or cloud API is involved. The bundle is mounted read-only;
+only temporary container storage is writable. Routing is disabled for this check.
+The preparation verifier already checks one startup artifact load with fitting
+forbidden; this separate check verifies actual serving-image request handling.
+Stop with Ctrl+C after success. The operator supplied a passing checker result:
+saved readiness, two recommendation requests, and distinct first/backup IDs
+`torrey-pines-center-north-ps` and `pangea-ps`. External routing and S3 were not
+involved in this local test.
+
+### Initial change set uses the uploaded image
+
+The template accepts `BackendImageUri` as a private ECR URI pinned by SHA-256
+digest. It is required when DeploymentApproved=yes. For the verified release:
+
+```text
+684494100594.dkr.ecr.us-west-2.amazonaws.com/parksmart-backend@sha256:8dd0f74cd7efc3a0fa35ea6e5dd4045e3305b17311e165cdbdc4d52d6ab6deaf
+```
+
+Reference that uploaded image when preparing the initial change set. Do not
+rebuild an image and assume it is the same tested digest. Build metadata remains
+for deliberate future local builds, not as a requirement to rebuild this release.
+SAM lint and the initial deployment completed successfully. The subsequent
+reviewed update, `issue33-ui-cors-r1`, deployed image `issue33-ui-alerts-r1` and
+the exact Amplify origin. Current image digests and verification results are
+recorded in `docs/deployment_resources.md`. Future application updates should
+use a new image tag, local verification, and a reviewed change-set preview
+before execution. Routing remains disabled; successful preference checks do not
+establish routed walking or driving support.
+
+### Existing roles
+
+`LambdaRuntimeRoleName` defaults to `ParkSmartLambdaRuntime`; SAM resolves its
+ARN using the deployment account and AWS partition. This assumes a pathless
+role, as named by the mentor; confirm its actual ARN before cloud deployment.
+There is no generated execution role or inline IAM policy in this template.
+The account owner manages trust, least-privilege S3 read access and CloudWatch
+logging on the existing role. The separate `ParkSmartCloudFormationExecution`
+role is supplied to the deployment command, not assigned as Lambda's role.
+Do not modify either role or repository policy to work around AccessDenied;
+send the exact error to Yra. ECR's Lambda pull policy is a separate checkpoint.
+
+## Deployment parameter checklist — prepare before creating the change set
+
+| Setting | Proposed value | Check before execution |
+| --- | --- | --- |
+| AWS account / region | `684494100594` / `us-west-2` | Successful CLI identity check; never assume the browser authenticates the terminal |
+| Stack / ECR | `parksmart-backend` | Existing private repo, approved pull policy, immutable image tag/digest |
+| Lambda runtime role | `ParkSmartLambdaRuntime` | Verify actual ARN/trust, S3 prefix read access and logging; retain existing role |
+| CloudFormation execution role | `ParkSmartCloudFormationExecution` | Verify actual ARN and operator pass-role permission; supply as deployment role |
+| ArtifactBucket | `parksmart-artifacts-684494100594` | Verify existing bucket region/privacy and approved upload access |
+| ReleasePrefix | `releases/issue33-lambda-2026-11-14` | Match local manifest and successfully uploaded immutable release; publish manifest last |
+| Serving image | Current deployed digest recorded in `docs/deployment_resources.md` | Use a new tag for future application updates; do not silently rebuild a different image during packaging |
+| DeploymentApproved | Default `no`; reviewed deployment uses `yes` | Shared concurrency approved by Yra; deployment is invokable once created, so no separate reserved-concurrency activation gate remains |
+| FrontendOrigins | `https://demo.d2ru7u75tkpr69.amplifyapp.com` | Configured and browser search verified; retain exact HTTPS origin, no wildcard or trailing slash |
+| Routing | Currently `none` | Approve provider/configuration and limits before claiming working public routes |
+| Frontend preferences | PR #37 merged; default and shorter-walk searches verified on the deployed website | Keep matching frontend/backend contracts; verify changed priority and max walk after future updates |
+
+CLI login succeeded after the AWS CLI update; identity and repository-specific
+ECR checks succeeded. Broad ECR listing is intentionally denied by scoped access;
+use `describe-repositories --repository-names parksmart-backend`. The assigned S3 bucket was created by the operator after Yra confirmed it was
+missing. HeadBucket confirms Oregon/expected owner; all four Block Public Access
+settings returned true. Verify encryption and ownership before private uploads.
+
+After bucket access is confirmed, verify immutable image/bundle uploads,
+then prepare a nonexecuted change set using the existing execution role. Send
+Yra the change-set name/link, exact proposed resources/parameters and current
+resource inventory. Review replacements/deletions and unexpected IAM, storage or
+network additions. Apply only after his review; do not use deployment defaults
+that automatically execute it. Initial deployment and the combined image-and-origin
+update were reviewed and approved by Yra, then executed successfully. Continue
+obtaining review of future change-set previews before execution.
 
 ## Understand the path
 
@@ -22,8 +263,8 @@ Logs → CloudWatch; permissions → Lambda's IAM execution role
   explicitly enters lifespan once and uses `lifespan="off"` on subsequent calls,
   preventing per-invocation resource setup/teardown. Each cold environment has its
   own model, cache and routing throttle; these are not shared across instances.
-- **IAM role** grants this Lambda only S3 GetObject within the release prefix and
-  basic logging. The deployment operator needs separately approved permissions;
+- **IAM role** is the existing mentor-managed runtime role. It must grant
+  S3 GetObject within the release prefix and basic logging. The deployment operator needs separately approved permissions;
   do not put access keys in templates, images, Git or frontend VITE variables.
 - **CloudWatch Logs** records cold-start errors and runtime diagnostics. Do not
   log requests, source counts, raw datasets or credential-bearing configuration.
@@ -49,17 +290,17 @@ Official references: [SAM function](https://docs.aws.amazon.com/serverless-appli
 - `src/api/lambda_handler.py`: lazy cold-start adapter; imports do not contact AWS.
 - `src/api/bundle.py`: downloads one S3 manifest and three checksummed files to
   `/tmp`, with atomic replacements and no uploads or embedded credentials.
-- `DeploymentApproved=no` by default means no backend resources are created by
-  the template. Reserved concurrency defaults to zero (invocations disabled).
-  Keep both gates closed until cloud use is actually approved.
-- Routing defaults to `none`. A later one-instance pilot can enable a reviewed
+- `DeploymentApproved=no` by default means no backend resources are created.
+  Once approved and executed with yes, Lambda uses the shared account pool and
+  can be invoked immediately; there is no reserved-concurrency zero gate.
+- Routing defaults to `none`. A later reviewed demo configuration can enable an approved
   provider under `docs/routing.md` limits. No VPC/NAT, provisioned concurrency,
   public data bucket, persistent database or automatic paid service is configured.
 
-These files are initial configuration, **not yet container-built/SAM-validated
-or deployed**. Local Python checks and DS3 review are complete; current results
-and commands are in `docs/issue26_handoff.md`. Python tests do not establish
-container compatibility or successful AWS deployment.
+The serving image build, SAM lint, local Lambda-emulator checks, AWS saved-model
+startup and public website searches have passed operator checks. See
+`docs/deployment_resources.md` for verification results and remaining limitations,
+including cold-start latency. Issue #26 history is in `docs/issue26_handoff.md`.
 
 ## Prepare a private release locally
 
@@ -122,35 +363,35 @@ start. Pin the generated dependency lock and image identity for that release.
 The saved loader enforces compatibility and readiness stays unavailable on
 mismatch. Do not upload/deploy a release until the container readiness passes.
 
-## Reserved concurrency prerequisite — check before enabling
+## Shared concurrency and demo safeguards
 
-Reserved concurrency is a per-function capacity reservation and limit, not a
-cost guarantee. Lambda requires at least 100 concurrency units to remain
-unreserved. Before enabling ReservedConcurrency=1, an approved operator must
-check the target account AND region in Lambda's account settings/Service Quotas,
-or use this read-only command with their approved profile:
+The operator checked Oregon's quota: Total=10 and Unreserved=10. This cannot
+support the earlier positive reserved-concurrency setting. Yra approved using
+the shared pool, so the template omits ReservedConcurrentExecutions entirely.
+Do not request provisioned concurrency. A quota increase is optional and is not
+a prerequisite for the shared-pool demo; coordinate any request with the owner.
 
-```bash
-aws lambda get-account-settings --profile <approved-profile> --region <approved-region>
-```
+The HTTP API stage retains rate 1 request/second and burst 2. Lambda retains a
+30-second timeout and 1024 MB memory as initial settings; measure cloud startup,
+request latency and Max Memory Used before calling these right-sized. Reduce
+memory/timeout only after a successful measured readiness/search check. API
+throttles and the account concurrency cap limit traffic/capacity, not total
+spending; credits and billing alerts are not hard spending caps.
 
-Inspect AccountLimit.ConcurrentExecutions and UnreservedConcurrentExecutions.
-There must be room to reserve one unit while leaving at least 100 unreserved;
-account for existing reservations and recheck immediately before deployment.
-Small/new accounts may not have sufficient quota. If unsupported, leave
-DeploymentApproved=no and ReservedConcurrency=0, keep using the local demo,
-and ask the mentor/account owner to resolve quota eligibility or approve a
-revised deployment design. Do not remove the limit to bypass this prerequisite
-or enable paid usage. These checks have not been performed for a DS3 account.
+Yra confirmed credit coverage and approved one minimal-usage demo with shared
+concurrency. The bucket was created and private uploads completed. Continue
+tracking resources for the account owner's billing review; low usage, credits
+and alerts do not guarantee zero out-of-pocket spend. New accounts or expanded
+usage require their own verified allowances and approval. Never enable paid
+upgrades or unapproved services.
 
-References: [reserved concurrency](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html),
-[account settings](https://docs.aws.amazon.com/cli/latest/reference/lambda/get-account-settings.html).
-CloudFormation also rejects DeploymentApproved=yes with an empty ArtifactBucket;
-the disabled preparation template can retain the empty default.
+CloudFormation rejects DeploymentApproved=yes with an empty ArtifactBucket.
+A nonempty name alone does not prove bucket existence, privacy or access.
 
-## Later: approved private S3 provisioning and deployment
 
-Do not execute this section during preparation. Check the actual DS3 account,
+## Private S3 provisioning and reviewed deployment workflow
+
+For a new deployment or release, first verify approval. Check the actual account,
 region, credit/free-plan eligibility, intended request volume, storage/log/image
 costs and cleanup plan first. Use [AWS Free Tier](https://aws.amazon.com/free/),
 [Lambda pricing](https://aws.amazon.com/lambda/pricing/),
@@ -160,21 +401,32 @@ throttles are alerts/traffic controls, not hard guarantees of zero spend.
 
 1. Work with Vivaan to choose a private existing bucket and immutable release
    prefix. Keep S3 Block Public Access enabled. An approved operator uploads the
-   three prepared files, then manifest.json last. Never upload .env or keys.
+   model, dataset, registry, release metadata and dependency lock, then
+   manifest.json last: six objects in this release. Runtime downloads use the
+   manifest and its three checked model/data/registry files; metadata and the lock
+   support reproducibility. Use standard S3 AES256 encryption for this demo and
+   conditional uploads that refuse replacement. Never upload .env or keys.
    If the bucket uses customer-managed KMS, review a narrowly scoped decrypt
    permission before deployment; the current template does not grant it.
-2. Use role-based AWS access. The Lambda role has GetObject on only that release
-   prefix; it needs no S3 list, write, public access or administrator permission.
+2. Use role-based AWS access. The existing runtime role must have GetObject on only the approved
+   release prefix; it needs no S3 list, write, public access or administrator permission.
    Registry and dataset are provisioned with the same manifest as the model,
    avoiding mismatched release files. Downloads run only on cold initialization.
 3. Verify the exact allowed frontend origins. Account, region and bucket are
    parameters/operator configuration; no account ID or ARN is hardcoded.
-4. After explicit deployment approval, use `sam deploy --guided` with the built
-   image template and an approved image repository. Supply DeploymentApproved=yes,
-   ArtifactBucket, ReleasePrefix, and FrontendOrigins, initially leaving
-   ReservedConcurrency=0. Review the proposed changeset before executing it.
-   Never apply this template to another account by reusing personal credentials.
-5. For the approved short pilot only, enable ReservedConcurrency=1, capture the
+4. Build and locally verify the serving image, push a new immutable tag to the
+   approved private ECR repository, then record its full digest and size. Create
+   a CloudFormation change set using the existing deployment role and digest-pinned
+   BackendImageUri. Use CREATE for an initial stack and UPDATE for later changes.
+   Application-only updates can use `--use-previous-template` and
+   `UsePreviousValue=true` for parameters that must remain unchanged. Include
+   DeploymentApproved, ArtifactBucket, ReleasePrefix, LambdaRuntimeRoleName,
+   BackendImageUri and the exact FrontendOrigins in the reviewed configuration.
+   Wait for change-set creation and inspect its parameters and resource changes.
+   Send the named preview to Yra, execute only after approval, and wait for the
+   stack to complete before checking readiness. Shared concurrency means the
+   function is invokable when created. Do not reuse another account's credentials.
+5. For the approved short demo, capture the
    stack ApiUrl output and test `/health`, `/readiness`, `/locations` and a real
    POST `/recommendations`. Expect saved readiness and `is_example: false`.
    Configure Dylan's VITE_API_BASE_URL to that HTTPS URL in his source deployment,
@@ -202,9 +454,11 @@ pilot settings that must be measured, not promised latency.
 
 ## Cleanup and migration
 
-Disable invocations (reserved concurrency zero), stop website traffic, then use
+For emergency shutdown, have the authorized owner throttle the function to
+reserved concurrency zero, stop website traffic, then use
 `sam delete --stack-name <stack>` with the correct approved account/region. Verify
-Lambda, API Gateway, IAM role and the explicit log group are removed. Verify
+Lambda, API Gateway and the explicit log group are removed. The existing
+mentor-managed IAM roles are external to the stack and must be retained. Verify
 remaining generated SAM deployment buckets/ECR repositories and delete approved
 unused image artifacts separately. The private model bucket is external and is
 not deleted by this stack; retain/delete its release objects only with the data
