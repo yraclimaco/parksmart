@@ -10,7 +10,7 @@ import { ParkingPlannerRequest, ParkingRecommendation } from '../types.ts';
 import { getDestination } from '../data/destinations.ts';
 import { holidayNotice, parseArrival } from '../utils/permitRules.ts';
 import { RecommendationCard } from './RecommendationCard.tsx';
-import { SkeletonCard } from './SkeletonCard.tsx';
+import { LoadingInline } from './LoadingScene.tsx';
 import { EmptyState } from './EmptyState.tsx';
 import { ErrorState } from './ErrorState.tsx';
 import { RecentSearches } from './RecentSearches.tsx';
@@ -113,13 +113,8 @@ export const ResultsList: React.FC<ResultsListProps> = ({
 
   if (isLoading) {
     return (
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between text-xs text-muted font-medium px-1">
-          <span>Finding best matches...</span>
-          <span className="text-[11px] animate-pulse">Calculating walking routes</span>
-        </div>
-        <SkeletonCard />
-        <SkeletonCard />
+      <div className="pt-2">
+        <LoadingInline label="Finding your best spots" />
       </div>
     );
   }

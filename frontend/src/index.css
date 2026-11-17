@@ -78,6 +78,20 @@ body {
   border-bottom: 1px solid var(--color-line) !important;
 }
 
+.maplibregl-ctrl-group .ps-reset-view {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-navy);
+  cursor: pointer;
+}
+
+.maplibregl-ctrl-group .ps-reset-view:hover {
+  background: rgba(24, 43, 73, 0.06);
+}
+
 .maplibregl-ctrl-group button:last-child {
   border-bottom: none !important;
 }
@@ -440,4 +454,1402 @@ body {
   background: var(--color-navy);
   border: 3px solid #FFFFFF;
   box-shadow: 0 0 0 1px rgba(24, 43, 73, 0.35), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Landing page (.ps-landing): plain CSS, parking-lot visual grammar  */
+/* ------------------------------------------------------------------ */
+.ps-landing {
+  --lp-asphalt: #182B49;
+  --lp-deep-asphalt: #101D33;
+  --lp-paint-white: #F7F8FA;
+  --lp-line-yellow: #FFCD00;
+  --lp-line-yellow-hover: #E5B800;
+  --lp-concrete: #E9ECF0;
+  --lp-link-blue: #00629B;
+  --lp-gold: #C69214;
+  --lp-asphalt-hover: #213A61;
+
+  font-family: 'Overpass', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: var(--lp-paint-white);
+  color: var(--lp-asphalt);
+  /* The page itself is locked (the planner is one fixed screen), so the landing
+     page is its own scroll container. */
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: auto;
+  scroll-behavior: smooth;
+  opacity: 1;
+  transition: opacity 250ms ease;
+}
+
+.ps-landing--exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ps-planner-enter {
+  animation: lp-planner-fade-in 250ms ease both;
+}
+
+@keyframes lp-planner-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ps-landing *,
+.ps-landing *::before,
+.ps-landing *::after {
+  box-sizing: border-box;
+}
+
+.lp-container {
+  width: 100%;
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 3.5vw, 48px);
+}
+
+/* Focus rings: 3px white on dark, 3px blue on light */
+.ps-landing .lp-hero :focus-visible,
+.ps-landing .lp-footer :focus-visible {
+  outline: 3px solid var(--lp-paint-white);
+  outline-offset: 3px;
+}
+
+.ps-landing main :focus-visible {
+  outline: 3px solid var(--lp-link-blue);
+  outline-offset: 3px;
+}
+
+/* Buttons (48px tall >= 44px touch target, 8px radius, weight 600) */
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  min-height: 48px;
+  padding-inline: 22px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms ease;
+}
+
+.lp-btn--yellow {
+  background-color: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+}
+
+.lp-btn--yellow:hover {
+  background-color: var(--lp-line-yellow-hover);
+}
+
+.lp-btn--asphalt {
+  background-color: var(--lp-asphalt);
+  color: var(--lp-paint-white);
+}
+
+.lp-btn--asphalt:hover {
+  background-color: var(--lp-asphalt-hover);
+}
+
+/* Landing document: full-color sections around three live lot scenes */
+.lp-doc {
+  --lp-serif: var(--font-serif);
+  font-family: var(--font-sans);
+  background: var(--lp-asphalt);
+  color: var(--lp-asphalt);
+}
+
+.ps-landing .lp-doc :focus-visible {
+  outline: 3px solid var(--lp-link-blue);
+  outline-offset: 3px;
+}
+
+.ps-landing .lp-dark :focus-visible {
+  outline-color: var(--lp-paint-white);
+}
+
+.lp-dark {
+  color: var(--lp-paint-white);
+}
+
+.lp-bar {
+  padding-block: 20px;
+}
+
+.lp-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lp-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--lp-serif);
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--lp-paint-white);
+}
+
+.lp-wordmark-logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+}
+
+/* Hero */
+.lp-hero2 {
+  background: var(--lp-asphalt);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-hero2-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+  padding-block: clamp(24px, 4vw, 56px) clamp(48px, 7vw, 96px);
+}
+
+.lp-h1 {
+  margin: 0;
+  max-width: 12ch;
+  font-family: var(--lp-serif);
+  font-size: clamp(2.75rem, 5.6vw, 5.25rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--lp-paint-white);
+}
+
+.lp-lede {
+  margin: 24px 0 0;
+  font-size: 1.375rem;
+  line-height: 1.4;
+  color: var(--lp-paint-white);
+}
+
+.lp-top-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+}
+
+.lp-textlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--lp-paint-white);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+.lp-fineprint {
+  margin: 24px 0 0;
+  font-size: 0.9375rem;
+  color: rgba(247, 248, 250, 0.72);
+}
+
+.lp-hero2-demo {
+  min-height: 420px;
+}
+
+/* Hero demo window */
+.hd-window {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(247, 248, 250, 0.12), 0 40px 80px -24px rgba(0, 0, 0, 0.6);
+}
+
+.hd-form {
+  padding: 22px 20px;
+  color: var(--lp-asphalt);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hd-field-label {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hd-field {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  padding-inline: 12px;
+  border: 1px solid #d3dae5;
+  border-radius: 9px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hd-caret {
+  width: 2px;
+  height: 18px;
+  margin-left: 2px;
+  background: var(--lp-asphalt);
+  animation: hd-blink 0.9s steps(2, start) infinite;
+}
+
+@keyframes hd-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.hd-permits {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #d3dae5;
+  border-radius: 10px;
+  background: #f3f5f9;
+}
+
+.hd-permit {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  border-radius: 7px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #4b5871;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.hd-permit--on {
+  background: var(--lp-asphalt);
+  color: #fff;
+}
+
+.hd-go {
+  margin-top: 6px;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border-radius: 10px;
+  background: #24406b;
+  box-shadow: 0 3px 0 #c69214;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  transition: transform 90ms ease, box-shadow 90ms ease;
+}
+
+.hd-go--pressed {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #c69214;
+}
+
+.hd-card {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--lp-asphalt);
+  color: #fff;
+}
+
+.hd-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.hd-lot {
+  margin-top: 8px;
+  font-family: var(--lp-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.hd-walk {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: rgba(247, 248, 250, 0.8);
+}
+
+.hd-walk b {
+  font-family: var(--lp-serif);
+  font-size: 1.125rem;
+  color: #fff;
+}
+
+.hd-open {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: rgba(247, 248, 250, 0.8);
+}
+
+.hd-open b {
+  font-family: var(--lp-serif);
+  font-size: 1.875rem;
+  color: var(--lp-line-yellow);
+}
+
+.hd-bar {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(247, 248, 250, 0.2);
+  overflow: hidden;
+}
+
+.hd-bar i {
+  display: block;
+  height: 100%;
+  background: #38c172;
+}
+
+.hd-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  background: #101d33;
+}
+
+.hd-bldg {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  fill: #f7f8fa;
+}
+
+.hd-num {
+  font-family: var(--lp-serif);
+  font-size: 20px;
+  font-weight: 700;
+  fill: #101d33;
+}
+
+/* Colored blocks */
+.lp-block {
+  padding-block: clamp(56px, 8vw, 112px);
+}
+
+.lp-block--yellow {
+  background: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+}
+
+.lp-block--blue {
+  background: var(--lp-link-blue);
+}
+
+.lp-block--navy {
+  background: var(--lp-deep-asphalt);
+}
+
+.lp-block-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 48px;
+  margin-bottom: clamp(24px, 4vw, 48px);
+}
+
+.lp-big {
+  margin: 0;
+  max-width: 14ch;
+  font-family: var(--lp-serif);
+  font-size: clamp(2.75rem, 7vw, 6.25rem);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.lp-big--yellow {
+  color: var(--lp-line-yellow);
+}
+
+.lp-sub {
+  margin: 0;
+  max-width: 24ch;
+  font-size: 1.375rem;
+  line-height: 1.35;
+}
+
+.lp-note {
+  margin: 16px 0 0;
+  font-size: 0.9375rem;
+  opacity: 0.8;
+}
+
+/* Permit lot */
+.pl-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--lp-asphalt);
+}
+
+.pl-readout strong {
+  font-family: var(--lp-serif);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.pl-readout span {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.pl-lot,
+.tl-lot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.pl-stall {
+  transition: opacity 350ms ease;
+}
+
+.pl-stall rect {
+  transition: fill 350ms ease, stroke 350ms ease;
+}
+
+.pl-letter,
+.tl-ticks {
+  font-family: var(--font-sans);
+}
+
+.pl-letter {
+  font-size: 22px;
+  font-weight: 800;
+  transition: fill 350ms ease;
+}
+
+.pl-car {
+  opacity: 0;
+  transform: translateY(var(--from, 0));
+  transition: transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 400ms ease;
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+.pl-lot--in .pl-car {
+  opacity: 1;
+  transform: none;
+}
+
+.pl-buttons {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pl-btn {
+  min-width: 64px;
+  height: 56px;
+  padding-inline: 22px;
+  border: 3px solid var(--lp-asphalt);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--lp-asphalt);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.pl-btn:hover {
+  transform: translateY(-2px);
+}
+
+.pl-btn--on {
+  background: var(--lp-asphalt);
+  color: var(--lp-line-yellow);
+}
+
+/* Time lot */
+.tl-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 32px;
+  margin-bottom: 14px;
+}
+
+.tl-time {
+  font-family: var(--lp-serif);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tl-state {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.tl-state strong {
+  font-family: var(--lp-serif);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tl-state span {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.tl-state--open strong,
+.tl-state--open span {
+  color: #7be3a4;
+}
+
+.tl-state--filling strong,
+.tl-state--filling span {
+  color: var(--lp-line-yellow);
+}
+
+.tl-state--full strong,
+.tl-state--full span {
+  color: #ff8a7a;
+}
+
+.tl-car {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.tl-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 12px;
+  margin: 24px 0 0;
+  border-radius: 6px;
+  background: rgba(247, 248, 250, 0.3);
+  cursor: pointer;
+}
+
+.tl-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--lp-asphalt);
+  border-radius: 50%;
+  background: var(--lp-line-yellow);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.tl-range::-moz-range-thumb {
+  width: 36px;
+  height: 36px;
+  border: 4px solid var(--lp-asphalt);
+  border-radius: 50%;
+  background: var(--lp-line-yellow);
+}
+
+.tl-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.875rem;
+  opacity: 0.85;
+}
+
+/* FAQ */
+.lp-block--paper {
+  background: var(--lp-paper, #f7f8fa);
+  color: var(--lp-asphalt);
+}
+
+.lp-big--navy {
+  color: var(--lp-asphalt);
+}
+
+.lp-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(24px, 6vw, 96px);
+  align-items: start;
+}
+
+.lp-faq-item {
+  border-top: 3px solid var(--lp-asphalt);
+}
+
+.lp-faq-item:last-child {
+  border-bottom: 3px solid var(--lp-asphalt);
+}
+
+.lp-faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  padding-block: 14px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+  list-style: none;
+}
+
+.lp-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.lp-faq-item summary::after {
+  content: '';
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background:
+    linear-gradient(var(--lp-asphalt), var(--lp-asphalt)) center / 100% 4px no-repeat,
+    linear-gradient(var(--lp-asphalt), var(--lp-asphalt)) center / 4px 100% no-repeat;
+  transition: transform 200ms ease;
+}
+
+.lp-faq-item[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.lp-faq-item p {
+  margin: 0 0 20px;
+  max-width: 54ch;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+/* Phone: a Plan my parking button that stays reachable once the hero is gone */
+.lp-sticky {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .lp-sticky {
+    position: fixed;
+    inset: auto 0 0 0;
+    display: block;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(16, 29, 51, 0.92), rgba(16, 29, 51, 0));
+    transform: translateY(110%);
+    transition: transform 250ms ease;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .lp-sticky--on {
+    transform: none;
+  }
+
+  .lp-sticky .lp-btn {
+    width: 100%;
+    height: 56px;
+    font-size: 1.0625rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .lp-sticky--on .lp-btn {
+    pointer-events: auto;
+  }
+
+  .lp-faq {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lp-footer {
+    padding-bottom: 96px;
+  }
+}
+
+/* Honest limits and what's next */
+/* Under the hood: a route of stages, then the scoring mix */
+.lp-block--hood {
+  background: var(--lp-asphalt);
+}
+
+.pp {
+  position: relative;
+}
+
+.pp-road {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  border-radius: 22px;
+  background: #101d33;
+}
+
+.pp-road::before {
+  content: '';
+  position: absolute;
+  inset: 50% 18px auto 18px;
+  border-top: 3px dashed rgba(255, 205, 0, 0.55);
+  transform: translateY(-50%);
+}
+
+.pp-car {
+  position: absolute;
+  top: 50%;
+  display: block;
+  transform: translate(-50%, -50%);
+  transition: left 900ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.pp-car svg {
+  display: block;
+}
+
+.pp-stages {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.pp-stage {
+  padding-top: 88px;
+  padding-right: clamp(12px, 2vw, 28px);
+  position: relative;
+  color: rgba(247, 248, 250, 0.62);
+  transition: color 300ms ease;
+}
+
+.pp-stage--on {
+  color: var(--lp-paint-white);
+}
+
+.pp-node {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid var(--lp-line-yellow);
+  background: var(--lp-asphalt);
+  transition: background-color 300ms ease, transform 300ms ease;
+}
+
+.pp-stage--on .pp-node {
+  background: var(--lp-line-yellow);
+  transform: scale(1.35);
+}
+
+.pp-name {
+  margin: 0;
+  font-family: var(--lp-serif);
+  font-size: 1.625rem;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.pp-text {
+  margin: 10px 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.pp-status {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 5px 11px;
+  border: 2px dashed rgba(255, 205, 0, 0.7);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--lp-line-yellow);
+}
+
+.pp-stage:last-child .pp-status {
+  border-style: solid;
+  background: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+}
+
+.lp-mix {
+  margin-top: clamp(48px, 7vw, 96px);
+}
+
+.lp-h3-light {
+  margin: 0 0 20px;
+  font-family: var(--lp-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 500;
+  color: var(--lp-line-yellow);
+}
+
+.sm-bar {
+  display: flex;
+  height: 72px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #101d33;
+}
+
+.sm-seg {
+  display: flex;
+  align-items: center;
+  padding-inline: 20px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 1.125rem;
+  font-weight: 800;
+  transition: width 500ms cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.sm-seg--a {
+  background: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+}
+
+.sm-seg--w {
+  background: #f7f8fa;
+  color: var(--lp-asphalt);
+  justify-content: flex-end;
+}
+
+.sm-note {
+  margin: 14px 0 0;
+  font-size: 1.125rem;
+}
+
+.sm-buttons {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sm-btn {
+  height: 52px;
+  padding-inline: 22px;
+  border: 3px solid var(--lp-paint-white);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--lp-paint-white);
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.sm-btn:hover {
+  transform: translateY(-2px);
+}
+
+.sm-btn--on {
+  border-color: var(--lp-line-yellow);
+  background: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+}
+
+/* Known limits: caution-striped, like a lot under repair */
+.lp-block--caution {
+  background: var(--lp-line-yellow);
+  color: var(--lp-asphalt);
+  padding-block: 0;
+}
+
+.lp-stripe {
+  height: 22px;
+  background: repeating-linear-gradient(135deg, var(--lp-asphalt) 0 22px, var(--lp-line-yellow) 22px 44px);
+}
+
+.lp-limits {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(24px, 6vw, 96px);
+  align-items: start;
+  padding-block: clamp(48px, 7vw, 104px);
+}
+
+.lp-limit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-limit-list li {
+  padding-block: 16px;
+  border-top: 3px solid var(--lp-asphalt);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.lp-limit-list li:last-child {
+  border-bottom: 3px solid var(--lp-asphalt);
+}
+
+.lp-limit-list strong {
+  font-weight: 800;
+}
+
+.lp-footer {
+  background-color: var(--lp-asphalt);
+  padding-block: clamp(32px, 5vw, 56px);
+  border-top: 1px solid rgba(247, 248, 250, 0.16);
+}
+
+.lp-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.lp-footer-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: rgba(247, 248, 250, 0.82);
+}
+
+.lp-footer-text + .lp-footer-text {
+  margin-top: 2px;
+}
+
+@media (max-width: 899px) {
+  .lp-hero2-grid,
+  .lp-limits {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hd-window {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hd-scene {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 520 / 300;
+  }
+
+  .lp-hero2-demo {
+    min-height: 0;
+  }
+
+  .lp-block-head {
+    align-items: flex-start;
+  }
+
+  .pp-road,
+  .pp-car {
+    display: none;
+  }
+
+  .pp-stages {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    border-left: 4px dashed rgba(255, 205, 0, 0.55);
+    margin-left: 8px;
+  }
+
+  .pp-stage {
+    padding: 0 0 0 28px;
+  }
+
+  .pp-stage:last-child {
+    padding-right: 0;
+  }
+
+  .pp-node {
+    top: 6px;
+    left: -11px;
+  }
+
+  .sm-seg {
+    padding-inline: 12px;
+    font-size: 0.9375rem;
+  }
+
+  .tl-range::-webkit-slider-thumb {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-landing,
+  .lp-btn {
+    transition: none;
+  }
+
+  .ps-landing {
+    scroll-behavior: auto;
+  }
+
+  .ps-planner-enter {
+    animation: none;
+  }
+
+  .hd-caret {
+    animation: none;
+  }
+
+  .pl-car {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .lp-sticky,
+  .pp-car,
+  .sm-seg {
+    transition: none;
+  }
+
+  .tl-car,
+  .pl-stall,
+  .pl-stall rect {
+    transition: none;
+  }
+}
+
+/* Intro: a car drives in, parks, and the route continues on foot. Waits for a click. */
+.ps-landing--intro {
+  overflow: hidden;
+}
+
+/* Hold the hero's own animations until the intro has lifted */
+.ps-landing--intro .lp-car--arriving,
+.ps-landing--intro .lp-stall-fill,
+.ps-landing--intro .lp-sign-plate {
+  animation-play-state: paused;
+}
+
+.lp-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: var(--lp-asphalt);
+  color: var(--lp-paint-white);
+  transition: transform 700ms cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+.lp-intro--leaving {
+  transform: translateY(-100%);
+}
+
+.lp-intro-brand {
+  position: absolute;
+  top: 24px;
+  left: clamp(20px, 4vw, 40px);
+}
+
+.lp-intro-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3vh, 32px);
+  padding: 96px 24px 40px;
+}
+
+.lp-intro-title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.75rem, 4.2vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.lp-intro-title span {
+  display: inline-block;
+}
+
+.lp-scene {
+  display: block;
+  overflow: visible;
+  width: min(1100px, 92vw, calc((100dvh - 370px) * 2));
+  height: auto;
+}
+
+.lp-scene-label {
+  font-size: 16px;
+  font-weight: 600;
+  fill: rgba(247, 248, 250, 0.6);
+}
+
+.lp-scene-label--strong {
+  font-size: 20px;
+  font-weight: 800;
+  fill: #F7F8FA;
+}
+
+.lp-scene-bldg {
+  font-size: 15px;
+  font-weight: 700;
+  fill: rgba(247, 248, 250, 0.78);
+}
+
+.lp-scene-plate {
+  font-size: 15px;
+  font-weight: 600;
+  fill: #182B49;
+}
+
+.lp-intro-caption {
+  margin: 6px 0 0;
+  min-height: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  font-size: 1rem;
+  color: rgba(247, 248, 250, 0.7);
+  opacity: 0;
+  animation: lp-caption 9s linear forwards;
+}
+
+.lp-intro-caption strong {
+  color: #F7F8FA;
+  font-weight: 800;
+}
+
+.lp-intro-caption-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background-color: var(--lp-line-yellow, #FFCD00);
+}
+
+@keyframes lp-caption {
+  0%, 30% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  36%, 68% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  72%, 100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+.lp-intro-cta {
+  min-width: 220px;
+  height: 56px;
+  font-size: 1.125rem;
+}
+
+/* Everything that fades in on a timeline (delay set per element) */
+.lp-fx {
+  opacity: 0;
+  animation: lp-fx-in 500ms ease var(--d, 0s) forwards;
+}
+
+@keyframes lp-fx-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-intro {
+    transition: none;
+  }
+
+  .lp-fx {
+    animation: none;
+    opacity: 1;
+  }
+
+  .lp-intro-caption {
+    animation: none;
+    opacity: 1;
+  }
+
+
+}
+
+@media (max-width: 599px) {
+  .lp-scene-label {
+    display: none;
+  }
+}
+
+/* Map loading screen: a car pulls into the open stall, on a loop */
+.ml {
+  display: grid;
+  place-items: center;
+}
+
+.ml--screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #182b49;
+  opacity: 1;
+  transition: opacity 600ms ease 100ms;
+  pointer-events: auto;
+}
+
+.ml--done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 600ms ease 100ms, visibility 0s linear 700ms;
+}
+
+.ml--inline {
+  padding-block: 24px 16px;
+}
+
+.ml--inline .ml-inner {
+  width: min(200px, 70%);
+  gap: 12px;
+}
+
+.ml--inline .ml-text {
+  font-size: 1.125rem;
+  color: #182b49;
+}
+
+.ml-inner {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  width: min(320px, 70vw);
+}
+
+.ml-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ml-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.375rem;
+  font-weight: 500;
+  color: #f7f8fa;
+}
+
+.ml-open {
+  fill: rgba(255, 205, 0, 0.18);
+  stroke: #ffcd00;
+  stroke-width: 3;
+  animation: ml-open 3.4s ease-in-out infinite;
+}
+
+.ml-car {
+  animation: ml-drive 3.4s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+@keyframes ml-drive {
+  0% {
+    transform: translate(-40px, 186px) rotate(90deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  46% {
+    transform: translate(190px, 186px) rotate(90deg);
+  }
+  58% {
+    transform: translate(214px, 172px) rotate(35deg);
+  }
+  74%,
+  92% {
+    transform: translate(215px, 100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(215px, 100px) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes ml-open {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  80%,
+  92% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ml-car {
+    animation: none;
+    transform: translate(215px, 100px);
+  }
+
+  .ml-open {
+    animation: none;
+    opacity: 0;
+  }
+
+  .ml {
+    transition: none;
+  }
 }

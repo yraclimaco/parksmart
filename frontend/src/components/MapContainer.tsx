@@ -130,6 +130,8 @@ interface MapContainerProps {
   isTimeOpen: boolean;
   onTimeToggle: () => void;
   timePanel: React.ReactNode;
+  /** Called once the first tiles have drawn (or a few seconds have passed). */
+  onReady?: () => void;
   /** Whether the left planner panel is showing; controls how much map is covered. */
   isPanelOpen: boolean;
   /** Whether the lot detail card is showing at the bottom of the map. */
@@ -208,6 +210,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   isTimeOpen,
   onTimeToggle,
   timePanel,
+  onReady,
   isPanelOpen,
   isDetailOpen,
   rankedLotIds,
@@ -243,6 +246,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   const [basemap, setBasemap] = useState<BasemapMode>(DEFAULT_BASEMAP);
   // Placeholder shown until the first tiles have drawn (or a few seconds pass)
   const [isMapReady, setIsMapReady] = useState(false);
+  useEffect(() => {
+    if (isMapReady) onReady?.();
+  }, [isMapReady, onReady]);
   const [basemapControlEl, setBasemapControlEl] = useState<HTMLElement | null>(null);
 
   // Map padding: reserve the panel's width on the left only while it is open.
@@ -353,7 +359,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   }, []);
 
   // Helper to frame all lots plus the destination with panel offset padding
-  const frameAllPoints = (map: maplibregl.Map, animate = true) => {
+  const frameAllPoints = (map: maplibregl.Map, animate = true, resetOrientation = false) => {
     if (lots.length === 0) return;
 
     const bounds = new maplibregl.LngLatBounds();
@@ -368,7 +374,15 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       padding: paddingRef.current,
       maxZoom: 16.0,
       duration: !animate || prefersReducedMotion ? 0 : 600,
+      ...(resetOrientation ? { bearing: 0, pitch: 0 } : {}),
     });
+  };
+
+  // The Reset view button (created once, inside the map effect) calls the latest version of this
+  const resetViewRef = useRef<() => void>(() => {});
+  resetViewRef.current = () => {
+    const map = mapRef.current;
+    if (map) frameAllPoints(map, true, true);
   };
 
   // Initialize MapLibre instance with OpenFreeMap Positron style
@@ -393,12 +407,27 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     map.addControl(
       new maplibregl.NavigationControl({
-        showCompass: true,
+        showCompass: false,
         showZoom: true,
         visualizePitch: false,
       }),
       'top-right'
     );
+
+    // Reset view: back to the starting frame (all lots plus the destination), facing north.
+    // Sits in the same group as zoom in/out, where the compass used to be.
+    const zoomGroup = map.getContainer().querySelector('.maplibregl-ctrl-zoom-in')?.parentElement;
+    if (zoomGroup) {
+      const resetButton = document.createElement('button');
+      resetButton.type = 'button';
+      resetButton.className = 'ps-reset-view';
+      resetButton.title = 'Reset view';
+      resetButton.setAttribute('aria-label', 'Reset view');
+      resetButton.innerHTML =
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>';
+      resetButton.addEventListener('click', () => resetViewRef.current());
+      zoomGroup.appendChild(resetButton);
+    }
 
     // Add OpenFreeMap & OpenStreetMap attribution in bottom right
     map.addControl(
@@ -754,19 +783,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         className="absolute inset-0 w-full h-full bg-[#f8f9fa] z-0 focus:outline-none"
         aria-label="Interactive UCSD Campus Parking Map"
       />
-
-      {/* Placeholder while map tiles load, so the first seconds are not a blank screen */}
-      <div
-        aria-hidden={isMapReady}
-        className={`absolute inset-0 z-[1] flex items-center justify-center bg-slate-100 pointer-events-none transition-opacity duration-500 ${
-          isMapReady ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        <div role="status" className="flex items-center gap-2 text-xs font-medium text-muted">
-          <span className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-          {isMapReady ? '' : 'Loading map...'}
-        </div>
-      </div>
 
       {/* Map controls, mounted inside the map's top-right control row (left of zoom):
           one row: Drop pin, Time, Map/Satellite.
