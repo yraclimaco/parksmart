@@ -18,7 +18,40 @@ Shorter walk with a 10-minute maximum. Incognito searches at 10 AM and 10 PM
 also succeeded: the first had a brief perceived delay, about a second, and the
 second felt immediate. These are operator observations, not measured cold-start
 latency. The new historical-survey link description was redeployed and confirmed
-in the page source. Independent teammate and failure-state checks remain open.
+in the page source. Dylan also reported testing the public website successfully.
+Failure-state checks remain open.
+
+### Pending hosted checks
+
+- Routing is disabled on the hosted backend. Walking/driving routes have not
+  been verified there; the displayed walking times are straight-line estimates.
+- The first search after a long idle period has not been verified to complete
+  within the website's 20-second timeout. Incognito searches with brief perceived
+  waits are not a confirmed cold-start measurement. Retain the earlier startup
+  timeout as an unresolved limitation.
+
+Yra confirmed these checks do not need fixes or redeployment in this review PR.
+Hosted alerts and browser error/retry checks also remain separate follow-ups.
+
+### Link-preview metadata provenance
+
+The hosted-API description is maintained upstream in
+[ParkSmart-Website commit 971e8ce](https://github.com/dylanwang-main/ParkSmart-Website/commit/971e8ce06f56f40ef2353576d309ec1cf81fec9c),
+which is contained in that repository's `main` branch. It updates the page,
+Open Graph and Twitter descriptions in upstream `index.html`, plus the description
+in `metadata.json`.
+
+For this PR, a metadata-only sync from an export of that exact commit checked and
+copied the two existing local description tags (`description`, `og:description`)
+and the JSON description. They already matched, so no content change was needed.
+The local page does not have the upstream Twitter-description tag; it was not
+added by this limited sync. The earlier edit in ParkSmart now has the same
+description maintained in the source repository.
+
+The full sync dry run also proposed landing-page, component and styling changes
+outside this review request. Those were not applied. This is not a claim that
+the entire `frontend/` directory matches that commit; broader UI integration is
+separate. No files were deleted and no AWS redeployment was performed.
 
 ### Rebuild and update the existing site
 

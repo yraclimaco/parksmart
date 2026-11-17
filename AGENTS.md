@@ -241,9 +241,10 @@ and CloudFormation roles. Do not create replacement roles. Current URLs, image
 digests, sizes and operator verification are in `docs/deployment_resources.md`.
 Readiness, real first/backup recommendations, public cards/map markers and a
 shorter-walk preference search have passed operator checks. Routing is disabled;
-walks are estimates. Cold-start timeout, hosted alerts/failure-state checks,
-independent teammate verification remain open. Automated results are recorded in
-the resource log.
+walks are estimates. Dylan reported a successful public website check. The first
+search after long idle has not been verified within the website's 20-second
+timeout; hosted routes and alerts/failure-state checks remain pending. Automated
+results are recorded in the resource log.
 
 `bash scripts/prepare_lambda_release.sh [new-release-id]` prepares a private
 release in the pinned linux/amd64 Lambda-compatible environment. Generation runs

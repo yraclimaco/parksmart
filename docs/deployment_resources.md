@@ -16,9 +16,13 @@ resources and stored objects are added. Do not record credentials here.
   `parksmart-website`, branch `demo`, updated by manual ZIP upload.
 - Public first/backup cards, map markers, shorter-walk preferences and incognito
   searches passed operator checks. The updated preview description is deployed.
-- Routing remains disabled. Cold-start latency, hosted alerts, failure-state
-  checks and independent teammate verification are open. Automated results and
-  review status are tracked in the verification table below.
+- Dylan reported testing the public website and confirmed it appeared to work.
+  This is teammate-reported verification, not an independent check of every
+  feature or failure state.
+- Routing remains disabled; hosted walking/driving routes are pending. The first
+  search after a long idle period has not been verified within the website's
+  20-second timeout. Hosted alerts and failure-state checks remain open.
+  Automated results and review status are tracked in the verification table below.
 - Account-owner billing review remains necessary; this log does not verify
   actual charges or credit balances.
 
@@ -269,3 +273,16 @@ and historical survey estimates. The operator rebuilt and manually redeployed
 the site, then confirmed the new description in the deployed page source.
 No new app, backend image or model release was needed for this metadata update.
 Social platforms may retain older preview caches.
+
+### Review follow-up: upstream description provenance
+
+Dylan supplied [ParkSmart-Website commit 971e8ce](https://github.com/dylanwang-main/ParkSmart-Website/commit/971e8ce06f56f40ef2353576d309ec1cf81fec9c).
+The operator's Git inspection confirmed the description change and that the
+commit is contained in upstream `main`. A full sync dry run showed additional
+landing-page/UI changes and proposed local ZIP deletions; the full sync was not
+applied. A metadata-only sync from that commit's export verified/copied the two
+existing local page/Open Graph descriptions and JSON description. Values already
+matched, so the frontend content stayed unchanged. This records source provenance
+without claiming a full frontend sync or bringing unrelated UI changes into
+Issue #33. No files were deleted or resources redeployed. Scope and the omitted
+upstream Twitter-description tag are documented in `docs/frontend_deployment.md`.

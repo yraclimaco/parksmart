@@ -60,9 +60,13 @@ Current status:
   and a shorter-walk preference search also succeeded. GitHub authorization is
   not configured for this manual deployment. See `docs/frontend_deployment.md`
   for update instructions; share verified URLs with Dylan and Hanrong.
-- Cold-start latency, hosted alerts, failure-state checks and independent teammate
-  verification remain pending. Automated results are in the resource log.
-  Routing is disabled.
+- Dylan reported a successful public website check. Hosted alerts and failure-state
+  checks remain pending; automated results are in the resource log.
+- Routing is disabled, so hosted walking/driving routes are not verified. The
+  first search after a long idle period has not been verified within the website's
+  20-second timeout. Successful warm/incognito searches do not establish that
+  cold-start result. Both hosted checks remain pending and need not be fixed or
+  redeployed for this documentation review.
 
 The six approved bundle objects were uploaded successfully under
 `releases/issue33-lambda-2026-11-14/`, with AES256 and the manifest last. ECR
@@ -145,10 +149,11 @@ tag for each application version before uploading to the immutable ECR repositor
 Omitting the second argument keeps the original behavior: the image tag equals
 the release ID. Neither form uploads or deploys anything.
 
-SAM's build metadata references that same staged dependency lock; prepare it
-with the helper before running `sam build`. The operator reported the serving
-image build, revised SAM template validation and local Lambda-format invocation
-passed. Track cloud resources and access blockers in `docs/deployment_resources.md`.
+The operator reported passing serving-image builds, SAM lint and local Lambda
+invocations. The deployment preview below references an already uploaded image
+by digest; it does not run `sam build` or rebuild/package an image. SAM build
+metadata is retained for alternative tooling, not required by this workflow.
+Track resources and verification in `docs/deployment_resources.md`.
 
 ### Invoke the serving container locally
 
@@ -246,6 +251,109 @@ that automatically execute it. Initial deployment and the combined image-and-ori
 update were reviewed and approved by Yra, then executed successfully. Continue
 obtaining review of future change-set previews before execution.
 
+## Create an unexecuted CloudFormation preview
+
+These commands document the current review workflow; they are not needed to
+address this documentation-only PR feedback. Run from the repository root only
+when preparing an approved deployment change. Local builds and ECR uploads must
+already be checked. This workflow uses the uploaded digest directly: do not run
+`sam build` or `sam deploy` as an intermediate step. The local template is sent
+as the proposed configuration; CloudFormation does not build the Docker image.
+
+### 1. Set the proposed configuration
+
+The values below identify the existing demo. For a real application update,
+replace the image URI with the new verified ECR digest and use a fresh change-set
+name. For another account or release, replace the role, bucket, prefix and origin
+with its approved values. These variables contain no credentials.
+
+```bash
+parksmart_region=us-west-2
+parksmart_stack=parksmart-backend
+parksmart_change_type=UPDATE
+parksmart_changeset="issue33-preview-$(date -u +%Y%m%dT%H%M%SZ)"
+parksmart_execution_role=arn:aws:iam::684494100594:role/ParkSmartCloudFormationExecution
+parksmart_image_uri=684494100594.dkr.ecr.us-west-2.amazonaws.com/parksmart-backend@sha256:4b153ba7a6c605d6d6a293b38bc1b8d0f713103697f81a18de4f900f89d68748
+parksmart_artifact_bucket=parksmart-artifacts-684494100594
+parksmart_release_prefix=releases/issue33-lambda-2026-11-14
+parksmart_runtime_role=ParkSmartLambdaRuntime
+parksmart_frontend_origin=https://demo.d2ru7u75tkpr69.amplifyapp.com
+```
+
+UPDATE targets the existing stack. For an initial stack that does not yet exist,
+set `parksmart_change_type=CREATE` instead. Do not use CREATE against the live
+stack. Before an update, inspect the current parameters and preserve settings
+that are not part of the intended change:
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name "$parksmart_stack" \
+  --region "$parksmart_region" \
+  --query 'Stacks[0].{Status:StackStatus,Parameters:Parameters}' \
+  --no-cli-pager
+```
+
+Skip that lookup for a genuinely new stack. It should not be treated as proof
+that a denied console listing means a stack is missing.
+
+### 2. Create the preview without executing it
+
+```bash
+aws cloudformation create-change-set \
+  --stack-name "$parksmart_stack" \
+  --change-set-name "$parksmart_changeset" \
+  --change-set-type "$parksmart_change_type" \
+  --template-body file://infra/template.yaml \
+  --role-arn "$parksmart_execution_role" \
+  --parameters \
+    ParameterKey=DeploymentApproved,ParameterValue=yes \
+    "ParameterKey=ArtifactBucket,ParameterValue=$parksmart_artifact_bucket" \
+    "ParameterKey=ReleasePrefix,ParameterValue=$parksmart_release_prefix" \
+    "ParameterKey=LambdaRuntimeRoleName,ParameterValue=$parksmart_runtime_role" \
+    "ParameterKey=BackendImageUri,ParameterValue=$parksmart_image_uri" \
+    "ParameterKey=FrontendOrigins,ParameterValue=$parksmart_frontend_origin" \
+  --region "$parksmart_region" \
+  --no-cli-pager
+```
+
+This submits a change-set preview using the existing execution role; it does not
+apply resource changes. No IAM role, image build or private data upload is
+performed by this command. The template's deployment gate is proposed as yes,
+but the live stack remains unchanged until separate execution after review.
+
+### 3. Wait, then inspect parameters and resource changes
+
+```bash
+aws cloudformation wait change-set-create-complete \
+  --stack-name "$parksmart_stack" \
+  --change-set-name "$parksmart_changeset" \
+  --region "$parksmart_region"
+```
+
+```bash
+aws cloudformation describe-change-set \
+  --stack-name "$parksmart_stack" \
+  --change-set-name "$parksmart_changeset" \
+  --region "$parksmart_region" \
+  --query '{Name:ChangeSetName,Id:ChangeSetId,Status:Status,Reason:StatusReason,ExecutionStatus:ExecutionStatus,Parameters:Parameters,Changes:Changes}' \
+  --no-cli-pager
+```
+
+Run the inspection command even if the waiter fails, so StatusReason is visible.
+A ready preview has CREATE_COMPLETE and ExecutionStatus AVAILABLE. Inspect the
+full Changes entries for replacements/deletions, unexpected IAM or network
+resources, the image digest, and exact origin. If the preview reports no changes,
+confirm the proposed settings already match the deployment. No deployment action
+is needed in that case. CloudFormation can mark such a preview FAILED with a
+no-changes reason; this does not mean the running deployment failed. Send any
+other failure's exact reason to Yra.
+
+**Stop here. Send Yra the change-set name/ID and inspection output before
+execution.** This preview section intentionally contains no execution command.
+After approval, execution and stack completion are separate steps; verify saved
+readiness before testing the website. Do not execute an older preview after a
+new image or configuration is proposed.
+
 ## Understand the path
 
 ```text
@@ -302,66 +410,18 @@ startup and public website searches have passed operator checks. See
 `docs/deployment_resources.md` for verification results and remaining limitations,
 including cold-start latency. Issue #26 history is in `docs/issue26_handoff.md`.
 
-## Prepare a private release locally
+## Existing compatible artifacts and earlier setup
 
-First complete the saved-artifact demo in `docs/issue26_handoff.md`. Existing
-artifact Python/numpy/pandas/sklearn/scipy/joblib versions must match exactly.
-After installing the agreed requirements, this command copies already prepared
-files and checks the dataset registry mapping; it never trains or uploads:
+For a previously prepared artifact, use the metadata-bound bundling instructions
+in `docs/model_storage.md`. Issue #26 setup history is retained in
+`docs/issue26_handoff.md`; use the current build and loopback-only invocation
+example above for this demo. There is no second Docker/SAM deployment path here.
 
-```bash
-python -m scripts.prepare_serving_bundle --s3-prefix releases/demo-2026-11-05
-```
-
-It creates the ignored `.serving-bundle/` directory with selected.pkl,
-analysis_dataset.csv, locations.json, manifest.json and requirements-model.txt.
-It refuses to overwrite an existing output directory. Keep it private and out of
-Git. The manifest contains hashes, model name and exact dependency versions.
-Use a new immutable prefix for each approved release. Record the approved model
-identity and artifact hash with Vivaan before provisioning it.
-
-For local build validation, with Docker and SAM CLI installed:
-
-```bash
-docker build --platform linux/amd64 -f infra/Dockerfile -t parksmart-backend:local .
-docker run --rm --platform linux/amd64 --entrypoint python parksmart-backend:local -c 'import platform; print(platform.python_version())'
-sam validate --lint --template-file infra/template.yaml
-sam build --template-file infra/template.yaml
-```
-
-The template targets x86_64; the explicit linux/amd64 Docker platform matches
-that target, including on Apple Silicon hosts. These commands have not been run
-in this review environment. Before deployment, pin the reviewed base-image digest
-using the Dockerfile's LAMBDA_BASE_IMAGE build argument and validate the identical
-image/model release through SAM. Do not assume the mutable Python tag is compatible.
-
-The .dockerignore allowlist permits only the generated dependency lock from the
-private bundle into the image context; the model/data files stay out. Run the
-container locally with the bundle mounted read-only and explicit local file
-paths to verify readiness. No S3 access is needed for that check:
-
-```bash
-docker run --rm --platform linux/amd64 -p 9000:8080 -v "$PWD/.serving-bundle:/bundle:ro" \
-  -e PARKSMART_ARTIFACT_PATH=/bundle/selected.pkl \
-  -e PARKSMART_DATASET_PATH=/bundle/analysis_dataset.csv \
-  -e PARKSMART_REGISTRY_PATH=/bundle/locations.json \
-  -e PARKSMART_ROUTING_PROVIDER=none parksmart-backend:local
-```
-
-Use Lambda's runtime invocation endpoint on localhost:9000 with a documented
-API Gateway v2 event (see tests/test_lambda_handler.py), not `/readiness` directly.
-`sam local start-api --template .aws-sam/build/template.yaml` provides an HTTP
-frontend when supplied equivalent reviewed local environment overrides. Do not
-use real AWS credentials for a local invocation whose inputs are local paths.
-
-**Compatibility:** Python patch version must also match the artifact. If the
-Lambda base image differs from the Mac environment, do not edit the artifact's
-version envelope. Pin a reviewed base-image digest and reproduce the artifacts
-in that exact serving environment using Vivaan's existing offline training
-command. This requires the dataset mounted locally; never train on Lambda cold
-start. Pin the generated dependency lock and image identity for that release.
-The saved loader enforces compatibility and readiness stays unavailable on
-mismatch. Do not upload/deploy a release until the container readiness passes.
+Python patch and model-library versions must match the pinned serving image.
+Never edit compatibility metadata to bypass validation or train during Lambda
+startup. If versions differ, prepare a new immutable release in the compatible
+container, then check the actual serving image before upload. The Docker build
+context permits the generated dependency lock, not private model/data files.
 
 ## Shared concurrency and demo safeguards
 
@@ -423,6 +483,7 @@ throttles are alerts/traffic controls, not hard guarantees of zero spend.
    DeploymentApproved, ArtifactBucket, ReleasePrefix, LambdaRuntimeRoleName,
    BackendImageUri and the exact FrontendOrigins in the reviewed configuration.
    Wait for change-set creation and inspect its parameters and resource changes.
+   Follow the exact commands in [Create an unexecuted CloudFormation preview](#create-an-unexecuted-cloudformation-preview).
    Send the named preview to Yra, execute only after approval, and wait for the
    stack to complete before checking readiness. Shared concurrency means the
    function is invokable when created. Do not reuse another account's credentials.
