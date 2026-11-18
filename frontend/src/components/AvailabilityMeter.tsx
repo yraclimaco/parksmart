@@ -22,6 +22,9 @@ interface AvailabilityMeterProps {
  * Result cards and the map's lot card both render this, so the same lot never reads
  * differently depending on where you look.
  */
+/** Past-survey averages near 100% still are not a guarantee, so they read "95%+". */
+const CAP_AT = 95;
+
 export const AvailabilityMeter: React.FC<AvailabilityMeterProps> = ({
   percent,
   timeLabel,
@@ -45,26 +48,19 @@ export const AvailabilityMeter: React.FC<AvailabilityMeterProps> = ({
     <div>
       <div className="flex items-end justify-between gap-2">
         <div>
+          {/* The word leads: the number is a historical average, not a count of free stalls */}
           <div
-            className={`font-serif font-semibold tabular-nums leading-none ${
-              size === 'lg' ? 'text-[36px]' : 'text-[28px]'
+            className={`font-serif font-semibold leading-none ${
+              size === 'lg' ? 'text-[30px]' : 'text-[24px]'
             } ${dark ? 'text-sun' : 'text-navy'}`}
           >
-            {percent}%
-            <span className={`ml-1.5 font-sans text-[13px] font-medium ${dark ? 'text-white/70' : 'text-muted'}`}>open</span>
+            {status.label}
           </div>
-          <div className={`mt-1 text-xs ${dark ? 'text-white/70' : 'text-muted'}`}>Based on historical patterns for {timeLabel}</div>
+          <div className={`mt-1.5 text-[13px] ${dark ? 'text-white/80' : 'text-muted'}`}>
+            <span className="tabular-nums font-semibold">{percent >= CAP_AT ? `${CAP_AT}%+` : `about ${percent}%`}</span> open in past
+            surveys for {timeLabel}
+          </div>
         </div>
-        <span
-          className="px-2.5 py-1 rounded-md text-[13px] font-semibold"
-          style={
-            dark
-              ? { color: '#fff', backgroundColor: 'rgba(255,255,255,0.14)' }
-              : { color: status.textColor, backgroundColor: `${status.color}26` }
-          }
-        >
-          {status.label}
-        </span>
       </div>
       <div className={`mt-2.5 h-2 rounded-full overflow-hidden ${dark ? 'bg-white/20' : 'bg-paper'}`}>
         <motion.div

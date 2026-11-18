@@ -361,16 +361,15 @@ export const LandingIntro: React.FC<LandingIntroProps> = ({ onDone }) => {
       aria-label="ParkSmart intro"
     >
       <span className="lp-wordmark lp-intro-brand">
-        <img src={parkSmartLogoHd} alt="" className="lp-wordmark-logo" width={52} height={52} />
+        <img src={parkSmartLogoHd} alt="ParkSmart logo" className="lp-wordmark-logo" width={52} height={52} />
         ParkSmart
       </span>
 
       <div className="lp-intro-inner">
-        <h1 className="lp-intro-title">
-          <span className="lp-fx" style={{ ['--d' as string]: '0.1s' }}>Your car.</span>{' '}
-          <span className="lp-fx" style={{ ['--d' as string]: '0.35s' }}>Your spot.</span>{' '}
-          <span className="lp-fx" style={{ ['--d' as string]: '0.6s' }}>Your destination.</span>
-        </h1>
+        <p className="lp-intro-title">
+          <span className="lp-fx" style={{ ['--d' as string]: '0.1s' }}>Find your UCSD parking spot</span>{' '}
+          <span className="lp-fx" style={{ ['--d' as string]: '0.4s' }}>before you leave home.</span>
+        </p>
 
         <svg
           className="lp-scene"
@@ -554,6 +553,9 @@ export const LandingIntro: React.FC<LandingIntroProps> = ({ onDone }) => {
           onClick={enter}
         >
           Enter ParkSmart
+        </button>
+        <button type="button" className="lp-intro-skip" onClick={enter}>
+          Skip intro
         </button>
       </div>
     </div>

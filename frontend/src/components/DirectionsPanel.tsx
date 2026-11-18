@@ -110,7 +110,7 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
         </button>
       )}
 
-      <p className="text-[11px] text-muted leading-snug">
+      <p className="text-xs text-muted leading-snug">
         Typical travel times without live traffic. Routes use the parking location’s map point, which may not be
         its entrance.{' '}
         {attribution && (

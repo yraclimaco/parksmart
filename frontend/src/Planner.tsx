@@ -215,19 +215,19 @@ export default function Planner({ onBack }: PlannerProps) {
     if (isMobile && isDetailOpen) setIsPanelOpen(false);
   }, [isMobile, isDetailOpen]);
 
-  // Phone: the sheet is short, so bring the results into view after each search
+  // Bring the answer into view after each search: the form above it is tall on every screen size
   useEffect(() => {
-    if (!isMobile || searchedRequest === null || isLoading) return;
+    if (searchedRequest === null || isLoading) return;
     // Scroll only the sheet's own list (scrollIntoView can also shift the page behind it)
     const results = document.getElementById('planner-results');
     const box = document.getElementById('planner-scroll');
     if (results && box) {
       box.scrollTo({
         top: box.scrollTop + results.getBoundingClientRect().top - box.getBoundingClientRect().top - 8,
-        behavior: 'smooth',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       });
     }
-  }, [isMobile, searchedRequest, isLoading]);
+  }, [searchedRequest, isLoading]);
 
   // Compute recommendations from current formInputs
   const runPlanner = useCallback(
@@ -559,7 +559,7 @@ export default function Planner({ onBack }: PlannerProps) {
         aria-label={isPanelOpen ? 'Hide planner panel' : 'Show planner panel'}
         aria-expanded={isPanelOpen}
         aria-controls="planner-panel"
-        className={`max-sm:hidden absolute left-4 ${isPanelOpen ? 'top-[22px]' : 'top-4'} z-30 w-9 h-9 rounded-[10px] flex items-center justify-center text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
+        className={`max-sm:hidden absolute left-4 ${isPanelOpen ? 'top-[22px]' : 'top-4'} z-30 w-9 h-9 before:content-[''] before:absolute before:-inset-1 rounded-[10px] flex items-center justify-center text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
           isPanelOpen
             ? ''
             : 'bg-white border border-line shadow-[0_1px_2px_rgba(24,43,73,0.08),0_4px_12px_rgba(24,43,73,0.1)]'
@@ -575,7 +575,7 @@ export default function Planner({ onBack }: PlannerProps) {
         aria-label={isPanelOpen ? 'Hide planner panel' : 'Show planner panel'}
         aria-expanded={isPanelOpen}
         aria-controls="planner-panel"
-        className={`sm:hidden absolute left-1/2 -translate-x-1/2 z-30 h-8 px-4 rounded-full bg-white border border-line text-navy flex items-center justify-center gap-1 text-[12px] font-semibold shadow-[0_2px_10px_rgba(24,43,73,0.18)] transition-[top,bottom] duration-300 ease-out motion-reduce:transition-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
+        className={`sm:hidden absolute left-1/2 -translate-x-1/2 z-30 h-8 px-4 before:content-[''] before:absolute before:-inset-y-2 before:inset-x-0 rounded-full bg-white border border-line text-navy flex items-center justify-center gap-1 text-[12px] font-semibold shadow-[0_2px_10px_rgba(24,43,73,0.18)] transition-[top,bottom] duration-300 ease-out motion-reduce:transition-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
           isPanelOpen ? 'top-[calc(50%-16px)]' : 'top-[calc(100%-80px)]'
         }`}
       >
@@ -624,7 +624,7 @@ export default function Planner({ onBack }: PlannerProps) {
                 type="button"
                 onClick={onBack}
                 aria-label="Back to the ParkSmart home page"
-                className="shrink-0 inline-flex items-center gap-1 h-7 pl-1.5 pr-2.5 rounded-full border border-line bg-white text-[12px] font-semibold text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer"
+                className="shrink-0 inline-flex relative before:content-[''] before:absolute before:-inset-2 items-center gap-1 h-7 pl-1.5 pr-2.5 rounded-full border border-line bg-white text-[12px] font-semibold text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Home</span>
@@ -720,7 +720,7 @@ export default function Planner({ onBack }: PlannerProps) {
           </div>
 
           {/* Panel Footer Note */}
-          <footer className="px-5 py-2.5 bg-paper border-t border-line text-[11px] text-muted leading-snug shrink-0">
+          <footer className="px-5 py-2.5 bg-paper border-t border-line text-xs text-muted leading-snug shrink-0">
             <span>
               {USE_API
                 ? 'Historical estimates from past surveys, not live availability.'

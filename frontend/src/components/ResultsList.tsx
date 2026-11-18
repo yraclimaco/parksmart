@@ -220,7 +220,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
       {api ? (
         <Limitations notes={api.limitations} />
       ) : (
-        <p className="px-1 text-[11px] text-muted leading-snug">
+        <p className="px-1 text-xs text-muted leading-snug">
           Open-space numbers are a time-of-day estimate from sample data, not live counts. Walk times are
           straight-line estimates. Always check posted signs and UCSD Transportation before you park.
         </p>
@@ -234,7 +234,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
             previousVisibleRef.current = visibleCount;
             setVisibleCount((n) => Math.min(recommendations.length, n + LOAD_MORE_STEP));
           }}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white border border-line hover:bg-white text-[13px] font-semibold text-navy transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-1.5 max-sm:min-h-[44px] py-2.5 rounded-xl bg-white border border-line hover:bg-white text-[13px] font-semibold text-navy transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronDown className="w-4 h-4" aria-hidden="true" />
           Show {Math.min(LOAD_MORE_STEP, recommendations.length - visibleCount)} more
@@ -257,7 +257,7 @@ const ExampleBadge: React.FC = () => (
 /** The backend's limitations for these results, in its own words. */
 const Limitations: React.FC<{ notes: string[] }> = ({ notes }) =>
   notes.length === 0 ? null : (
-    <ul className="px-1 space-y-1 text-[11px] text-muted leading-snug list-disc list-inside">
+    <ul className="px-1 space-y-1 text-xs text-muted leading-snug list-disc list-inside">
       {notes.map((note) => (
         <li key={note}>{note}</li>
       ))}

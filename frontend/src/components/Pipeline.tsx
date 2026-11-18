@@ -14,27 +14,32 @@ const LIVE = RECOMMENDATION_SOURCE === 'api';
 const STAGES = [
   {
     name: 'Public data',
-    text: 'Past parking counts, lot sizes, and permit rules.',
+    method: 'UCSD QPASS survey workbooks and Parking Space Inventory reports, cleaned and matched to lots.',
+    why: 'They are the only public counts. They mostly cover the first weeks of each quarter since 2018, with gaps.',
     status: 'Public sources',
   },
   {
     name: 'Forecast',
-    text: 'Typical open share by lot, weekday, and time of day.',
-    status: LIVE ? 'Historical averages' : 'Sample curve here',
+    method: 'The average open share for the same lot, weekday, time and quarter.',
+    why: 'In our tests it beat a trained regression model on nearly full lots, and it is easy to explain.',
+    status: LIVE ? 'Historical averages' : 'Prototype uses a sample curve. Real averages run in the hosted app.',
   },
   {
     name: 'Backend',
-    text: 'A FastAPI service filters by permit, scores, and ranks.',
-    status: LIVE ? 'Live on AWS' : 'Not connected here',
+    method: 'A FastAPI service checks permit rules, attaches the forecast, scores and ranks lots.',
+    why: 'One service means the website and a future app give the same answer.',
+    status: LIVE ? 'Live on AWS' : 'Prototype uses sample data. Backend deploys on AWS next.',
   },
   {
     name: 'Routing',
-    text: 'Walking and driving paths from OpenStreetMap-based routing, with any key kept on the server.',
-    status: LIVE ? 'Off in this demo; walks are estimates' : 'Not connected here',
+    method: 'Walking and driving paths from OpenStreetMap-based routing, with any key kept on the server.',
+    why: 'Real paths beat straight-line guesses, but the free public server is for light use only.',
+    status: LIVE ? 'Off in this demo. Walk times are estimates; routing is planned.' : 'Prototype uses estimates. Routing is planned after the AWS demo.',
   },
   {
     name: 'This website',
-    text: 'React, TypeScript, and MapLibre. Shows a first choice and a backup.',
+    method: 'React and a MapLibre map that show a first choice and a backup.',
+    why: 'The answer sits next to the map, so you can check it against where you are going.',
     status: 'You are here',
   },
 ] as const;
@@ -66,15 +71,14 @@ export const Pipeline: React.FC = () => {
           <li key={stage.name} className={`pp-stage${i === active ? ' pp-stage--on' : ''}`}>
             <span className="pp-node" aria-hidden="true" />
             <h3 className="pp-name">{stage.name}</h3>
-            <p className="pp-text">{stage.text}</p>
+            <p className="pp-text"><span className="pp-label">What</span> {stage.method}</p>
+            <p className="pp-text"><span className="pp-label">Why</span> {stage.why}</p>
             <span className="pp-status">{stage.status}</span>
           </li>
         ))}
       </ol>
       <p className="lp-note">
-        {LIVE
-          ? 'Hosting: AWS Amplify serves the site, Lambda behind API Gateway runs the backend, and S3 holds the data files.'
-          : 'Hosting: this preview uses sample data. The full app runs on AWS (Amplify, Lambda with API Gateway, and S3).'}
+        {LIVE ? 'Hosted on AWS: Amplify, Lambda with API Gateway, and S3.' : 'Preview on sample data. The full app runs on AWS.'}
       </p>
     </div>
   );

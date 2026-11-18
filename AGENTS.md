@@ -669,6 +669,12 @@ real prediction. Website pins must use registry `location_id` values; a test in
 also gets driving/walking routes from `POST /routes` (see Issue #25 below)
 and weather/construction trip alerts from `POST /trip-alerts` (Issue #35); alert
 failures never affect the parking results.
+The landing page is nine one-screen sections (proximity scroll-snap only on wide
+mouse/trackpad screens) with a sticky header; its figures (76,102 readings, 21.0 pp
+MAE on 11,665 held-out readings) come from `docs/issue11_findings.md` and
+`docs/issue18_predictions.md`, so update them if the model or dataset changes. A
+canvas car cursor with a fading trail runs on the landing page only, for a mouse
+with reduced motion off; the planner keeps the normal cursor.
 Website changes are made on a branch of ParkSmart-Website, merged there, then
 synced; `--source` syncs a local clone's committed `HEAD` for testing.
 

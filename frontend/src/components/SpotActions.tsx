@@ -33,7 +33,7 @@ export const SpotActions: React.FC<SpotActionsProps> = ({
     fn();
   };
   const base =
-    'flex items-center justify-center gap-1.5 py-2 rounded-lg text-[14px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50';
+    'flex items-center justify-center gap-1.5 py-2 max-sm:min-h-[44px] rounded-lg text-[14px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer disabled:cursor-not-allowed disabled:opacity-50';
 
   if (!isConfirmed) {
     return (

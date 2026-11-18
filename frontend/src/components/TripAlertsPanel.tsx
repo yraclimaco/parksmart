@@ -50,7 +50,7 @@ const SourceBlock: React.FC<{ kind: 'weather' | 'construction'; source: AlertSou
         );
       })}
       {showEmpty && <p className="text-[12px] text-muted leading-snug">{emptySourceMessage(kind, source)}</p>}
-      <p className="text-[11px] text-muted leading-snug">
+      <p className="text-xs text-muted leading-snug">
         <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="underline">
           {source.source_name}
         </a>
@@ -89,7 +89,7 @@ export const TripAlertsPanel: React.FC<TripAlertsPanelProps> = ({ lotName, state
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-line text-navy font-semibold hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-line text-navy font-semibold hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
           >
             <RefreshCw className="w-3 h-3" aria-hidden="true" />
             Try again
@@ -100,7 +100,7 @@ export const TripAlertsPanel: React.FC<TripAlertsPanelProps> = ({ lotName, state
         <>
           <SourceBlock kind="weather" source={state.alerts.weather} />
           <SourceBlock kind="construction" source={state.alerts.construction} />
-          <details className="text-[11px] text-muted leading-snug">
+          <details className="text-xs text-muted leading-snug">
             <summary className="cursor-pointer">About these alerts</summary>
             <ul className="mt-1 space-y-1 list-disc pl-4">
               <li>Weather tips are ParkSmart walking-comfort suggestions, not official warnings.</li>

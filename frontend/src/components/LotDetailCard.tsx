@@ -127,7 +127,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
           type="button"
           onClick={onClose}
           aria-label="Close lot details"
-          className="shrink-0 w-7 h-7 rounded-full bg-paper hover:bg-line text-muted flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer"
+          className="relative before:content-[''] before:absolute before:-inset-2 shrink-0 w-7 h-7 rounded-full bg-paper hover:bg-line text-muted flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -150,7 +150,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
               </p>
               {backendEstimate.fitReason && (
                 <div className="mt-3 px-3 py-2.5 rounded-xl bg-paper text-[13px]">
-                  <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">
                     Why it fits{priorityLabel ? `: ${priorityLabel}` : ''}
                   </p>
                   <p className="mt-0.5 text-navy">{backendEstimate.fitReason}</p>
@@ -192,7 +192,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
             {lot.spaceCategories.map((category) => (
               <span
                 key={category}
-                className={`px-1.5 rounded font-mono text-[10px] leading-4 ${
+                className={`px-1.5 rounded font-mono text-xs leading-4 ${
                   usable.includes(category)
                     ? 'bg-navy text-white font-bold'
                     : 'bg-white border border-line text-muted line-through'
@@ -220,7 +220,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
             <span>
               <span className="font-medium">{walkMinutes} min walk</span>
               <span className="text-muted"> to {destination.name}</span>
-              {walkSource && <span className="block text-[11px] text-muted">{walkSource}</span>}
+              {walkSource && <span className="block text-xs text-muted">{walkSource}</span>}
             </span>
           </div>
         )}
@@ -243,7 +243,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
           <button
             type="button"
             onClick={() => onPlanFor(access.from)}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-navy hover:bg-navy-2 text-white text-[13px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer"
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-navy hover:bg-navy-2 text-white text-[13px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
           >
             <CalendarClock className="w-4 h-4" aria-hidden="true" />
             Plan for {formatAccessTime(access.from, when)} instead
@@ -255,7 +255,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
         )}
       </div>
 
-      <p className="mt-2 text-[11px] text-muted text-center">
+      <p className="mt-2 text-xs text-muted text-center">
         {backendMode
           ? 'Historical estimates from past surveys, not live availability'
           : 'Sample estimate, not live availability'}

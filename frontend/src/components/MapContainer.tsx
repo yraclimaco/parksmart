@@ -837,7 +837,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                     role="radio"
                     aria-checked={basemap === mode}
                     onClick={() => setBasemap(mode)}
-                    className={`relative h-[28px] px-3 text-xs font-semibold rounded-[8px] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer ${
+                    className={`relative h-[28px] max-sm:h-[40px] px-3 text-xs font-semibold rounded-[8px] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
                       basemap === mode ? 'text-white' : 'text-muted hover:text-navy'
                     }`}
                   >

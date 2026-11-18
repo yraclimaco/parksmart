@@ -22,10 +22,10 @@ export const ScoreMix: React.FC = () => {
   return (
     <div className="sm">
       <div className="sm-bar" role="img" aria-label={`${a} percent expected availability, ${w} percent walking convenience`}>
-        <div className="sm-seg sm-seg--a" style={{ width: `${a}%` }}>
+        <div className="sm-seg sm-seg--a" style={{ flexGrow: a, flexBasis: 0 }}>
           <span>{a}% availability</span>
         </div>
-        <div className="sm-seg sm-seg--w" style={{ width: `${w}%` }}>
+        <div className="sm-seg sm-seg--w" style={{ flexGrow: w, flexBasis: 0 }}>
           <span>{w}% walking</span>
         </div>
       </div>

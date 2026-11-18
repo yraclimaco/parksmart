@@ -148,7 +148,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 
       {/* Non-D permits that get in only through D stalls: the Sept 18 D restriction is unresolved */}
       {fromBackend && (
-        <p className={`mt-2 text-[11px] ${muted}`}>
+        <p className={`mt-2 text-xs ${muted}`}>
           {estimate.isExample ? 'Example only, not a real estimate.' : 'Historical estimate from past surveys, not live availability.'}
         </p>
       )}
@@ -175,7 +175,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             <span
               key={category}
               title={usable.includes(category) ? `You can use ${category} spaces` : `${category} spaces not valid for you at this time`}
-              className={`px-1.5 rounded text-[11px] leading-[18px] font-semibold ${
+              className={`px-1.5 rounded text-xs leading-[18px] font-semibold ${
                 usable.includes(category)
                   ? hero
                     ? 'bg-sun text-navy'
