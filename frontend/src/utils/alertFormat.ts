@@ -9,6 +9,13 @@ const UCSD_TIME_ZONE = 'America/Los_Angeles';
 const MM_PER_INCH = 25.4;
 const MPH_PER_KMH = 0.621371;
 
+/**
+ * How close a construction notice must be to the parking lot or destination to be listed.
+ * Mirrors the backend's 200 m advisory buffer (docs/construction_source.md); it is a
+ * matching choice, not a measured impact radius.
+ */
+export const NEARBY_DISTANCE_TEXT = 'about 650 ft (200 m)';
+
 export const celsiusToFahrenheit = (c: number): number => (c * 9) / 5 + 32;
 export const kmhToMph = (kmh: number): number => kmh * MPH_PER_KMH;
 
@@ -60,7 +67,7 @@ export function describeForecast(forecast: WeatherForecast): string {
 export function emptySourceMessage(kind: 'weather' | 'construction', source: AlertSource): string {
   switch (source.status) {
     case 'no_relevant':
-      return "No published construction notices matched near this trip. That doesn't prove there is none.";
+      return `No published construction notices matched within ${NEARBY_DISTANCE_TEXT} of the parking location or your destination. That doesn't prove there is none.`;
     case 'out_of_range':
       return 'No forecast for this date yet. Forecasts only reach about two weeks ahead.';
     case 'missing_location':
@@ -72,4 +79,15 @@ export function emptySourceMessage(kind: 'weather' | 'construction', source: Ale
     default:
       return kind === 'weather' ? 'No weather suggestions for this arrival.' : 'No construction notices matched.';
   }
+}
+
+/**
+ * Short tag for how a construction notice matched: inside the mapped work area, or only
+ * nearby. Null for anything else (weather, or a basis the backend adds later), so an
+ * unknown value never gets a made-up label.
+ */
+export function matchLabel(basis: string | null): string | null {
+  if (basis === 'intersects_geometry') return 'At this location';
+  if (basis === 'within_200m') return `Within ${NEARBY_DISTANCE_TEXT}`;
+  return null;
 }

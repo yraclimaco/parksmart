@@ -39,6 +39,8 @@ export interface TripAlert {
   message: string;
   relevant_from: string | null;
   relevant_until: string | null;
+  /** How a construction notice matched the trip: 'intersects_geometry' or 'within_200m'. */
+  match_basis: string | null;
   source_name: string;
   source_url: string;
   limitations: string[];
@@ -174,7 +176,7 @@ function parseAlert(data: unknown): TripAlert | null {
   if (!(a.relevant_from === null || isString(a.relevant_from))) return null;
   if (!(a.relevant_until === null || isString(a.relevant_until))) return null;
   if (!isStringList(a.limitations)) return null;
-  return a as unknown as TripAlert;
+  return { ...(a as unknown as TripAlert), match_basis: isString(a.match_basis) ? a.match_basis : null };
 }
 
 function parseForecast(data: unknown): WeatherForecast | null | undefined {

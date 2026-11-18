@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { AlertSource } from '../api/tripAlerts.ts';
-import { celsiusToFahrenheit, describeForecast, emptySourceMessage, formatAlertTime, kmhToMph } from './alertFormat.ts';
+import {
+  celsiusToFahrenheit,
+  describeForecast,
+  emptySourceMessage,
+  formatAlertTime,
+  kmhToMph,
+  matchLabel,
+} from './alertFormat.ts';
 
 const forecast = {
   forecast_time: '2026-11-18T10:00:00-08:00',
@@ -51,7 +58,9 @@ describe('describeForecast', () => {
 
 describe('emptySourceMessage', () => {
   it('only says nothing matched for a fresh no_relevant check, and never claims there is none', () => {
-    expect(emptySourceMessage('construction', source('no_relevant'))).toMatch(/doesn't prove there is none/);
+    const message = emptySourceMessage('construction', source('no_relevant'));
+    expect(message).toMatch(/doesn't prove there is none/);
+    expect(message).toMatch(/within about 650 ft \(200 m\)/);
   });
 
   it('does not read as an all-clear when a source is unavailable or stale', () => {
@@ -71,5 +80,14 @@ describe('formatAlertTime', () => {
     expect(formatAlertTime('2026-11-18T18:00:00Z')).toMatch(/Nov 18, 10:00 AM/);
     expect(formatAlertTime(null)).toBeNull();
     expect(formatAlertTime('not a date')).toBeNull();
+  });
+});
+
+describe('matchLabel', () => {
+  it('tells on-site notices from nearby ones, and gives unknown bases no label', () => {
+    expect(matchLabel('intersects_geometry')).toBe('At this location');
+    expect(matchLabel('within_200m')).toBe('Within about 650 ft (200 m)');
+    expect(matchLabel('something_new')).toBeNull();
+    expect(matchLabel(null)).toBeNull();
   });
 });

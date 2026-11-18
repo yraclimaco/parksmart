@@ -7,7 +7,7 @@ import React from 'react';
 import { CloudSun, Construction, Loader2, RefreshCw } from 'lucide-react';
 import type { AlertSource } from '../api/tripAlerts.ts';
 import type { AlertsState } from '../hooks/useTripAlerts.ts';
-import { describeForecast, emptySourceMessage, formatAlertTime } from '../utils/alertFormat.ts';
+import { describeForecast, emptySourceMessage, formatAlertTime, matchLabel, NEARBY_DISTANCE_TEXT } from '../utils/alertFormat.ts';
 
 interface TripAlertsPanelProps {
   lotName: string;
@@ -38,11 +38,17 @@ const SourceBlock: React.FC<{ kind: 'weather' | 'construction'; source: AlertSou
           {forecastLine}
         </p>
       )}
-      {source.alerts.map((alert) => (
-        <p key={alert.alert_id} className="text-[12px] text-navy leading-snug">
-          {alert.message}
-        </p>
-      ))}
+      {source.alerts.map((alert) => {
+        const tag = kind === 'construction' ? matchLabel(alert.match_basis) : null;
+        return (
+          <p key={alert.alert_id} className="text-[12px] text-navy leading-snug">
+            {tag && (
+              <span className="mr-1.5 px-1.5 rounded bg-[#D98A00]/15 text-[#835300] font-semibold">{tag}</span>
+            )}
+            {alert.message}
+          </p>
+        );
+      })}
       {showEmpty && <p className="text-[12px] text-muted leading-snug">{emptySourceMessage(kind, source)}</p>}
       <p className="text-[11px] text-muted leading-snug">
         <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="underline">
@@ -99,7 +105,11 @@ export const TripAlertsPanel: React.FC<TripAlertsPanelProps> = ({ lotName, state
             <ul className="mt-1 space-y-1 list-disc pl-4">
               <li>Weather tips are ParkSmart walking-comfort suggestions, not official warnings.</li>
               <li>Rain is for the hour before the time shown.</li>
-              <li>Nearby construction does not mean a lot is closed or a route is blocked.</li>
+              <li>
+                Construction is listed when it is active at your arrival time and within {NEARBY_DISTANCE_TEXT} of the
+                parking location or your destination, not along the whole route. Nearby does not mean a lot is closed
+                or a route is blocked.
+              </li>
               {[...state.alerts.limitations, ...state.alerts.weather.limitations, ...state.alerts.construction.limitations]
                 .filter((note, i, all) => all.indexOf(note) === i)
                 .map((note) => (
