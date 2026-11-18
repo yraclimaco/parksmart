@@ -666,7 +666,9 @@ unless `VITE_RECOMMENDATION_SOURCE=api`, which sends them to
 back to sample data. Website data marked sample in `frontend/README.md` is not a
 real prediction. Website pins must use registry `location_id` values; a test in
 `tests/test_location_registry.py` checks this. In API mode the selected result
-also gets driving/walking routes from `POST /routes` (see Issue #25 below).
+also gets driving/walking routes from `POST /routes` (see Issue #25 below)
+and weather/construction trip alerts from `POST /trip-alerts` (Issue #35); alert
+failures never affect the parking results.
 Website changes are made on a branch of ParkSmart-Website, merged there, then
 synced; `--source` syncs a local clone's committed `HEAD` for testing.
 
