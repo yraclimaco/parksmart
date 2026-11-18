@@ -85,4 +85,10 @@ describe('stall-specific wording and verification flags', () => {
     expect(holidayNotice(at('2026-11-26', '12:00'))).toMatch(/Thanksgiving/);
     expect(holidayNotice(at('2026-10-20', '12:00'))).toBeNull();
   });
+  it('words the holiday notice for the hosted backend, which withholds unverified options', () => {
+    const hosted = holidayNotice(at('2026-11-26', '12:00'), true)!;
+    expect(hosted).toMatch(/not shown/);
+    expect(hosted).not.toMatch(/normal weekday rules/);
+    expect(holidayNotice(at('2026-11-26', '12:00'))).toMatch(/normal weekday rules/);
+  });
 });

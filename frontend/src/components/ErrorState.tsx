@@ -9,6 +9,8 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 interface ErrorStateProps {
   onRetry: () => void;
   message?: string;
+  /** Button text; defaults to "Try again". */
+  actionLabel?: string;
 }
 
 /**
@@ -17,6 +19,7 @@ interface ErrorStateProps {
 export const ErrorState: React.FC<ErrorStateProps> = ({
   onRetry,
   message = 'Unable to calculate parking options right now.',
+  actionLabel = 'Try again',
 }) => {
   return (
     <div className="p-5 text-center bg-rose-50/70 rounded-2xl border border-rose-200/80 shadow-xs space-y-3">
@@ -37,7 +40,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 hover:text-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-xs transition-colors cursor-pointer"
       >
         <RefreshCw className="w-3.5 h-3.5" />
-        <span>Try again</span>
+        <span>{actionLabel}</span>
       </button>
     </div>
   );
