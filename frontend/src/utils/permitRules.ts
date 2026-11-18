@@ -184,10 +184,16 @@ const HOLIDAYS: ReadonlyArray<{ month: number; day: number; name: string }> = [
 /**
  * Notice for a university holiday, or null. The research doc (v1.2) says the parking fee
  * is waived on these days but could not confirm how stall categories are enforced, so
- * the results still use the normal weekday rules.
+ * sample results still use the normal weekday rules. With `hostedBackend`, the wording
+ * matches the real backend, which leaves out options that need holiday verification.
  */
-export function holidayNotice(date: Date): string | null {
+export function holidayNotice(date: Date, hostedBackend = false): string | null {
   const holiday = HOLIDAYS.find((h) => h.month === date.getMonth() + 1 && h.day === date.getDate());
   if (!holiday) return null;
+  // The hosted backend withholds parking that needs holiday verification instead of
+  // applying weekday rules, so the sample-data wording would be wrong there.
+  if (hostedBackend) {
+    return `${holiday.name} is a university holiday. Parking fees are waived, but stall category rules are unconfirmed, so options that need holiday verification are not shown. Check UCSD Transportation.`;
+  }
   return `${holiday.name} is a university holiday. Parking fees are waived, but we could not confirm the stall category rules, so these results use normal weekday rules. Check UCSD Transportation.`;
 }

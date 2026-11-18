@@ -32,7 +32,9 @@ const LIMITS = [
   },
   {
     lead: 'Simplified permit rules.',
-    text: 'Ordinary stalls only. Reserved, accessible, and A 24/7 stalls are left out, holidays count as weekdays, and only your arrival moment is checked.',
+    text: LIVE
+      ? 'Ordinary stalls only. Reserved, accessible, and A 24/7 stalls are left out, options that need holiday verification are not shown, and only your arrival moment is checked.'
+      : 'Ordinary stalls only. Reserved, accessible, and A 24/7 stalls are left out, holidays count as weekdays, and only your arrival moment is checked.',
   },
   {
     lead: 'Scoring weights are starting points.',

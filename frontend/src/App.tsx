@@ -6,6 +6,7 @@
 import { LoadingScreen } from './components/LoadingScene.tsx';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { LandingPage } from './components/LandingPage.tsx';
+import { PlannerBoundary } from './components/PlannerBoundary.tsx';
 
 // Lazy-load the planner so MapLibre, tile workers, and map APIs do not load until opened.
 const Planner = lazy(() => import('./Planner.tsx'));
@@ -48,10 +49,12 @@ export default function App() {
   }
 
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <div className="ps-planner-enter">
-        <Planner onBack={handleBackToLanding} />
-      </div>
-    </Suspense>
+    <PlannerBoundary>
+      <Suspense fallback={<LoadingScreen />}>
+        <div className="ps-planner-enter">
+          <Planner onBack={handleBackToLanding} />
+        </div>
+      </Suspense>
+    </PlannerBoundary>
   );
 }

@@ -9,6 +9,7 @@ import { ChevronDown, MapPin } from 'lucide-react';
 import { ParkingPlannerRequest, ParkingRecommendation } from '../types.ts';
 import { getDestination } from '../data/destinations.ts';
 import { holidayNotice, parseArrival } from '../utils/permitRules.ts';
+import { RECOMMENDATION_SOURCE } from '../config.ts';
 import { RecommendationCard } from './RecommendationCard.tsx';
 import { LoadingInline } from './LoadingScene.tsx';
 import { EmptyState } from './EmptyState.tsx';
@@ -166,9 +167,9 @@ export const ResultsList: React.FC<ResultsListProps> = ({
       </div>
 
       {/* University holiday: fee waived, category rules unconfirmed */}
-      {arrival && holidayNotice(arrival) && (
+      {arrival && holidayNotice(arrival, RECOMMENDATION_SOURCE === 'api') && (
         <div role="note" className="px-3 py-2 rounded-xl bg-[#D98A00]/15 text-[12px] font-medium text-[#835300]">
-          {holidayNotice(arrival)}
+          {holidayNotice(arrival, RECOMMENDATION_SOURCE === 'api')}
         </div>
       )}
 
