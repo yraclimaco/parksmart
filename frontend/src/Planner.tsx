@@ -23,6 +23,8 @@ import { SAMPLE_LOTS, getSampleRecommendations } from './data/sampleRecommendati
 import { RECOMMENDATION_SOURCE } from './config.ts';
 import { fetchRecommendations, toRankedOptions, type RankedOption } from './api/recommendations.ts';
 import { DirectionsPanel } from './components/DirectionsPanel.tsx';
+import { TripAlertsPanel } from './components/TripAlertsPanel.tsx';
+import { useTripAlerts } from './hooks/useTripAlerts.ts';
 import { useRoutes } from './hooks/useRoutes.ts';
 import type { ResultInfo } from './components/ResultsList.tsx';
 import {
@@ -491,6 +493,23 @@ export default function Planner({ onBack }: PlannerProps) {
     routeRetry
   );
 
+  // Weather and construction notices for the same selected result. Separate from the
+  // search: if they fail, the parking results above are unaffected.
+  const [alertsRetry, setAlertsRetry] = useState(0);
+  const tripAlerts = useTripAlerts(
+    routedRecommendation !== null && searchedRequest !== null,
+    routedRecommendation && searchedRequest
+      ? {
+          arrivalTime: `${searchedRequest.arrivalDate}T${searchedRequest.arrivalTime}:00`,
+          parkingLocationId: routedRecommendation.lot.locationId,
+          destination: routedDestination
+            ? { name: routedDestination.name, latitude: routedDestination.latitude, longitude: routedDestination.longitude }
+            : null,
+        }
+      : null,
+    alertsRetry
+  );
+
   return (
     // reducedMotion="user" turns off Motion animations for people who ask their OS for less motion
     <MotionConfig reducedMotion="user">
@@ -673,6 +692,7 @@ export default function Planner({ onBack }: PlannerProps) {
                 resultInfo={resultInfo}
                 directions={
                   routedRecommendation && routedDestination ? (
+                    <div className="space-y-3">
                     <DirectionsPanel
                       lotName={routedRecommendation.lot.name}
                       destinationName={routedDestination.name}
@@ -687,6 +707,12 @@ export default function Planner({ onBack }: PlannerProps) {
                       }}
                       onRetry={() => setRouteRetry((n) => n + 1)}
                     />
+                    <TripAlertsPanel
+                      lotName={routedRecommendation.lot.name}
+                      state={tripAlerts}
+                      onRetry={() => setAlertsRetry((n) => n + 1)}
+                    />
+                    </div>
                   ) : null
                 }
               />
