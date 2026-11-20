@@ -26,8 +26,8 @@ interface LotDetailCardProps {
   destination: CampusDestination | null;
   /** "First choice", "Backup" or "#3" when this lot is one of the current results. */
   rankLabel?: string | null;
-  isConfirmed: boolean;
-  onConfirm: () => void;
+  /** Chooses this lot; the card always shows the selected lot, so this is a safety net. */
+  onChoose: () => void;
   /** Moves the arrival to a time when this permit can use the lot. */
   onPlanFor: (date: Date) => void;
   onClose: () => void;
@@ -60,8 +60,7 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
   availabilityTime,
   destination,
   rankLabel = null,
-  isConfirmed,
-  onConfirm,
+  onChoose,
   onPlanFor,
   onClose,
   backendMode = false,
@@ -229,13 +228,13 @@ export const LotDetailCard: React.FC<LotDetailCardProps> = ({
       <div className="mt-3">
         {backendMode ? (
           backendEstimate && (
-            <SpotActions tone="primary" isConfirmed={isConfirmed} onConfirm={onConfirm} lot={lot} />
+            <SpotActions tone="primary" isSelected onChoose={onChoose} lot={lot} />
           )
         ) : permitWorks ? (
           <SpotActions
             tone="primary"
-            isConfirmed={isConfirmed}
-            onConfirm={onConfirm}
+            isSelected
+            onChoose={onChoose}
             lot={lot}
           />
         ) : access.status === 'from' ? (

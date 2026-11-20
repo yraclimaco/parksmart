@@ -91,3 +91,34 @@ export function matchLabel(basis: string | null): string | null {
   if (basis === 'within_200m') return `Within ${NEARBY_DISTANCE_TEXT}`;
   return null;
 }
+
+/**
+ * A few words for the collapsed alerts line: temperature and chance of rain from the
+ * forecast. Anything missing is left out, and a source that is not fresh says so.
+ */
+export function weatherSummary(source: AlertSource): string {
+  if (source.status === 'unavailable') return 'Weather unavailable';
+  if (source.status === 'out_of_range') return 'No forecast yet';
+  if (source.status === 'missing_location') return 'Weather not checked';
+  const f = source.forecast;
+  const parts: string[] = [];
+  if (f && f.temperature_c !== null) parts.push(`${Math.round(celsiusToFahrenheit(f.temperature_c))}°F`);
+  if (f && f.precipitation_probability_percent !== null) {
+    parts.push(`${Math.round(f.precipitation_probability_percent)}% rain`);
+  }
+  if (source.alerts.length > 0) parts.push(source.alerts.length === 1 ? '1 tip' : `${source.alerts.length} tips`);
+  const text = parts.length > 0 ? parts.join(', ') : 'No forecast details';
+  return source.status === 'stale' ? `${text} (older data)` : text;
+}
+
+/**
+ * A few words for the collapsed alerts line about construction. "None found" is never an
+ * all-clear: the full text explains that a missing notice does not prove there is none.
+ */
+export function constructionSummary(source: AlertSource): string {
+  if (source.status === 'unavailable') return 'Construction unavailable';
+  if (source.status === 'missing_location') return 'Construction not checked';
+  const n = source.alerts.length;
+  const text = n > 0 ? (n === 1 ? '1 notice nearby' : `${n} notices nearby`) : 'None found nearby';
+  return source.status === 'stale' ? `${text} (older data)` : text;
+}

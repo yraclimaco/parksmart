@@ -7,6 +7,8 @@ import {
   formatAlertTime,
   kmhToMph,
   matchLabel,
+  weatherSummary,
+  constructionSummary,
 } from './alertFormat.ts';
 
 const forecast = {
@@ -89,5 +91,34 @@ describe('matchLabel', () => {
     expect(matchLabel('within_200m')).toBe('Within about 650 ft (200 m)');
     expect(matchLabel('something_new')).toBeNull();
     expect(matchLabel(null)).toBeNull();
+  });
+});
+
+describe('collapsed alert summaries', () => {
+  const tip = { alert_id: 'a', message: 'Bring an umbrella', match_basis: null } as unknown as AlertSource['alerts'][number];
+
+  it('weather: temperature and rain chance, leaving out what is unknown', () => {
+    expect(weatherSummary({ ...source('available'), forecast })).toBe('68°F, 30% rain');
+    expect(
+      weatherSummary({
+        ...source('available'),
+        forecast: { ...forecast, temperature_c: null, precipitation_probability_percent: null },
+      })
+    ).toBe('No forecast details');
+  });
+
+  it('weather: counts tips, and says when data is older or missing', () => {
+    expect(weatherSummary({ ...source('available'), forecast, alerts: [tip, tip] })).toBe('68°F, 30% rain, 2 tips');
+    expect(weatherSummary({ ...source('stale'), forecast })).toBe('68°F, 30% rain (older data)');
+    expect(weatherSummary(source('unavailable'))).toBe('Weather unavailable');
+    expect(weatherSummary(source('out_of_range'))).toBe('No forecast yet');
+  });
+
+  it('construction: counts notices and never reads as an all-clear when unavailable', () => {
+    expect(constructionSummary({ ...source('available'), alerts: [tip] })).toBe('1 notice nearby');
+    expect(constructionSummary({ ...source('available'), alerts: [tip, tip] })).toBe('2 notices nearby');
+    expect(constructionSummary(source('no_relevant'))).toBe('None found nearby');
+    expect(constructionSummary(source('unavailable'))).toBe('Construction unavailable');
+    expect(constructionSummary({ ...source('stale'), alerts: [] })).toBe('None found nearby (older data)');
   });
 });

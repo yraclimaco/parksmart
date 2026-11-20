@@ -1385,37 +1385,6 @@ body {
   font-size: 1.125rem;
 }
 
-.sm-buttons {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.sm-btn {
-  height: 52px;
-  padding-inline: 22px;
-  border: 3px solid var(--lp-paint-white);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--lp-paint-white);
-  font: inherit;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
-}
-
-.sm-btn:hover {
-  transform: translateY(-2px);
-}
-
-.sm-btn--on {
-  border-color: var(--lp-line-yellow);
-  background: var(--lp-line-yellow);
-  color: var(--lp-asphalt);
-}
-
 /* Known limits: caution-striped, like a lot under repair */
 .lp-block--caution {
   background: var(--lp-line-yellow);
@@ -1599,11 +1568,13 @@ body {
   overflow-y: auto;
   background-color: var(--lp-asphalt);
   color: var(--lp-paint-white);
-  transition: transform 700ms cubic-bezier(0.7, 0, 0.2, 1);
+  transition: transform 700ms cubic-bezier(0.7, 0, 0.2, 1), opacity 700ms ease;
 }
 
+/* Lifts and fades, so scrolling feels like the intro dissolving into the page */
 .lp-intro--leaving {
-  transform: translateY(-100%);
+  transform: translateY(-40%);
+  opacity: 0;
 }
 
 .lp-intro-brand {
@@ -1705,12 +1676,6 @@ body {
     opacity: 0;
     transform: translateY(0);
   }
-}
-
-.lp-intro-cta {
-  min-width: 220px;
-  height: 56px;
-  font-size: 1.125rem;
 }
 
 /* Everything that fades in on a timeline (delay set per element) */
@@ -2052,6 +2017,36 @@ body {
 
 .lp-intro-skip:hover {
   color: var(--lp-paint-white);
+}
+
+/* "Scroll to enter" cue: stacked text and a gently bobbing chevron */
+.lp-intro-scroll {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.lp-intro-chevron {
+  animation: lp-intro-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes lp-intro-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-intro-chevron {
+    animation: none;
+  }
 }
 
 .lp-intro-skip:focus-visible {
@@ -2428,7 +2423,6 @@ body {
 /* ------------------------------------------------------------------ */
 .lp-btn,
 .pl-btn,
-.sm-btn,
 .lp-intro-skip {
   transition: background-color 150ms ease, color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
 }
@@ -2451,14 +2445,12 @@ body {
   background-color: var(--lp-deep-asphalt);
 }
 
-.pl-btn:hover:not(.pl-btn--on),
-.sm-btn:hover:not(.sm-btn--on) {
+.pl-btn:hover:not(.pl-btn--on) {
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(16, 29, 51, 0.3);
 }
 
-.pl-btn:active,
-.sm-btn:active {
+.pl-btn:active {
   transform: translateY(1px) scale(0.94);
   box-shadow: none;
 }
@@ -2546,10 +2538,67 @@ body {
   .lp-btn:active,
   .pl-btn:hover,
   .pl-btn:active,
-  .sm-btn:hover,
-  .sm-btn:active,
   .lp-nav-links a:active,
   .lp-intro-skip:active {
     transform: none;
+  }
+}
+
+/* Rolling time wheel: no scrollbar, the rows themselves show the position */
+.tw-col {
+  scrollbar-width: none;
+}
+
+.tw-col::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-col > div > div {
+    transition: none !important;
+  }
+}
+
+/* Screen 2: heading, the searching-car lot and its caption stack in the left column */
+.lp-problem-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.lp-problem-lead .lp-note {
+  margin: 0;
+}
+
+.pr-lot {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The ? glyphs: nobody can tell if these stalls are free, so they blink slowly */
+.pr-q {
+  fill: #ffcd00;
+  font-size: 34px;
+  font-weight: 800;
+  opacity: 0.35;
+  animation: pr-q-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pr-q-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-q {
+    animation: none;
+    opacity: 0.7;
   }
 }

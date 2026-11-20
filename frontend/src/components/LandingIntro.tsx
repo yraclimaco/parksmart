@@ -9,6 +9,11 @@ import parkSmartLogoHd from '../assets/parksmart-logo-hd.png';
 /** Must match the lift transition in index.css. */
 const LEAVE_MS = 700;
 
+/** How much scrolling or swiping counts as "go on" (ignores tiny trackpad jitter). */
+const WHEEL_THRESHOLD = 4;
+const SWIPE_THRESHOLD_PX = 24;
+const ENTER_KEYS = ['Enter', ' ', 'ArrowDown', 'PageDown'];
+
 /* ---------- Scene geometry (viewBox is 1200 x 600) ---------- */
 const R = 55; // turning radius into a stall
 const X0 = -120; // where cars enter the lane
@@ -170,7 +175,7 @@ interface LandingIntroProps {
 /**
  * Opening screen that waits for the visitor. A looping lot scene: cars come and go, and a
  * yellow car parks in a different stall and walks to a different building each trip.
- * The screen lifts away only when the visitor presses the button.
+ * The screen lifts away when the visitor scrolls (or swipes, or presses a key).
  */
 export const LandingIntro: React.FC<LandingIntroProps> = ({ onDone }) => {
   const [leaving, setLeaving] = useState(false);
@@ -201,12 +206,36 @@ export const LandingIntro: React.FC<LandingIntroProps> = ({ onDone }) => {
     return () => window.clearTimeout(doneTimer);
   }, [leaving, onDone]);
 
+  // Scrolling is the way in: the screen lifts away on the first scroll down, swipe up,
+  // or key press (Enter, Space, arrow down, Page Down). The hint below is also clickable.
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') enter();
+    let touchStartY: number | null = null;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > WHEEL_THRESHOLD) enter();
     };
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0]?.clientY ?? null;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY;
+      if (touchStartY !== null && y !== undefined && touchStartY - y > SWIPE_THRESHOLD_PX) enter();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (ENTER_KEYS.includes(e.key)) {
+        e.preventDefault();
+        enter();
+      }
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [enter]);
 
   /* The animation loop. Elements are updated directly (not through React state) so it stays smooth. */
@@ -548,14 +577,14 @@ export const LandingIntro: React.FC<LandingIntroProps> = ({ onDone }) => {
 
         <button
           type="button"
-          className="lp-btn lp-btn--yellow lp-intro-cta lp-fx"
+          className="lp-intro-skip lp-intro-scroll lp-fx"
           style={{ ['--d' as string]: '0.8s' }}
           onClick={enter}
         >
-          Enter ParkSmart
-        </button>
-        <button type="button" className="lp-intro-skip" onClick={enter}>
-          Skip intro
+          Scroll to enter
+          <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true" className="lp-intro-chevron">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
     </div>

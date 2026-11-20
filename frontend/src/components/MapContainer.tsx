@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Clock, MapPin, MapPinOff } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
-import { ROUTE_COLORS } from './DirectionsPanel.tsx';
+import { ROUTE_COLORS } from '../utils/routePlan.ts';
 // MapLibre draws tiles in a background Web Worker. Vite bundles the main library
 // but does not copy the worker file, so the default worker URL 404s and the map
 // renders blank. `?url` makes Vite emit the worker as an asset and give us its URL.

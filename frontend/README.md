@@ -84,7 +84,13 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 
 Sample mode has no backend, so it shows no routes.
 
-After **Select this spot**, **Open in Google Maps** opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free and no API key.
+**Open in Google Maps** on a result card (or a lot card) opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free and no API key.
+
+## Class schedule import
+
+The planner has an **Import schedule (.ics)** panel. Students export their calendar (Google Calendar: Settings, Import & export; Apple Calendar: File, Export) and pick the file. It is read in the browser with a small built-in parser (`src/utils/icsSchedule.ts`): timed events, TZID or UTC times, and weekly repeats (INTERVAL, BYDAY, UNTIL, COUNT, EXDATE). All-day events are skipped, and any other repeat rule is read as a single class. Times are converted to campus time (America/Los_Angeles), and a repeat rule's weekdays move with the start time (a Monday 5 PM class exported in UTC repeats on Mondays, not Tuesdays). Messy exports are handled: cancelled events are dropped, a single moved or cancelled session of a repeating class replaces just that day (RECURRENCE-ID), identical classes listed twice show once, and unreadable events are skipped without stopping the import. Not supported: changes to "this and all future" sessions (`RANGE=THISANDFUTURE`) and repeats other than weekly. Non-class events (birthdays, meetings) are not filtered out, since nothing in the file says which events are classes.
+
+The panel lists the classes on the planner's arrival date. Tapping one sets the arrival time 20 minutes before it starts (`ARRIVE_BEFORE_CLASS_MINUTES`, our choice: about a 10-minute walk plus a margin) and, if the room matches a campus building for sure (`matchBuilding` in `src/utils/scheduleTrips.ts`), searches for parking there. Matching tries a building or alias written out in full first, longest wins ("Price Center East 101" is East, not "Price Center" or the code PRICE, which belongs to West), then a schedule code at the start, which only counts when it is written like one (capitals, or followed by a room number). It never guesses: remote classes, unknown rooms, a one-word alias that is really a common word (the data gives a distant forum the alias "Auditorium") and buildings that tie more than 150 m apart only set the time and ask the student to pick a destination. The schedule is saved in this browser only (`parksmart.schedule.v1`) so it is imported once, is never uploaded, and can be removed with the X.
 
 ## Scoring Formula
 
@@ -170,8 +176,9 @@ VITE_RECOMMENDATION_SOURCE=api npm run dev
   (`REQUEST_TIMEOUT_MS`, generous for AWS Lambda cold starts) stops with a
   "taking too long" message instead of loading forever. API mode never falls back
   to sample data.
-- Selecting a spot ("Select this spot") also selects its card and map pin, so the
-  highlighted card, the pin and the route always describe the same lot.
+- Opening directions for a spot ("Open in Google Maps") also selects its card and map pin,
+  so the highlighted card, the pin and the route always describe the same lot. There is no
+  separate "Select this spot" step.
 - Availability labels (all worded as historical patterns, never live availability):
   **Usually open** at 20% open or more (green), **Usually full** at 10% or less (red;
   the backend's "Often nearly full" cutoff), **Usually tight** between (yellow).

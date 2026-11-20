@@ -7,9 +7,12 @@ import React from 'react';
 import { CAR_COLORS, LotCar, prefersReducedMotion, useInView } from './LotParts';
 
 const COLS = 14;
-const ROWS_Y = [30, 170];
+/** Four rows in two back-to-back pairs with a drive aisle between, still 280 tall like the old two-row lot. */
+const ROWS_Y = [16, 70, 160, 214];
 const SW = 52;
-const SH = 80;
+const SH = 54;
+const AISLE_Y = 142;
+const CAR_SCALE = 0.85;
 const X0 = 36;
 const TOTAL = COLS * ROWS_Y.length;
 
@@ -118,7 +121,7 @@ export const TimeLot: React.FC = () => {
       </div>
       <svg className="tl-lot" viewBox="0 0 800 280" role="img" aria-label={`Example lot at ${formatHour(hour)}, ${openPct} percent open`}>
         <rect width="800" height="280" fill="#101D33" />
-        <line x1="36" y1="140" x2="764" y2="140" stroke="#FFCD00" strokeWidth="3" strokeDasharray="18 14" opacity="0.6" />
+        <line x1="36" y1={AISLE_Y} x2="764" y2={AISLE_Y} stroke="#FFCD00" strokeWidth="3" strokeDasharray="18 14" opacity="0.6" />
         <g stroke="rgba(247,248,250,0.45)" strokeWidth="2">
           {ROWS_Y.map((y) => (
             <React.Fragment key={y}>
@@ -127,10 +130,9 @@ export const TimeLot: React.FC = () => {
               ))}
             </React.Fragment>
           ))}
-          <line x1={X0} y1={30} x2={X0 + COLS * SW} y2={30} />
-          <line x1={X0} y1={110} x2={X0 + COLS * SW} y2={110} />
-          <line x1={X0} y1={170} x2={X0 + COLS * SW} y2={170} />
-          <line x1={X0} y1={250} x2={X0 + COLS * SW} y2={250} />
+          {[...ROWS_Y, ROWS_Y[1] + SH, ROWS_Y[3] + SH].map((y) => (
+            <line key={y} x1={X0} y1={y} x2={X0 + COLS * SW} y2={y} />
+          ))}
         </g>
         {taken.map((isTaken, i) => {
           const row = Math.floor(i / COLS);
@@ -143,7 +145,7 @@ export const TimeLot: React.FC = () => {
               className="tl-car"
               style={{ opacity: isTaken ? 1 : 0, transform: isTaken ? 'scale(1)' : 'scale(0.55)' }}
             >
-              <LotCar cx={cx} cy={cy} color={CAR_COLORS[(i * 7) % 6]} scale={0.92} />
+              <LotCar cx={cx} cy={cy} color={CAR_COLORS[(i * 7) % 6]} scale={CAR_SCALE} />
             </g>
           );
         })}

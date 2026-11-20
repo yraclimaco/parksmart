@@ -6,15 +6,21 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, Check, MapPin, Star, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { DEFAULT_PRIORITY, PERMIT_OPTIONS, PRIORITY_OPTIONS, WALK_LIMIT_OPTIONS } from '../constants.ts';
+import { PERMIT_OPTIONS } from '../constants.ts';
 import { POPULAR_DESTINATIONS, findDestination, searchDestinations } from '../data/destinations.ts';
 import { maxArrivalDate } from '../utils/arrival.ts';
 import { loadFavorites, toggleFavorite } from '../utils/favorites.ts';
+import { loadRecentDestinations } from '../utils/recentDestinations.ts';
+import { TimeWheel } from './TimeWheel.tsx';
 import { ALL_PARKING } from '../data/parkingLots.ts';
 import { ParkingPlannerRequest, CampusDestination, ParkingLot } from '../types.ts';
 
 interface PreferenceFormProps {
   formData: ParkingPlannerRequest;
+  /** True when the remembered permit differs from the default. */
+  hasSavedSettings?: boolean;
+  /** Returns the permit to the default and forgets the saved one. */
+  onResetSettings?: () => void;
   onChange: (newData: Partial<ParkingPlannerRequest>) => void;
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
@@ -60,6 +66,8 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
  */
 export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   formData,
+  hasSavedSettings = false,
+  onResetSettings,
   onChange,
   onSubmit,
   isLoading,
@@ -76,16 +84,26 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  const priority = formData.priority ?? DEFAULT_PRIORITY;
-  // Keep Refine open when someone has already changed a default, so a non-default choice is never hidden
-  const refineChanged = priority !== DEFAULT_PRIORITY || (formData.maxWalkMinutes ?? null) !== null;
-
   // No destination until the user picks one (or drops a pin on the map)
   const selectedDestination = findDestination(formData.destinationId) ?? null;
   const query = destinationSearch.trim();
 
   // Before typing: popular places. While typing: matching places and parking, with
   // parking first when the query is clearly a lot ("Gilman", "P406")
+  // Last few searched places, reloaded each time the list opens so a search just made shows up
+  const recents = useMemo(
+    () => (isDestinationOpen ? loadRecentDestinations() : []),
+    [isDestinationOpen]
+  );
+  const recentPlaces = useMemo(
+    () =>
+      recents
+        .filter((id) => !favorites.includes(id))
+        .map((id) => findDestination(id))
+        .filter((d): d is CampusDestination => d !== undefined && !d.isPin)
+        .map((d): Option => ({ kind: 'place', destination: d })),
+    [recents, favorites]
+  );
   const favoritePlaces = useMemo(
     () =>
       favorites
@@ -97,7 +115,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   const { places, parking } = useMemo(() => {
     if (!query) {
       return {
-        places: POPULAR_DESTINATIONS.filter((d) => !favorites.includes(d.id)).map((d): Option => ({ kind: 'place', destination: d })),
+        places: POPULAR_DESTINATIONS.filter((d) => !favorites.includes(d.id) && !recents.includes(d.id)).map((d): Option => ({ kind: 'place', destination: d })),
         parking: [] as Option[],
       };
     }
@@ -105,7 +123,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
       places: searchDestinations(query).map((m): Option => ({ kind: 'place', destination: m.destination, matchedOn: m.matchedOn })),
       parking: searchParking(query).map((lot): Option => ({ kind: 'parking', lot })),
     };
-  }, [query, favorites]);
+  }, [query, favorites, recents]);
   const parkingFirst =
     parking.length > 0 &&
     (places.length === 0 || (parking[0].kind === 'parking' && parking[0].lot.name.toLowerCase().startsWith(query.toLowerCase())));
@@ -113,7 +131,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
     parkingFirst
       ? [{ label: 'Parking', options: parking }, { label: 'Places', options: places }]
       : [
-          ...(query ? [] : [{ label: 'Favorites', options: favoritePlaces }]),
+          ...(query ? [] : [{ label: 'Recent', options: recentPlaces }, { label: 'Favorites', options: favoritePlaces }]),
           { label: query ? 'Places' : 'Popular', options: places },
           { label: 'Parking', options: parking },
         ]
@@ -344,13 +362,10 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
         )}
       </div>
 
-      {/* Arrival Date and Time Grid */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Arrival date, then a rolling time wheel (spin instead of typing) */}
+      <div className="space-y-2.5">
         <div>
-          <label
-            htmlFor="arrival-date"
-            className="block text-[13px] font-semibold text-ink mb-1.5"
-          >
+          <label htmlFor="arrival-date" className="block text-[13px] font-semibold text-ink mb-1.5">
             Arrival date
           </label>
           <div className="relative">
@@ -368,23 +383,15 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
         </div>
 
         <div>
-          <label
-            htmlFor="arrival-time"
-            className="block text-[13px] font-semibold text-ink mb-1.5"
-          >
+          <span id="arrival-time-label" className="block text-[13px] font-semibold text-ink mb-1.5">
             Arrival time
-          </label>
-          <div className="relative">
-            <input
-              id="arrival-time"
-              type="time"
-              value={formData.arrivalTime}
-              onChange={(e) => onChange({ arrivalTime: e.target.value })}
-              aria-invalid={arrivalError !== null}
-              aria-describedby={arrivalError ? 'arrival-error' : undefined}
-              className="w-full max-sm:min-h-[44px] px-2.5 py-2 rounded-[10px] bg-white border border-line text-[13px] font-medium text-navy focus:outline-none focus:ring-2 focus:ring-sky focus:border-sky "
-            />
-          </div>
+          </span>
+          <TimeWheel
+            value={formData.arrivalTime}
+            onChange={(arrivalTime) => onChange({ arrivalTime })}
+            invalid={arrivalError !== null}
+            describedBy={arrivalError ? 'arrival-error' : undefined}
+          />
         </div>
       </div>
 
@@ -459,48 +466,19 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
         </div>
       </div>
 
-      {/* What matters most: walk vs availability, then a personal walking limit. Most people keep the defaults. */}
-      <details className="group" open={refineChanged || undefined}>
-        <summary className="flex items-center justify-between gap-2 min-h-[44px] cursor-pointer list-none text-[13px] font-semibold text-navy rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky">
-          <span>Refine: {PRIORITY_OPTIONS.find((p) => p.value === priority)?.label ?? 'Balanced'}, max walk {WALK_LIMIT_OPTIONS.find((o) => o.value === (formData.maxWalkMinutes ?? null))?.label ?? '20 min'}</span>
-          <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
-        <div className="space-y-4 pt-1">
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span id="priority-label" className="block text-[13px] font-semibold text-ink">Prioritize</span>
-          <span className="text-xs text-muted text-right whitespace-nowrap">
-            {PRIORITY_OPTIONS.find((p) => p.value === priority)?.description}
-          </span>
-        </div>
-        <SegmentedControl
-          labelledBy="priority-label"
-          layoutId="priority-thumb"
-          options={PRIORITY_OPTIONS.map((option) => ({ key: option.value, label: option.label, value: option.value }))}
-          selected={priority}
-          onSelect={(value) => onChange({ priority: value })}
-        />
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span id="walk-label" className="block text-[13px] font-semibold text-ink">Max walk</span>
-          <span className="text-xs text-muted">From parking to your destination</span>
-        </div>
-        <SegmentedControl
-          labelledBy="walk-label"
-          layoutId="walk-limit-thumb"
-          options={WALK_LIMIT_OPTIONS.map((option) => ({
-            key: String(option.value),
-            label: option.label,
-            value: option.value,
-          }))}
-          selected={formData.maxWalkMinutes ?? null}
-          onSelect={(value) => onChange({ maxWalkMinutes: value })}
-        />
-      </div>
-        </div>
-      </details>
+      {/* Shown only when the permit differs from the default, so it is clear it was remembered */}
+      {hasSavedSettings && (
+        <p className="flex items-center justify-between gap-2 text-xs text-muted" data-testid="saved-settings-note">
+          <span>Your permit is saved on this device.</span>
+          <button
+            type="button"
+            onClick={onResetSettings}
+            className="min-h-[44px] px-1 font-semibold text-navy underline underline-offset-2 hover:text-navy-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky rounded-md cursor-pointer"
+          >
+            Reset
+          </button>
+        </p>
+      )}
 
       {/* Primary Action Button */}
       <button
@@ -543,55 +521,4 @@ function arrowSelect<T>(
   onSelect(options[next].value);
   const radios = e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
   radios[next]?.focus();
-}
-
-/** Pill radio group in the same style as the permit picker. */
-function SegmentedControl<T>({
-  labelledBy,
-  layoutId,
-  options,
-  selected,
-  onSelect,
-}: {
-  labelledBy: string;
-  layoutId: string;
-  options: Array<{ key: string; label: string; value: T }>;
-  selected: T;
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-labelledby={labelledBy}
-      onKeyDown={(e) => arrowSelect(e, options, selected, onSelect)}
-      className="grid gap-0.5 p-0.5 bg-paper border border-line rounded-[10px]"
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-    >
-      {options.map((option) => {
-        const isSelected = option.value === selected;
-        return (
-          <button
-            key={option.key}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            tabIndex={isSelected ? 0 : -1}
-            onClick={() => onSelect(option.value)}
-            className={`relative max-sm:min-h-[44px] py-1.5 text-xs font-semibold rounded-[10px] transition-colors duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
-              isSelected ? 'text-white' : 'text-muted hover:text-navy'
-            }`}
-          >
-            {isSelected && (
-              <motion.span
-                layoutId={layoutId}
-                className="absolute inset-0 rounded-[8px] bg-navy"
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-              />
-            )}
-            <span className="relative">{option.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
 }

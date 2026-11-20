@@ -5,6 +5,9 @@
 
 import type { LatLng, RouteTrip, TravelMode } from '../api/routes.ts';
 
+/** Route colors, shared with the map's line layers and the driving and walking rows. */
+export const ROUTE_COLORS = { driving: '#182B49', walking: '#C69214' } as const;
+
 /** One leg to request, or the reason it can't be shown. */
 export type PlannedLeg = { mode: TravelMode; trip: RouteTrip } | { mode: TravelMode; skipped: string };
 
