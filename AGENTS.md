@@ -649,7 +649,13 @@ The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
 `node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
 the tests, type check and build. Review `git diff -- frontend` before committing.
 
-Run the website (Node 20.19+ or 22.12+), from `frontend/`:
+Fastest way to run the real backend and website together, already connected (API mode,
+port 3000): `scripts/dev.sh` from the repo root (Ctrl+C stops both). To build and ZIP the
+hosted-demo site against the deployed API: `scripts/build_site.sh <new-revision-id>`
+(see `docs/frontend_deployment.md`). The hosted backend has routing off, so there
+`/routes` answers 503 and the card shows "Not available right now" for the drive.
+
+Run the website by hand (Node 20.19+ or 22.12+), from `frontend/`:
 
 ```bash
 npm ci
