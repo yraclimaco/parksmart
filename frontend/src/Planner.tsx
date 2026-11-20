@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, Menu } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Menu, RotateCcw } from 'lucide-react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { MapContainer } from './components/MapContainer.tsx';
@@ -15,15 +15,33 @@ import { LotDetailCard } from './components/LotDetailCard.tsx';
 import { SCRUB_MAX, SCRUB_MIN, TimeScrubber } from './components/TimeScrubber.tsx';
 import ucsdLogo from './assets/ucsd-logo.png';
 import parkSmartLogo from './assets/parksmart-logo.png';
+import { SchedulePanel, type ClassTrip } from './components/SchedulePanel.tsx';
+import { recordRecentDestination } from './utils/recentDestinations.ts';
+import {
+  DEFAULT_PREFERENCES,
+  clearPreferences,
+  isCustomized,
+  loadPreferences,
+  savePreferences,
+  type SavedPreferences,
+} from './utils/savedPreferences.ts';
 import { ANIMATION_TIMINGS, DEFAULT_PRIORITY, PRIORITY_OPTIONS, isOnCampus } from './constants.ts';
 import { findDestination, makePinDestinationId } from './data/destinations.ts';
-import { getArrivalError } from './utils/arrival.ts';
+import { alertArrivalTime, getArrivalError } from './utils/arrival.ts';
+import {
+  blankRequest,
+  formatLocalDate,
+  formatLocalTime,
+  isResultStale,
+  sameRequest,
+  shouldAutoRefresh,
+} from './utils/plannerState.ts';
 import { parseArrival } from './utils/permitRules.ts';
 import { SAMPLE_LOTS, getSampleRecommendations } from './data/sampleRecommendations.ts';
 import { RECOMMENDATION_SOURCE } from './config.ts';
 import { fetchRecommendations, toRankedOptions, type RankedOption } from './api/recommendations.ts';
-import { DirectionsPanel } from './components/DirectionsPanel.tsx';
-import { TripAlertsPanel } from './components/TripAlertsPanel.tsx';
+import { TripDetails } from './components/TripDetails.tsx';
+import { OSM_FIX_THE_MAP_URL } from './api/routes.ts';
 import { useTripAlerts } from './hooks/useTripAlerts.ts';
 import { useRoutes } from './hooks/useRoutes.ts';
 import type { ResultInfo } from './components/ResultsList.tsx';
@@ -32,44 +50,23 @@ import {
   ParkingRecommendation,
 } from './types.ts';
 
-/** How many earlier searches "Recent" keeps for this visit. */
-const MAX_HISTORY = 5;
-
-/** Same destination, date, time, permit, priority and walking limit. */
-function sameRequest(a: ParkingPlannerRequest, b: ParkingPlannerRequest): boolean {
-  return (
-    a.destinationId === b.destinationId &&
-    a.arrivalDate === b.arrivalDate &&
-    a.arrivalTime === b.arrivalTime &&
-    a.permitType === b.permitType &&
-    (a.priority ?? DEFAULT_PRIORITY) === (b.priority ?? DEFAULT_PRIORITY) &&
-    (a.maxWalkMinutes ?? null) === (b.maxWalkMinutes ?? null)
-  );
-}
+/** Quiet time after the last change before results refresh by themselves (about one request a second at most). */
+const AUTO_REFRESH_DELAY_MS = 1000;
 
 /** Width the open planner panel covers on the left (380px panel + 24px gap). */
 const PANEL_OFFSET_PX = 404;
 
-/**
- * Returns today's date formatted as YYYY-MM-DD in local time.
- */
-function toDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+/** How many earlier searches "Recent" keeps for this visit. */
+const MAX_HISTORY = 5;
 
+/** Today's date as YYYY-MM-DD, local time. */
 function getTodayDateString(): string {
-  return toDateString(new Date());
+  return formatLocalDate(new Date());
 }
 
-/**
- * Returns the current local time formatted as HH:MM (24-hour, as <input type="time"> expects).
- */
+/** The current local time as HH:MM (24-hour). */
 function getCurrentTimeString(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return formatLocalTime(new Date());
 }
 
 /** True on phone-width screens, where the planner becomes a bottom sheet instead of a left panel. */
@@ -101,6 +98,11 @@ function timeOf(minutes: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+/** The setting that is remembered between visits: the permit. */
+function preferencesOf(request: Pick<ParkingPlannerRequest, 'permitType'>): SavedPreferences {
+  return { permitType: request.permitType };
+}
+
 /**
  * Main application component.
  * Owns state for formInputs, recommendations, selectedLocationId, and simulated UI states.
@@ -119,13 +121,11 @@ export default function Planner({ onBack }: PlannerProps) {
   // "Your usual" only exists after a real search (saved in this browser only); it is
   // offered as a card, never prefilled into the form.
 
+  // The permit comes back from the last visit (this browser only); everything else starts blank
+  // and per trip. Priority and walking limit are fixed defaults with no controls.
   const [formInputs, setFormInputs] = useState<ParkingPlannerRequest>(() => ({
-    destinationId: '',
-    arrivalDate: getTodayDateString(),
-    arrivalTime: getCurrentTimeString(),
-    permitType: 'S',
-    priority: DEFAULT_PRIORITY,
-    maxWalkMinutes: null,
+    ...blankRequest(),
+    ...(loadPreferences() ?? DEFAULT_PREFERENCES),
   }));
 
   // Earlier searches this visit, most recent first (the current one is not included).
@@ -166,8 +166,6 @@ export default function Planner({ onBack }: PlannerProps) {
   const [searchedRequest, setSearchedRequest] = useState<ParkingPlannerRequest | null>(null);
   const searchedRequestRef = useRef<ParkingPlannerRequest | null>(null);
 
-  // Lot the user confirmed with "Select this spot"
-  const [confirmedLotId, setConfirmedLotId] = useState<string | null>(null);
 
   // Starting point for driving directions (browser location). Only sent to the
   // ParkSmart backend to compute a route; never saved.
@@ -215,30 +213,31 @@ export default function Planner({ onBack }: PlannerProps) {
     if (isMobile && isDetailOpen) setIsPanelOpen(false);
   }, [isMobile, isDetailOpen]);
 
-  // Phone: the sheet is short, so bring the results into view after each search
+  // Bring the answer into view after each search: the form above it is tall on every screen size
   useEffect(() => {
-    if (!isMobile || searchedRequest === null || isLoading) return;
+    if (searchedRequest === null || isLoading) return;
     // Scroll only the sheet's own list (scrollIntoView can also shift the page behind it)
     const results = document.getElementById('planner-results');
     const box = document.getElementById('planner-scroll');
     if (results && box) {
       box.scrollTo({
         top: box.scrollTop + results.getBoundingClientRect().top - box.getBoundingClientRect().top - 8,
-        behavior: 'smooth',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       });
     }
-  }, [isMobile, searchedRequest, isLoading]);
+  }, [searchedRequest, isLoading]);
 
   // Compute recommendations from current formInputs
   const runPlanner = useCallback(
     (customInputs?: ParkingPlannerRequest) => {
       const inputs = customInputs || formInputs;
       if (getArrivalError(inputs)) return; // the form shows the message; nothing to search
-      if (!findDestination(inputs.destinationId)) return; // no destination picked yet
+      const destination = findDestination(inputs.destinationId);
+      if (!destination) return; // no destination picked yet
+      if (!destination.isPin) recordRecentDestination(destination.id); // one-tap repeat trips
       setIsLoading(true);
       setErrorMessage(null);
       setIsDetailOpen(false); // a new search shows results in the panel, not the pin card
-      setConfirmedLotId(null);
 
       const finish = (
         results: ParkingRecommendation[],
@@ -318,6 +317,55 @@ export default function Planner({ onBack }: PlannerProps) {
       ...changes,
     }));
   };
+
+  // Picking a destination in the form searches right away (one request per pick), so a repeat
+  // trip is two taps. Changes to the permit or time refresh on their own after a pause (below).
+  const handleDestinationOrFormChange = (changes: Partial<ParkingPlannerRequest>) => {
+    handleFormChange(changes);
+    if (changes.destinationId) runPlanner({ ...formInputs, ...changes });
+  };
+
+  // Park for a class from the imported schedule: set the arrival just before it starts and,
+  // when its building is known, search right away (a destination pick searches on its own)
+  const handlePlanClass = (trip: ClassTrip) => {
+    const { destinationId, arrivalDate, arrivalTime } = trip;
+    if (destinationId) handleDestinationOrFormChange({ destinationId, arrivalDate, arrivalTime });
+    else handleFormChange({ arrivalDate, arrivalTime });
+  };
+
+  // Back to the first-visit permit (S); the effect below forgets the saved one
+  const handleResetPreferences = () => {
+    setFormInputs((prev) => ({ ...prev, ...DEFAULT_PREFERENCES }));
+  };
+
+  // Clear all: back to an empty planner, like a fresh visit. The trip form (destination, arrival,
+  // permit) and everything shown from the search (results, selection, routes' start, errors) reset.
+  // The imported schedule, starred and recent places and "Recent" searches this visit stay.
+  const handleClearAll = () => {
+    requestRef.current?.abort(); // a search still in flight must not fill the cleared panel
+    setFormInputs(blankRequest());
+    setRecommendations([]);
+    setResultInfo(null);
+    setRankedOptions({});
+    setErrorMessage(null);
+    setIsLoading(false);
+    searchedRequestRef.current = null;
+    setSearchedRequest(null);
+    setSelectedLocationId(null);
+    setIsDetailOpen(false);
+    setStartPoint(null);
+    setLocateError(null);
+    setPinNotice(null);
+  };
+
+  // Remember the permit after every change. Saving from state (not from the event) means
+  // quick successive changes never overwrite each other. The default permit stores nothing.
+  const { permitType } = formInputs;
+  useEffect(() => {
+    const prefs = preferencesOf({ permitType });
+    if (isCustomized(prefs)) savePreferences(prefs);
+    else clearPreferences();
+  }, [permitType]);
 
   // Handle Form Submission
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -419,17 +467,20 @@ export default function Planner({ onBack }: PlannerProps) {
   };
 
   // Results go stale when any trip detail changes after the search that produced them
-  const isStale =
-    searchedRequest !== null &&
-    (searchedRequest.destinationId !== formInputs.destinationId ||
-      searchedRequest.permitType !== formInputs.permitType ||
-      searchedRequest.arrivalDate !== formInputs.arrivalDate ||
-      searchedRequest.arrivalTime !== formInputs.arrivalTime ||
-      (searchedRequest.priority ?? DEFAULT_PRIORITY) !== (formInputs.priority ?? DEFAULT_PRIORITY) ||
-      (searchedRequest.maxWalkMinutes ?? null) !== (formInputs.maxWalkMinutes ?? null));
+  const isStale = isResultStale(searchedRequest, formInputs);
 
   // Inline validation for the arrival date/time (empty or already passed)
   const arrivalError = getArrivalError(formInputs);
+
+  // After a first search, changing the permit or arrival time refreshes the results on its own once
+  // the changes settle, so there is no Update tap. One request per settled change keeps the
+  // rate-limited hosted API safe; a new destination searches at once instead (see shouldAutoRefresh).
+  const autoRefresh = shouldAutoRefresh(searchedRequest, formInputs, arrivalError);
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = window.setTimeout(() => runPlanner(formInputs), AUTO_REFRESH_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [autoRefresh, formInputs, runPlanner]);
 
   // First choice / backup IDs for labeling pins (hidden while results are stale)
   const rankedLotIds = useMemo(() => {
@@ -441,10 +492,9 @@ export default function Planner({ onBack }: PlannerProps) {
     };
   }, [recommendations, isStale]);
 
-  // Confirming a spot also selects it, so the highlighted card, the map pin and
-  // the route always point at the same lot. Undoing keeps the selection.
-  const handleConfirmLot = useCallback((locationId: string) => {
-    setConfirmedLotId((prev) => (prev === locationId ? null : locationId));
+  // Opening directions for a spot chooses it, so the highlighted card, the map pin and the
+  // route always point at the same lot. Unlike a card click it never toggles the selection off.
+  const handleChooseLot = useCallback((locationId: string) => {
     setSelectedLocationId(locationId);
   }, []);
 
@@ -472,6 +522,25 @@ export default function Planner({ onBack }: PlannerProps) {
     );
   }, []);
 
+  // If this browser has already allowed location for the site, use it as the driving start as
+  // soon as there are results, so directions need no tap. Never prompts: when permission is
+  // not granted yet, the "Use my location" button stays the way to ask.
+  const autoLocateTried = useRef(false);
+  const hasResults = recommendations.length > 0;
+  useEffect(() => {
+    if (!hasResults || startPoint || autoLocateTried.current) return;
+    autoLocateTried.current = true;
+    if (!('permissions' in navigator) || !('geolocation' in navigator)) return;
+    navigator.permissions
+      .query({ name: 'geolocation' })
+      .then((status) => {
+        if (status.state === 'granted') handleUseMyLocation();
+      })
+      .catch(() => {
+        // Permissions API unavailable: leave the button as the way to share location
+      });
+  }, [hasResults, startPoint, handleUseMyLocation]);
+
   // Rendering state for the results list
   const activeIsLoading = isLoading;
   const activeIsError = errorMessage !== null;
@@ -493,14 +562,25 @@ export default function Planner({ onBack }: PlannerProps) {
     routeRetry
   );
 
+  const routeAttribution =
+    [routeLegs.driving, routeLegs.walking].find(
+      (leg): leg is Extract<typeof routeLegs.driving, { status: 'ok' }> => leg.status === 'ok'
+    )?.route.attribution ?? null;
+
   // Weather and construction notices for the same selected result. Separate from the
   // search: if they fail, the parking results above are unaffected.
   const [alertsRetry, setAlertsRetry] = useState(0);
+  // The arrival sent for weather is worked out once per search. "Now" moves every minute, so
+  // recomputing it on each render would change the request every minute and refetch for nothing.
+  const alertArrival = useMemo(
+    () => (searchedRequest ? alertArrivalTime(searchedRequest.arrivalDate, searchedRequest.arrivalTime) : null),
+    [searchedRequest]
+  );
   const tripAlerts = useTripAlerts(
     routedRecommendation !== null && searchedRequest !== null,
     routedRecommendation && searchedRequest
       ? {
-          arrivalTime: `${searchedRequest.arrivalDate}T${searchedRequest.arrivalTime}:00`,
+          arrivalTime: alertArrival ?? '',
           parkingLocationId: routedRecommendation.lot.locationId,
           destination: routedDestination
             ? { name: routedDestination.name, latitude: routedDestination.latitude, longitude: routedDestination.longitude }
@@ -559,7 +639,7 @@ export default function Planner({ onBack }: PlannerProps) {
         aria-label={isPanelOpen ? 'Hide planner panel' : 'Show planner panel'}
         aria-expanded={isPanelOpen}
         aria-controls="planner-panel"
-        className={`max-sm:hidden absolute left-4 ${isPanelOpen ? 'top-[22px]' : 'top-4'} z-30 w-9 h-9 rounded-[10px] flex items-center justify-center text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
+        className={`max-sm:hidden absolute left-4 ${isPanelOpen ? 'top-[22px]' : 'top-4'} z-30 w-9 h-9 before:content-[''] before:absolute before:-inset-1 rounded-[10px] flex items-center justify-center text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
           isPanelOpen
             ? ''
             : 'bg-white border border-line shadow-[0_1px_2px_rgba(24,43,73,0.08),0_4px_12px_rgba(24,43,73,0.1)]'
@@ -575,7 +655,7 @@ export default function Planner({ onBack }: PlannerProps) {
         aria-label={isPanelOpen ? 'Hide planner panel' : 'Show planner panel'}
         aria-expanded={isPanelOpen}
         aria-controls="planner-panel"
-        className={`sm:hidden absolute left-1/2 -translate-x-1/2 z-30 h-8 px-4 rounded-full bg-white border border-line text-navy flex items-center justify-center gap-1 text-[12px] font-semibold shadow-[0_2px_10px_rgba(24,43,73,0.18)] transition-[top,bottom] duration-300 ease-out motion-reduce:transition-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer ${
+        className={`sm:hidden absolute left-1/2 -translate-x-1/2 z-30 h-8 px-4 before:content-[''] before:absolute before:-inset-y-2 before:inset-x-0 rounded-full bg-white border border-line text-navy flex items-center justify-center gap-1 text-[12px] font-semibold shadow-[0_2px_10px_rgba(24,43,73,0.18)] transition-[top,bottom] duration-300 ease-out motion-reduce:transition-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
           isPanelOpen ? 'top-[calc(50%-16px)]' : 'top-[calc(100%-80px)]'
         }`}
       >
@@ -593,7 +673,8 @@ export default function Planner({ onBack }: PlannerProps) {
       <aside
         id="planner-panel"
         aria-label="Parking planner controls and recommendations"
-        aria-hidden={!isPanelOpen}
+        // `inert` alone hides a closed panel from assistive tech and takes focus out of it. Adding
+        // aria-hidden as well made the browser warn when something inside still had focus.
         inert={!isPanelOpen}
         className={`absolute top-0 left-0 bottom-0 w-[388px] max-w-full max-sm:top-1/2 max-sm:bottom-9 max-sm:left-3 max-sm:right-3 max-sm:w-auto max-sm:max-w-none z-20 flex flex-col transition-transform duration-300 ease-out motion-reduce:transition-none ${
           isPanelOpen
@@ -616,15 +697,26 @@ export default function Planner({ onBack }: PlannerProps) {
               {/* UC San Diego wordmark (transparent PNG, sits directly on the panel) */}
               <img src={ucsdLogo} alt="UC San Diego" className="h-[20px] w-auto block shrink-0" />
             </div>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="text-[13px] text-muted leading-snug">
+            {/* Second row: Clear all sits under the hamburger button (the panel's left padding is
+                pulled back on desktop so it lines up with it), then the tagline and Home */}
+            <div className="mt-2 flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                aria-label="Clear all: reset the destination, time, permit and results"
+                className="shrink-0 -ml-[44px] max-sm:ml-0 inline-flex relative before:content-[''] before:absolute before:-inset-2 items-center gap-1 h-7 pl-2 pr-2.5 rounded-full border border-line bg-white text-[12px] font-semibold text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Clear all</span>
+              </button>
+              <p className="flex-1 min-w-0 text-[13px] text-muted leading-snug">
                 Find where to park before you arrive.
               </p>
               <button
                 type="button"
                 onClick={onBack}
                 aria-label="Back to the ParkSmart home page"
-                className="shrink-0 inline-flex items-center gap-1 h-7 pl-1.5 pr-2.5 rounded-full border border-line bg-white text-[12px] font-semibold text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer"
+                className="shrink-0 inline-flex relative before:content-[''] before:absolute before:-inset-2 items-center gap-1 h-7 pl-1.5 pr-2.5 rounded-full border border-line bg-white text-[12px] font-semibold text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Home</span>
@@ -644,7 +736,9 @@ export default function Planner({ onBack }: PlannerProps) {
               </h2>
               <PreferenceForm
                 formData={formInputs}
-                onChange={handleFormChange}
+                hasSavedSettings={isCustomized(preferencesOf(formInputs))}
+                onResetSettings={handleResetPreferences}
+                onChange={handleDestinationOrFormChange}
                 onSubmit={handleFormSubmit}
                 isLoading={activeIsLoading}
                 arrivalError={arrivalError}
@@ -660,6 +754,9 @@ export default function Planner({ onBack }: PlannerProps) {
                 </p>
               )}
             </section>
+
+            {/* Class schedule: import once, then park for any class in one tap */}
+            <SchedulePanel date={formInputs.arrivalDate} onPlanClass={handlePlanClass} />
 
             {/* Subtle Divider */}
             <div className="flex items-center gap-3 py-0.5 text-[13px] font-semibold text-navy">
@@ -682,21 +779,20 @@ export default function Planner({ onBack }: PlannerProps) {
                 showIntroPrompt={searchedRequest === null}
                 isStale={isStale}
                 availabilityTime={previewTime}
-                confirmedLotId={confirmedLotId}
-                onConfirmLot={handleConfirmLot}
+                onChooseLot={handleChooseLot}
                 selectedLocationId={selectedLocationId}
                 onSelectLot={handleSelectLot}
                 onRetry={handleRetry}
                 onResetFilters={handleResetFilters}
                 errorMessage={errorMessage}
                 resultInfo={resultInfo}
-                directions={
-                  routedRecommendation && routedDestination ? (
-                    <div className="space-y-3">
-                    <DirectionsPanel
-                      lotName={routedRecommendation.lot.name}
+                renderDetails={(rec) =>
+                  routedRecommendation && routedDestination && rec.lot.locationId === routedRecommendation.lot.locationId ? (
+                    <TripDetails
+                      tone={rec.badgeLabel === 'First choice' ? 'dark' : 'light'}
                       destinationName={routedDestination.name}
                       legs={routeLegs}
+                      fallbackWalkMinutes={rec.estimate?.walkingMinutes ?? rec.lot.walkingMinutes ?? null}
                       startLabel={startPoint ? 'your location' : null}
                       isLocating={isLocating}
                       locateError={locateError}
@@ -705,14 +801,27 @@ export default function Planner({ onBack }: PlannerProps) {
                         setStartPoint(null);
                         setLocateError(null);
                       }}
-                      onRetry={() => setRouteRetry((n) => n + 1)}
+                      onRetryRoutes={() => setRouteRetry((n) => n + 1)}
+                      alerts={tripAlerts}
+                      onRetryAlerts={() => setAlertsRetry((n) => n + 1)}
                     />
-                    <TripAlertsPanel
-                      lotName={routedRecommendation.lot.name}
-                      state={tripAlerts}
-                      onRetry={() => setAlertsRetry((n) => n + 1)}
-                    />
-                    </div>
+                  ) : null
+                }
+                extraNotes={
+                  routedRecommendation ? (
+                    <p>
+                      Drive and walk times are typical, without live traffic. Routes use the parking location’s map point,
+                      which may not be its entrance.
+                      {routeAttribution && (
+                        <>
+                          {' '}
+                          {routeAttribution} ·{' '}
+                          <a href={OSM_FIX_THE_MAP_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-navy">
+                            Fix the map
+                          </a>
+                        </>
+                      )}
+                    </p>
                   ) : null
                 }
               />
@@ -720,7 +829,7 @@ export default function Planner({ onBack }: PlannerProps) {
           </div>
 
           {/* Panel Footer Note */}
-          <footer className="px-5 py-2.5 bg-paper border-t border-line text-[11px] text-muted leading-snug shrink-0">
+          <footer className="px-5 py-2.5 bg-paper border-t border-line text-xs text-muted leading-snug shrink-0">
             <span>
               {USE_API
                 ? 'Historical estimates from past surveys, not live availability.'
@@ -763,8 +872,7 @@ export default function Planner({ onBack }: PlannerProps) {
                       activeRecommendations.find((r) => r.lot.locationId === selectedLot.locationId)?.badgeLabel ??
                       null
                 }
-                isConfirmed={confirmedLotId === selectedLot.locationId}
-                onConfirm={() => handleConfirmLot(selectedLot.locationId)}
+                onChoose={() => handleChooseLot(selectedLot.locationId)}
                 backendMode={USE_API}
                 backendEstimate={
                   isStale

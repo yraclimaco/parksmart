@@ -114,3 +114,24 @@ describe('parseTripAlerts', () => {
     expect(parseTripAlerts(response({ weather: source({ forecast: { forecast_time: 3 } }) }))).toBeNull();
   });
 });
+
+describe('parseTripAlerts match basis', () => {
+  const alert = (extra: Record<string, unknown>) => ({
+    alert_id: 'a1',
+    alert_type: 'construction',
+    message: 'Published construction notice: Road work.',
+    relevant_from: null,
+    relevant_until: null,
+    source_name: 'UCSD',
+    source_url: 'https://example.org',
+    limitations: [],
+    ...extra,
+  });
+
+  it('keeps how a notice matched the trip, and tolerates a missing value', () => {
+    const withBasis = parseTripAlerts(response({ construction: source({ alerts: [alert({ match_basis: 'within_200m' })] }) }));
+    expect(withBasis?.construction.alerts[0].match_basis).toBe('within_200m');
+    const without = parseTripAlerts(response({ construction: source({ alerts: [alert({})] }) }));
+    expect(without?.construction.alerts[0].match_basis).toBeNull();
+  });
+});

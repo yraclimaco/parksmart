@@ -53,7 +53,16 @@ outside this review request. Those were not applied. This is not a claim that
 the entire `frontend/` directory matches that commit; broader UI integration is
 separate. No files were deleted and no AWS redeployment was performed.
 
-### Rebuild and update the existing site
+### Rebuild and update the existing site (one command)
+
+```bash
+scripts/build_site.sh <new-revision-id>      # optional 2nd argument: another API URL
+```
+
+It checks `frontend/` is committed, checks the API answers `/readiness`, runs the
+tests, type check and API-mode build, and writes
+`frontend/parksmart-site-<new-revision-id>.zip` for Deploy updates. The steps below
+are the same thing done by hand.
 
 Use a reviewed checkout containing matching frontend and backend interfaces.
 If the request contract changes, first build/check/deploy its matching backend

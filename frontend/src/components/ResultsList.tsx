@@ -48,8 +48,8 @@ interface ResultsListProps {
   isStale: boolean;
   /** Time every availability number describes (follows the arrival time unless the Time tool is used). */
   availabilityTime: Date;
-  confirmedLotId: string | null;
-  onConfirmLot: (locationId: string) => void;
+  /** Chooses a lot when directions are opened for it (selects it, never toggles it off). */
+  onChooseLot: (locationId: string) => void;
   selectedLocationId: string | null;
   onSelectLot: (locationId: string) => void;
   onRetry: () => void;
@@ -58,8 +58,10 @@ interface ResultsListProps {
   errorMessage?: string | null;
   /** Source and backend messages for the current results; null for the dev simulator. */
   resultInfo?: ResultInfo | null;
-  /** Driving/walking directions for the selected result (API mode), shown under the cards. */
-  directions?: React.ReactNode;
+  /** Trip details (drive and walk time and distance, weather, construction) for a result, or null. */
+  renderDetails?: (recommendation: ParkingRecommendation) => React.ReactNode;
+  /** Extra lines for the collapsed Notes (route disclaimers and attribution). */
+  extraNotes?: React.ReactNode;
 }
 
 /**
@@ -76,15 +78,15 @@ export const ResultsList: React.FC<ResultsListProps> = ({
   showIntroPrompt,
   isStale,
   availabilityTime,
-  confirmedLotId,
-  onConfirmLot,
+  onChooseLot,
   selectedLocationId,
   onSelectLot,
   onRetry,
   onResetFilters,
   errorMessage = null,
   resultInfo = null,
-  directions = null,
+  renderDetails,
+  extraNotes = null,
 }) => {
   const api = resultInfo?.source === 'api' ? resultInfo : null;
   // Show the top 3, then reveal 5 more per "Show more" click; reset on every new search
@@ -102,10 +104,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <div className="w-10 h-10 mx-auto rounded-full bg-paper flex items-center justify-center text-muted">
             <MapPin className="w-5 h-5" aria-hidden="true" />
           </div>
-          <p className="text-sm font-semibold text-navy">Enter your trip details to see options</p>
+          <p className="text-sm font-semibold text-navy">Where are you headed?</p>
           <p className="text-xs text-muted leading-relaxed">
-            Pick where you're going (or use Drop pin on the map), when you'll arrive and your
-            permit, then press Find parking. Search a lot by name or tap any P to check it.
+            Pick a place (or use Drop pin on the map) and your options appear right away. Search a
+            lot by name or tap any P to check it.
           </p>
         </div>
       </div>
@@ -136,12 +138,10 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           <h4 className="text-sm font-bold text-navy">{EMPTY_TITLES[api.status]}</h4>
           <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">{api.explanation}</p>
           <p className="text-xs text-muted max-w-xs mx-auto leading-relaxed">
-            {searchedRequest?.maxWalkMinutes != null
-              ? 'Try a longer max walk, a different time, destination or permit.'
-              : 'Try a different time, destination or permit.'}
+            Try a different time, destination or permit.
           </p>
         </div>
-        <Limitations notes={api.limitations} />
+        <Notes notes={api.limitations} />
       </div>
     );
   }
@@ -205,26 +205,15 @@ export const ResultsList: React.FC<ResultsListProps> = ({
                 availabilityTime={availabilityTime}
                 destinationName={destinationName}
                 isStale={isStale}
-                isConfirmed={confirmedLotId === rec.lot.locationId}
-                onConfirm={() => onConfirmLot(rec.lot.locationId)}
+                onChoose={() => onChooseLot(rec.lot.locationId)}
                 isSelected={selectedLocationId === rec.lot.locationId}
                 onSelect={() => onSelectLot(rec.lot.locationId)}
+                details={isStale ? null : renderDetails?.(rec) ?? null}
               />
             </motion.div>
           );
         })}
       </div>
-
-      {!isStale && directions}
-
-      {api ? (
-        <Limitations notes={api.limitations} />
-      ) : (
-        <p className="px-1 text-[11px] text-muted leading-snug">
-          Open-space numbers are a time-of-day estimate from sample data, not live counts. Walk times are
-          straight-line estimates. Always check posted signs and UCSD Transportation before you park.
-        </p>
-      )}
 
       {visibleCount < recommendations.length && (
         <button
@@ -234,7 +223,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
             previousVisibleRef.current = visibleCount;
             setVisibleCount((n) => Math.min(recommendations.length, n + LOAD_MORE_STEP));
           }}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white border border-line hover:bg-white text-[13px] font-semibold text-navy transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-1.5 max-sm:min-h-[44px] py-2.5 rounded-xl bg-white border border-line hover:bg-white text-[13px] font-semibold text-navy transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronDown className="w-4 h-4" aria-hidden="true" />
           Show {Math.min(LOAD_MORE_STEP, recommendations.length - visibleCount)} more
@@ -243,6 +232,17 @@ export const ResultsList: React.FC<ResultsListProps> = ({
           </span>
         </button>
       )}
+
+      <Notes
+        notes={
+          api
+            ? api.limitations
+            : [
+                'Open-space numbers are a time-of-day estimate from sample data, not live counts. Walk times are straight-line estimates. Always check posted signs and UCSD Transportation before you park.',
+              ]
+        }
+        extra={extraNotes}
+      />
     </div>
   );
 };
@@ -254,12 +254,22 @@ const ExampleBadge: React.FC = () => (
   </div>
 );
 
-/** The backend's limitations for these results, in its own words. */
-const Limitations: React.FC<{ notes: string[] }> = ({ notes }) =>
-  notes.length === 0 ? null : (
-    <ul className="px-1 space-y-1 text-[11px] text-muted leading-snug list-disc list-inside">
-      {notes.map((note) => (
-        <li key={note}>{note}</li>
-      ))}
-    </ul>
+/**
+ * The backend's limitations (and route disclaimers) in its own words, collapsed so the tips do
+ * not push the results off screen.
+ */
+const Notes: React.FC<{ notes: string[]; extra?: React.ReactNode }> = ({ notes, extra = null }) =>
+  notes.length === 0 && !extra ? null : (
+    <details className="group px-1 text-xs text-muted leading-snug">
+      <summary className="flex items-center justify-between gap-2 min-h-[36px] cursor-pointer list-none font-semibold text-navy rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky">
+        <span>Notes and limits</span>
+        <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <ul className="mt-1 space-y-1 list-disc list-inside">
+        {notes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+      {extra && <div className="mt-1.5 space-y-1">{extra}</div>}
+    </details>
   );

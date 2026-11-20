@@ -7,6 +7,7 @@ import {
   parseResponse,
   toApiRequest,
   toRankedOptions,
+  toRecommendations,
   type ApiRecommendationResponse,
 } from './recommendations.ts';
 
@@ -245,5 +246,33 @@ describe('ranked options', () => {
   it('rejects malformed options', () => {
     expect(parseResponse({ ...ready(), options: 'nope' })).toBeNull();
     expect(parseResponse({ ...ready(), options: [{ location: null }] })).toBeNull();
+  });
+});
+
+describe('result cards', () => {
+  it('gives one card per ranked option, so there is a top 3 and more behind Show more', () => {
+    const options = ['gilman-ps', 'p406', 'p414', 'p503', 'p602'].map((id, i) => ({
+      ...choice(id, 0.5, 5 + i),
+      rank: i + 1,
+    }));
+    const cards = toRecommendations(ready({ options }));
+    expect(cards.map((c) => c.badgeLabel)).toEqual(['First choice', 'Backup', '#3', '#4', '#5']);
+    expect(cards.map((c) => c.lot.locationId)).toEqual(['gilman-ps', 'p406', 'p414', 'p503', 'p602']);
+  });
+
+  it('keeps the first choice and backup in front and never repeats a lot', () => {
+    // options listed in a different order, with the first choice repeated
+    const options = [choice('p414', 0.4, 9), choice('gilman-ps', 0.62, 8), choice('p406', null, null)];
+    const cards = toRecommendations(ready({ options }));
+    expect(cards.map((c) => c.lot.locationId)).toEqual(['gilman-ps', 'p406', 'p414']);
+    expect(cards.map((c) => c.badgeLabel)).toEqual(['First choice', 'Backup', '#3']);
+  });
+
+  it('shows just the two picks when an older backend sends no options', () => {
+    expect(toRecommendations(ready()).map((c) => c.badgeLabel)).toEqual(['First choice', 'Backup']);
+  });
+
+  it('shows one card when there is no backup', () => {
+    expect(toRecommendations(ready({ backup_choice: null })).map((c) => c.badgeLabel)).toEqual(['First choice']);
   });
 });

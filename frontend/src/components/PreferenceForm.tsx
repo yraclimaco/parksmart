@@ -6,15 +6,21 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, Check, MapPin, Star, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { DEFAULT_PRIORITY, PERMIT_OPTIONS, PRIORITY_OPTIONS, WALK_LIMIT_OPTIONS } from '../constants.ts';
+import { PERMIT_OPTIONS } from '../constants.ts';
 import { POPULAR_DESTINATIONS, findDestination, searchDestinations } from '../data/destinations.ts';
 import { maxArrivalDate } from '../utils/arrival.ts';
 import { loadFavorites, toggleFavorite } from '../utils/favorites.ts';
+import { loadRecentDestinations } from '../utils/recentDestinations.ts';
+import { TimeWheel } from './TimeWheel.tsx';
 import { ALL_PARKING } from '../data/parkingLots.ts';
 import { ParkingPlannerRequest, CampusDestination, ParkingLot } from '../types.ts';
 
 interface PreferenceFormProps {
   formData: ParkingPlannerRequest;
+  /** True when the remembered permit differs from the default. */
+  hasSavedSettings?: boolean;
+  /** Returns the permit to the default and forgets the saved one. */
+  onResetSettings?: () => void;
   onChange: (newData: Partial<ParkingPlannerRequest>) => void;
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
@@ -60,6 +66,8 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
  */
 export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   formData,
+  hasSavedSettings = false,
+  onResetSettings,
   onChange,
   onSubmit,
   isLoading,
@@ -76,14 +84,26 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  const priority = formData.priority ?? DEFAULT_PRIORITY;
-
   // No destination until the user picks one (or drops a pin on the map)
   const selectedDestination = findDestination(formData.destinationId) ?? null;
   const query = destinationSearch.trim();
 
   // Before typing: popular places. While typing: matching places and parking, with
   // parking first when the query is clearly a lot ("Gilman", "P406")
+  // Last few searched places, reloaded each time the list opens so a search just made shows up
+  const recents = useMemo(
+    () => (isDestinationOpen ? loadRecentDestinations() : []),
+    [isDestinationOpen]
+  );
+  const recentPlaces = useMemo(
+    () =>
+      recents
+        .filter((id) => !favorites.includes(id))
+        .map((id) => findDestination(id))
+        .filter((d): d is CampusDestination => d !== undefined && !d.isPin)
+        .map((d): Option => ({ kind: 'place', destination: d })),
+    [recents, favorites]
+  );
   const favoritePlaces = useMemo(
     () =>
       favorites
@@ -95,7 +115,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   const { places, parking } = useMemo(() => {
     if (!query) {
       return {
-        places: POPULAR_DESTINATIONS.filter((d) => !favorites.includes(d.id)).map((d): Option => ({ kind: 'place', destination: d })),
+        places: POPULAR_DESTINATIONS.filter((d) => !favorites.includes(d.id) && !recents.includes(d.id)).map((d): Option => ({ kind: 'place', destination: d })),
         parking: [] as Option[],
       };
     }
@@ -103,7 +123,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
       places: searchDestinations(query).map((m): Option => ({ kind: 'place', destination: m.destination, matchedOn: m.matchedOn })),
       parking: searchParking(query).map((lot): Option => ({ kind: 'parking', lot })),
     };
-  }, [query, favorites]);
+  }, [query, favorites, recents]);
   const parkingFirst =
     parking.length > 0 &&
     (places.length === 0 || (parking[0].kind === 'parking' && parking[0].lot.name.toLowerCase().startsWith(query.toLowerCase())));
@@ -111,7 +131,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
     parkingFirst
       ? [{ label: 'Parking', options: parking }, { label: 'Places', options: places }]
       : [
-          ...(query ? [] : [{ label: 'Favorites', options: favoritePlaces }]),
+          ...(query ? [] : [{ label: 'Recent', options: recentPlaces }, { label: 'Favorites', options: favoritePlaces }]),
           { label: query ? 'Places' : 'Popular', options: places },
           { label: 'Parking', options: parking },
         ]
@@ -183,7 +203,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
           aria-haspopup="listbox"
           aria-expanded={isDestinationOpen}
           onClick={() => setIsDestinationOpen(!isDestinationOpen)}
-          className="w-full text-left px-3.5 py-2.5 rounded-[10px] bg-white border border-line hover:border-navy/40 focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky transition-all duration-150 flex items-center justify-between shadow-xs group"
+          className="w-full text-left px-3.5 py-2.5 rounded-[10px] bg-white border border-line hover:border-navy/40 focus:outline-none focus:ring-2 focus:ring-sky focus:border-sky transition-all duration-150 flex items-center justify-between shadow-xs group"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             {selectedDestination?.isPin ? (
@@ -221,7 +241,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
                 aria-controls="destination-options"
                 aria-activedescendant={flatOptions.length ? `destination-option-${activeIndex}` : undefined}
                 autoFocus
-                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-paper border border-transparent focus:outline-none focus:ring-1 focus:ring-sky/30 text-navy"
+                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-paper border border-transparent focus:outline-none focus:ring-1 focus:ring-sky text-navy"
               />
               {destinationSearch && (
                 <button
@@ -255,10 +275,10 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
                           onMouseMove={() => setActiveIndex(index)}
                           className={`px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2.5 text-xs text-ink ${isActive ? 'bg-paper' : ''}`}
                         >
-                          <span className="w-5 h-5 shrink-0 rounded-md bg-navy text-white text-[10px] font-extrabold flex items-center justify-center">P</span>
+                          <span className="w-5 h-5 shrink-0 rounded-md bg-navy text-white text-xs font-extrabold flex items-center justify-center">P</span>
                           <div className="min-w-0 flex-1">
                             <div className="font-semibold truncate">{lot.name}</div>
-                            <div className="text-[11px] text-muted">
+                            <div className="text-xs text-muted">
                               {lot.kind === 'structure' ? 'Parking structure' : 'Surface lot'} · show on map
                             </div>
                           </div>
@@ -307,12 +327,12 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold truncate">{destination.name}</div>
                           {matchedOn && !destination.codes?.includes(matchedOn) && (
-                            <div className="text-[11px] text-muted truncate">Also called {matchedOn}</div>
+                            <div className="text-xs text-muted truncate">Also called {matchedOn}</div>
                           )}
                         </div>
                         {destination.codes?.[0] && (
                           <span
-                            className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold tracking-wide ${
+                            className={`shrink-0 px-1.5 py-0.5 rounded-md text-xs font-bold tracking-wide ${
                               matchedOn && destination.codes.includes(matchedOn)
                                 ? 'bg-navy text-white'
                                 : 'bg-paper text-muted'
@@ -334,7 +354,7 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
               )}
             </ul>
             {!query && (
-              <p className="px-3 pt-1.5 pb-0.5 text-[11px] text-muted border-t border-line mt-1">
+              <p className="px-3 pt-1.5 pb-0.5 text-xs text-muted border-t border-line mt-1">
                 Tap the star to save a place. Not listed? Use Drop pin on the map.
               </p>
             )}
@@ -342,13 +362,10 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
         )}
       </div>
 
-      {/* Arrival Date and Time Grid */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Arrival date, then a rolling time wheel (spin instead of typing) */}
+      <div className="space-y-2.5">
         <div>
-          <label
-            htmlFor="arrival-date"
-            className="block text-[13px] font-semibold text-ink mb-1.5"
-          >
+          <label htmlFor="arrival-date" className="block text-[13px] font-semibold text-ink mb-1.5">
             Arrival date
           </label>
           <div className="relative">
@@ -360,29 +377,21 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
               onChange={(e) => onChange({ arrivalDate: e.target.value })}
               aria-invalid={arrivalError !== null}
               aria-describedby={arrivalError ? 'arrival-error' : undefined}
-              className="w-full px-2.5 py-2 rounded-[10px] bg-white border border-line text-[13px] font-medium text-navy focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky "
+              className="w-full max-sm:min-h-[44px] px-2.5 py-2 rounded-[10px] bg-white border border-line text-[13px] font-medium text-navy focus:outline-none focus:ring-2 focus:ring-sky focus:border-sky "
             />
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="arrival-time"
-            className="block text-[13px] font-semibold text-ink mb-1.5"
-          >
+          <span id="arrival-time-label" className="block text-[13px] font-semibold text-ink mb-1.5">
             Arrival time
-          </label>
-          <div className="relative">
-            <input
-              id="arrival-time"
-              type="time"
-              value={formData.arrivalTime}
-              onChange={(e) => onChange({ arrivalTime: e.target.value })}
-              aria-invalid={arrivalError !== null}
-              aria-describedby={arrivalError ? 'arrival-error' : undefined}
-              className="w-full px-2.5 py-2 rounded-[10px] bg-white border border-line text-[13px] font-medium text-navy focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky "
-            />
-          </div>
+          </span>
+          <TimeWheel
+            value={formData.arrivalTime}
+            onChange={(arrivalTime) => onChange({ arrivalTime })}
+            invalid={arrivalError !== null}
+            describedBy={arrivalError ? 'arrival-error' : undefined}
+          />
         </div>
       </div>
 
@@ -407,16 +416,24 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
       {/* Permit Type Pill Selector */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-[13px] font-semibold text-ink">
+          <span id="permit-type-label" className="block text-[13px] font-semibold text-ink">
             Permit type
-          </label>
-          <span className="text-[11px] text-muted">
+          </span>
+          <span className="text-xs text-muted">
             {PERMIT_OPTIONS.find((p) => p.type === formData.permitType)?.description}
           </span>
         </div>
         <div
           role="radiogroup"
-          aria-label="Permit type"
+          aria-labelledby="permit-type-label"
+          onKeyDown={(e) =>
+            arrowSelect(
+              e,
+              PERMIT_OPTIONS.map((p) => ({ key: p.type, value: p.type })),
+              formData.permitType,
+              (type) => onChange({ permitType: type }),
+            )
+          }
           className="grid grid-cols-6 gap-0.5 p-0.5 bg-paper border border-line rounded-[10px]"
         >
           {PERMIT_OPTIONS.map((permit) => {
@@ -427,9 +444,10 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
+                tabIndex={isSelected ? 0 : -1}
                 title={`${permit.type}: ${permit.description}`}
                 onClick={() => onChange({ permitType: permit.type })}
-                className={`relative py-1.5 text-xs font-semibold rounded-[10px] transition-colors duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer ${
+                className={`relative max-sm:min-h-[44px] py-1.5 text-xs font-semibold rounded-[10px] transition-colors duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
                   isSelected ? 'text-white' : 'text-muted hover:text-navy'
                 }`}
               >
@@ -448,46 +466,25 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
         </div>
       </div>
 
-      {/* What matters most: walk vs availability, then a personal walking limit */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-[13px] font-semibold text-ink">Prioritize</label>
-          <span className="text-[11px] text-muted text-right whitespace-nowrap">
-            {PRIORITY_OPTIONS.find((p) => p.value === priority)?.description}
-          </span>
-        </div>
-        <SegmentedControl
-          label="Prioritize"
-          layoutId="priority-thumb"
-          options={PRIORITY_OPTIONS.map((option) => ({ key: option.value, label: option.label, value: option.value }))}
-          selected={priority}
-          onSelect={(value) => onChange({ priority: value })}
-        />
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-[13px] font-semibold text-ink">Max walk</label>
-          <span className="text-[11px] text-muted">From parking to your destination</span>
-        </div>
-        <SegmentedControl
-          label="Maximum walking time"
-          layoutId="walk-limit-thumb"
-          options={WALK_LIMIT_OPTIONS.map((option) => ({
-            key: String(option.value),
-            label: option.label,
-            value: option.value,
-          }))}
-          selected={formData.maxWalkMinutes ?? null}
-          onSelect={(value) => onChange({ maxWalkMinutes: value })}
-        />
-      </div>
+      {/* Shown only when the permit differs from the default, so it is clear it was remembered */}
+      {hasSavedSettings && (
+        <p className="flex items-center justify-between gap-2 text-xs text-muted" data-testid="saved-settings-note">
+          <span>Your permit is saved on this device.</span>
+          <button
+            type="button"
+            onClick={onResetSettings}
+            className="min-h-[44px] px-1 font-semibold text-navy underline underline-offset-2 hover:text-navy-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky rounded-md cursor-pointer"
+          >
+            Reset
+          </button>
+        </p>
+      )}
 
       {/* Primary Action Button */}
       <button
         type="submit"
         disabled={isLoading || arrivalError !== null || !selectedDestination}
-        className="w-full py-2.5 px-4 rounded-[10px] font-semibold text-[15px] text-white bg-navy hover:bg-navy-2 border-b-[3px] border-gold active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 focus-visible:ring-offset-2 transition-all duration-150 shadow-[0_2px_6px_rgba(24,43,73,0.3)] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+        className="w-full py-2.5 px-4 rounded-[10px] font-semibold text-[15px] text-white bg-navy hover:bg-navy-2 border-b-[3px] border-gold active:translate-y-px focus:outline-none focus-visible:ring-2 focus-visible:ring-sky focus-visible:ring-offset-2 transition-all duration-150 shadow-[0_2px_6px_rgba(24,43,73,0.3)] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
       >
         {isLoading ? (
           <>
@@ -502,51 +499,26 @@ export const PreferenceForm: React.FC<PreferenceFormProps> = ({
   );
 };
 
-/** Pill radio group in the same style as the permit picker. */
-function SegmentedControl<T>({
-  label,
-  layoutId,
-  options,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  layoutId: string;
-  options: Array<{ key: string; label: string; value: T }>;
-  selected: T;
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="grid gap-0.5 p-0.5 bg-paper border border-line rounded-[10px]"
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-    >
-      {options.map((option) => {
-        const isSelected = option.value === selected;
-        return (
-          <button
-            key={option.key}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            onClick={() => onSelect(option.value)}
-            className={`relative py-1.5 text-xs font-semibold rounded-[10px] transition-colors duration-200 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer ${
-              isSelected ? 'text-white' : 'text-muted hover:text-navy'
-            }`}
-          >
-            {isSelected && (
-              <motion.span
-                layoutId={layoutId}
-                className="absolute inset-0 rounded-[8px] bg-navy"
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-              />
-            )}
-            <span className="relative">{option.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
+/**
+ * Arrow-key handling for a radiogroup: Left/Up and Right/Down move the selection and focus
+ * to the neighbouring radio (wrapping), Home/End jump to the ends, as the ARIA radio pattern asks.
+ */
+function arrowSelect<T>(
+  e: React.KeyboardEvent<HTMLElement>,
+  options: Array<{ key: string; value: T }>,
+  selected: T,
+  onSelect: (value: T) => void,
+): void {
+  const keys = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'Home', 'End'];
+  if (!keys.includes(e.key) || options.length === 0) return;
+  e.preventDefault();
+  const current = Math.max(0, options.findIndex((o) => o.value === selected));
+  let next = current;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (current - 1 + options.length) % options.length;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (current + 1) % options.length;
+  if (e.key === 'Home') next = 0;
+  if (e.key === 'End') next = options.length - 1;
+  onSelect(options[next].value);
+  const radios = e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
+  radios[next]?.focus();
 }

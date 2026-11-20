@@ -9,6 +9,13 @@ const UCSD_TIME_ZONE = 'America/Los_Angeles';
 const MM_PER_INCH = 25.4;
 const MPH_PER_KMH = 0.621371;
 
+/**
+ * How close a construction notice must be to the parking lot or destination to be listed.
+ * Mirrors the backend's 200 m advisory buffer (docs/construction_source.md); it is a
+ * matching choice, not a measured impact radius.
+ */
+export const NEARBY_DISTANCE_TEXT = 'about 650 ft (200 m)';
+
 export const celsiusToFahrenheit = (c: number): number => (c * 9) / 5 + 32;
 export const kmhToMph = (kmh: number): number => kmh * MPH_PER_KMH;
 
@@ -60,7 +67,7 @@ export function describeForecast(forecast: WeatherForecast): string {
 export function emptySourceMessage(kind: 'weather' | 'construction', source: AlertSource): string {
   switch (source.status) {
     case 'no_relevant':
-      return "No published construction notices matched near this trip. That doesn't prove there is none.";
+      return `No published construction notices matched within ${NEARBY_DISTANCE_TEXT} of the parking location or your destination. That doesn't prove there is none.`;
     case 'out_of_range':
       return 'No forecast for this date yet. Forecasts only reach about two weeks ahead.';
     case 'missing_location':
@@ -72,4 +79,46 @@ export function emptySourceMessage(kind: 'weather' | 'construction', source: Ale
     default:
       return kind === 'weather' ? 'No weather suggestions for this arrival.' : 'No construction notices matched.';
   }
+}
+
+/**
+ * Short tag for how a construction notice matched: inside the mapped work area, or only
+ * nearby. Null for anything else (weather, or a basis the backend adds later), so an
+ * unknown value never gets a made-up label.
+ */
+export function matchLabel(basis: string | null): string | null {
+  if (basis === 'intersects_geometry') return 'At this location';
+  if (basis === 'within_200m') return `Within ${NEARBY_DISTANCE_TEXT}`;
+  return null;
+}
+
+/**
+ * A few words for the collapsed alerts line: temperature and chance of rain from the
+ * forecast. Anything missing is left out, and a source that is not fresh says so.
+ */
+export function weatherSummary(source: AlertSource): string {
+  if (source.status === 'unavailable') return 'Weather unavailable';
+  if (source.status === 'out_of_range') return 'No forecast yet';
+  if (source.status === 'missing_location') return 'Weather not checked';
+  const f = source.forecast;
+  const parts: string[] = [];
+  if (f && f.temperature_c !== null) parts.push(`${Math.round(celsiusToFahrenheit(f.temperature_c))}°F`);
+  if (f && f.precipitation_probability_percent !== null) {
+    parts.push(`${Math.round(f.precipitation_probability_percent)}% rain`);
+  }
+  if (source.alerts.length > 0) parts.push(source.alerts.length === 1 ? '1 tip' : `${source.alerts.length} tips`);
+  const text = parts.length > 0 ? parts.join(', ') : 'No forecast details';
+  return source.status === 'stale' ? `${text} (older data)` : text;
+}
+
+/**
+ * A few words for the collapsed alerts line about construction. "None found" is never an
+ * all-clear: the full text explains that a missing notice does not prove there is none.
+ */
+export function constructionSummary(source: AlertSource): string {
+  if (source.status === 'unavailable') return 'Construction unavailable';
+  if (source.status === 'missing_location') return 'Construction not checked';
+  const n = source.alerts.length;
+  const text = n > 0 ? (n === 1 ? '1 notice nearby' : `${n} notices nearby`) : 'None found nearby';
+  return source.status === 'stale' ? `${text} (older data)` : text;
 }

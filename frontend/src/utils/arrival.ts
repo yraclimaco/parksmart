@@ -36,3 +36,25 @@ export function getArrivalError(
   }
   return null;
 }
+
+/**
+ * How far ahead of the current time weather and construction are asked about when the
+ * arrival is "now" or already a few minutes old. The weather source refuses past
+ * arrivals ("past arrivals are not supported"), and the planner's default "Now" is the
+ * current minute, which is seconds old by the time the request arrives.
+ */
+export const ALERT_MIN_LEAD_MINUTES = 2;
+
+/**
+ * The arrival to send to the trip-alerts backend, as local "YYYY-MM-DDTHH:mm:00". It is the
+ * chosen arrival, except that a time that is already past (or about to be) is moved to just
+ * ahead of now, so a trip for now still gets a forecast. Later arrivals are never changed.
+ */
+export function alertArrivalTime(date: string, time: string, now: Date = new Date()): string {
+  const arrival = parseArrival(date, time);
+  if (!arrival) return `${date}T${time}:00`;
+  const earliest = new Date(now.getTime() + ALERT_MIN_LEAD_MINUTES * 60_000);
+  const use = arrival.getTime() < earliest.getTime() ? earliest : arrival;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${use.getFullYear()}-${pad(use.getMonth() + 1)}-${pad(use.getDate())}T${pad(use.getHours())}:${pad(use.getMinutes())}:00`;
+}
