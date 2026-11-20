@@ -689,8 +689,7 @@ walk limit made searches return no results, so only the permit is remembered, in
 `v1` key is ignored and deleted). It also remembers the last three
 searched places (Recent in the destination list) and whether the planner was opened
 before. A returning browser skips the intro and landing page and opens the planner;
-adding `?home` to the address always shows the landing page (use it for demos). Quick
-arrival defaults to now and is set with a rolling hour/minute/AM-PM wheel (`TimeWheel.tsx`,
+adding `?home` to the address always shows the landing page (use it for demos). Arrival defaults to now and is set with a rolling hour/minute/AM-PM wheel (`TimeWheel.tsx`,
 like the iPhone clock; arrow keys also work) instead of a typed time; there are no generic time chips, the imported class schedule
 (below) is the one-tap shortcut.
 Picking a destination searches immediately, and after a first search changing the
