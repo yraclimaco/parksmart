@@ -340,38 +340,6 @@ body {
 .parksmart-marker.ps-ranked .ps-label { top: 17px; }
 .parksmart-marker.ps-selected .ps-label { top: 8px; }
 
-/* Time scrubber slider: iOS-style track with a filled portion and a white knob */
-.ps-scrubber {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 9999px;
-  background: linear-gradient(to right, var(--color-navy) var(--fill), var(--color-line) var(--fill));
-  cursor: pointer;
-  outline: none;
-}
-.ps-scrubber::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  background: var(--color-sun);
-  border: 2px solid var(--color-navy);
-  box-shadow: 0 1px 3px rgba(24, 43, 73, 0.35);
-  transition: scale 150ms ease;
-}
-.ps-scrubber::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  background: var(--color-sun);
-  border: 2px solid var(--color-navy);
-  box-shadow: 0 1px 3px rgba(24, 43, 73, 0.35);
-}
-.ps-scrubber:active::-webkit-slider-thumb { scale: 1.15; }
-.ps-scrubber:focus-visible { box-shadow: 0 0 0 3px rgba(0, 98, 155, 0.35); }
-
 /* Availability dots recolor smoothly while scrubbing */
 .ps-avail { transition: background-color 200ms linear; }
 
@@ -415,7 +383,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ps-aerial-shimmer, .ps-aerial-pin::after { animation: none; }
 }
-
 
 /* Single-button map controls (Time, Drop pin). Plain CSS, not utilities: MapLibre's own
    unlayered `.maplibregl-ctrl button` rules would otherwise beat Tailwind's layered ones. */
@@ -565,15 +532,6 @@ body {
   background-color: var(--lp-line-yellow-hover);
 }
 
-.lp-btn--asphalt {
-  background-color: var(--lp-asphalt);
-  color: var(--lp-paint-white);
-}
-
-.lp-btn--asphalt:hover {
-  background-color: var(--lp-asphalt-hover);
-}
-
 /* Landing document: full-color sections around three live lot scenes */
 .lp-doc {
   --lp-serif: var(--font-serif);
@@ -593,17 +551,6 @@ body {
 
 .lp-dark {
   color: var(--lp-paint-white);
-}
-
-.lp-bar {
-  padding-block: 20px;
-}
-
-.lp-bar-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
 }
 
 .lp-wordmark {
@@ -880,8 +827,7 @@ body {
   scroll-snap-align: start;
 }
 
-.lp-block > .lp-container,
-.lp-block > .lp-limits {
+.lp-block > .lp-container {
   width: 100%;
 }
 
@@ -917,10 +863,6 @@ body {
   letter-spacing: -0.03em;
 }
 
-.lp-big--yellow {
-  color: var(--lp-line-yellow);
-}
-
 .lp-sub {
   margin: 0;
   max-width: 24ch;
@@ -931,107 +873,6 @@ body {
 .lp-note {
   margin: 16px 0 0;
   font-size: 0.9375rem;
-}
-
-/* Permit lot */
-.pl-readout {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 14px;
-  color: var(--lp-asphalt);
-}
-
-.pl-readout strong {
-  font-family: var(--lp-serif);
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 600;
-  line-height: 1;
-}
-
-.pl-readout span {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.pl-lot,
-.tl-lot {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 16px;
-}
-
-.pl-stall {
-  transition: opacity 350ms ease;
-}
-
-.pl-stall rect {
-  transition: fill 350ms ease, stroke 350ms ease;
-}
-
-.pl-letter,
-.tl-ticks {
-  font-family: var(--font-sans);
-}
-
-.pl-letter {
-  font-size: 22px;
-  font-weight: 800;
-  transition: fill 350ms ease;
-}
-
-.pl-car {
-  opacity: 0;
-  transform: translateY(var(--from, 0));
-  transition: transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 400ms ease;
-  transition-delay: calc(var(--i, 0) * 70ms);
-}
-
-.pl-lot--in .pl-car {
-  opacity: 1;
-  transform: none;
-}
-
-.pl-buttons {
-  margin-top: 18px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.pl-btn {
-  min-width: 64px;
-  height: 56px;
-  padding-inline: 22px;
-  border: 3px solid var(--lp-asphalt);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--lp-asphalt);
-  font: inherit;
-  font-size: 1.25rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
-}
-
-.pl-btn:hover {
-  transform: translateY(-2px);
-}
-
-.pl-btn--on {
-  background: var(--lp-asphalt);
-  color: var(--lp-line-yellow);
-}
-
-/* Time lot */
-.tl-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px 32px;
-  margin-bottom: 14px;
 }
 
 /* FAQ */
@@ -1051,86 +892,7 @@ body {
   align-items: start;
 }
 
-.lp-faq-item {
-  border-top: 3px solid var(--lp-asphalt);
-}
-
-.lp-faq-item:last-child {
-  border-bottom: 3px solid var(--lp-asphalt);
-}
-
-.lp-faq-item summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 64px;
-  padding-block: 14px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.3;
-  cursor: pointer;
-  list-style: none;
-}
-
-.lp-faq-item summary::-webkit-details-marker {
-  display: none;
-}
-
-.lp-faq-item summary::after {
-  content: '';
-  flex: none;
-  width: 22px;
-  height: 22px;
-  background:
-    linear-gradient(var(--lp-asphalt), var(--lp-asphalt)) center / 100% 4px no-repeat,
-    linear-gradient(var(--lp-asphalt), var(--lp-asphalt)) center / 4px 100% no-repeat;
-  transition: transform 200ms ease;
-}
-
-.lp-faq-item[open] summary::after {
-  transform: rotate(45deg);
-}
-
-.lp-faq-item p {
-  margin: 0 0 20px;
-  max-width: 54ch;
-  font-size: 1.0625rem;
-  line-height: 1.55;
-}
-
-/* Phone: a Plan my parking button that stays reachable once the hero is gone */
-.lp-sticky {
-  display: none;
-}
-
 @media (max-width: 899px) {
-  .lp-sticky {
-    position: fixed;
-    inset: auto 0 0 0;
-    display: block;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: linear-gradient(to top, rgba(16, 29, 51, 0.92), rgba(16, 29, 51, 0));
-    transform: translateY(110%);
-    transition: transform 250ms ease;
-    pointer-events: none;
-    z-index: 20;
-  }
-
-  .lp-sticky--on {
-    transform: none;
-  }
-
-  .lp-sticky .lp-btn {
-    width: 100%;
-    height: 56px;
-    font-size: 1.0625rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  }
-
-  .lp-sticky--on .lp-btn {
-    pointer-events: auto;
-  }
 
   .lp-faq {
     grid-template-columns: minmax(0, 1fr);
@@ -1254,14 +1016,6 @@ body {
   margin-top: clamp(48px, 7vw, 96px);
 }
 
-.lp-h3-light {
-  margin: 0 0 20px;
-  font-family: var(--lp-serif);
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
-  font-weight: 500;
-  color: var(--lp-line-yellow);
-}
-
 .sm-bar {
   display: flex;
   height: 72px;
@@ -1314,35 +1068,6 @@ body {
   background: repeating-linear-gradient(135deg, var(--lp-asphalt) 0 22px, var(--lp-line-yellow) 22px 44px);
 }
 
-.lp-limits {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: clamp(24px, 6vw, 96px);
-  align-items: start;
-  padding-block: clamp(48px, 7vw, 104px);
-}
-
-.lp-limit-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lp-limit-list li {
-  padding-block: 16px;
-  border-top: 3px solid var(--lp-asphalt);
-  font-size: 1.125rem;
-  line-height: 1.5;
-}
-
-.lp-limit-list li:last-child {
-  border-bottom: 3px solid var(--lp-asphalt);
-}
-
-.lp-limit-list strong {
-  font-weight: 800;
-}
-
 .lp-footer {
   background-color: var(--lp-asphalt);
   padding-block: clamp(32px, 5vw, 56px);
@@ -1369,8 +1094,7 @@ body {
 }
 
 @media (max-width: 899px) {
-  .lp-hero2-grid,
-  .lp-limits {
+  .lp-hero2-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1441,21 +1165,8 @@ body {
     animation: none;
   }
 
-  .pl-car {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-
-  .lp-sticky,
   .pp-car,
-  .sm-seg {
-    transition: none;
-  }
-
-  .tl-car,
-  .pl-stall,
-  .pl-stall rect {
+.sm-seg {
     transition: none;
   }
 }
@@ -1463,13 +1174,6 @@ body {
 /* Intro: a car drives in, parks, and the route continues on foot. Waits for a click. */
 .ps-landing--intro {
   overflow: hidden;
-}
-
-/* Hold the hero's own animations until the intro has lifted */
-.ps-landing--intro .lp-car--arriving,
-.ps-landing--intro .lp-stall-fill,
-.ps-landing--intro .lp-sign-plate {
-  animation-play-state: paused;
 }
 
 .lp-intro {
@@ -1523,18 +1227,6 @@ body {
   overflow: visible;
   width: min(1100px, 92vw, calc((100dvh - 370px) * 2));
   height: auto;
-}
-
-.lp-scene-label {
-  font-size: 16px;
-  font-weight: 600;
-  fill: rgba(247, 248, 250, 0.6);
-}
-
-.lp-scene-label--strong {
-  font-size: 20px;
-  font-weight: 800;
-  fill: #F7F8FA;
 }
 
 .lp-scene-bldg {
@@ -1620,13 +1312,6 @@ body {
     opacity: 1;
   }
 
-
-}
-
-@media (max-width: 599px) {
-  .lp-scene-label {
-    display: none;
-  }
 }
 
 /* Map loading screen: a car pulls into the open stall, on a loop */
@@ -1755,74 +1440,14 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Landing additions: problem, evidence, next, counter, links, skip   */
-/* ------------------------------------------------------------------ */
-.lp-fact-list,
-.lp-next-list {
+/* Landing additions: problem,
+evidence,
+next,
+counter,
+links {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.lp-fact-list li,
-.lp-next-list li {
-  padding-block: 16px;
-  border-top: 3px solid var(--lp-asphalt);
-  font-size: 1.125rem;
-  line-height: 1.5;
-  max-width: 62ch;
-}
-
-.lp-fact-list li:last-child,
-.lp-next-list li:last-child {
-  border-bottom: 3px solid var(--lp-asphalt);
-}
-
-.lp-fact-list strong,
-.lp-next-list strong {
-  font-weight: 800;
-}
-
-.lp-status {
-  display: inline-block;
-  margin-right: 10px;
-  padding: 2px 10px;
-  border: 2px solid var(--lp-asphalt);
-  border-radius: 999px;
-  font-size: 0.875rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  vertical-align: 1px;
-}
-
-.lp-evidence {
-  max-width: 62ch;
-}
-
-.lp-evidence-num {
-  margin: 0;
-  font-family: var(--lp-serif);
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--lp-line-yellow);
-  font-variant-numeric: tabular-nums;
-}
-
-.lp-evidence-num span {
-  display: block;
-  margin-top: 8px;
-  font-family: var(--font-sans);
-  font-size: 1.25rem;
-  letter-spacing: 0;
-  color: var(--lp-paint-white);
-}
-
-.lp-evidence-text {
-  margin: 20px 0 0;
-  font-size: 1.125rem;
-  line-height: 1.55;
-  color: var(--lp-paint-white);
 }
 
 .lp-permit-help {
@@ -1862,35 +1487,6 @@ body {
   margin-top: 2px;
   font-size: 1rem;
   color: rgba(247, 248, 250, 0.85);
-}
-
-.lp-more {
-  margin-top: 12px;
-}
-
-.lp-more summary {
-  cursor: pointer;
-  padding-block: 10px;
-  font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.lp-counter {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 16px;
-  z-index: 20;
-  margin: 0;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--lp-asphalt);
-  color: var(--lp-paint-white);
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
 }
 
 .lp-footer-links {
@@ -1966,21 +1562,6 @@ body {
   outline-offset: 2px;
 }
 
-@media (max-width: 899px) {
-  .lp-counter {
-    left: 16px;
-    transform: none;
-    bottom: 76px;
-  }
-}
-
-.lp-sub-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 28ch;
-}
-
 /* Phones: map overlay buttons meet the 44px touch target */
 @media (max-width: 639px) {
   .maplibregl-ctrl button.ps-control-btn {
@@ -2039,58 +1620,6 @@ body {
   display: contents;
 }
 
-.pl-controls,
-.tl-controls {
-  grid-area: controls;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.pl-lot,
-.tl-lot {
-  grid-area: graphic;
-  align-self: center;
-  width: 100%;
-  height: auto;
-}
-
-.pl-legend {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.pl-key {
-  display: inline-block;
-  width: 18px;
-  height: 14px;
-  border-radius: 3px;
-}
-
-.pl-key--yours {
-  background: rgba(255, 205, 0, 0.35);
-  border: 2px solid var(--lp-asphalt);
-}
-
-.pl-key--other {
-  margin-left: 12px;
-  border: 2px solid var(--lp-asphalt);
-  opacity: 0.35;
-}
-
-@keyframes tl-cue-nudge {
-  0%, 100% { transform: translateX(-6px); }
-  50% { transform: translateX(6px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-}
-
 .pp-label {
   display: inline-block;
   margin-right: 6px;
@@ -2119,10 +1648,6 @@ body {
 
 .lp-score-list strong {
   font-weight: 800;
-}
-
-.lp-limits > .lp-faq-list {
-  min-width: 0;
 }
 
 @media (max-width: 899px) {
@@ -2184,34 +1709,9 @@ body {
   opacity: 0.8;
 }
 
-.lp-limits h2 {
-  margin-bottom: 20px;
-}
-
-.lp-limits .lp-limit-list li {
-  padding-block: 12px;
-  font-size: 1.0625rem;
-}
-
-.lp-limits .lp-faq-item summary {
-  min-height: 48px;
-  padding-block: 12px;
-  font-size: 1.0625rem;
-}
-
 @media (min-width: 900px) and (max-height: 760px) {
   .lp-stripe {
     height: 12px;
-  }
-  .lp-limits {
-    padding-block: 24px;
-  }
-  .lp-limits .lp-limit-list li,
-  .lp-limits .lp-faq-item summary {
-    padding-block: 8px;
-  }
-  .lp-limits .lp-faq-item summary {
-    min-height: 40px;
   }
 }
 
@@ -2290,9 +1790,6 @@ body {
   .lp-nav-links {
     display: none;
   }
-  .lp-counter {
-    bottom: 16px;
-  }
 }
 
 /* Snap to sections only with a mouse or trackpad on wide screens. Phones and tablets scroll freely. */
@@ -2316,10 +1813,10 @@ body {
 
 /* ------------------------------------------------------------------ */
 /* Hover and pressed states for every landing control. With the system */
-/* cursor hidden, the control itself has to answer the pointer.        */
+/* cursor hidden,
+the control itself has to answer the pointer.        */
 /* ------------------------------------------------------------------ */
 .lp-btn,
-.pl-btn,
 .lp-intro-skip {
   transition: background-color 150ms ease, color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
 }
@@ -2336,20 +1833,6 @@ body {
 
 .lp-btn--yellow:active {
   background-color: #CCA400;
-}
-
-.lp-btn--asphalt:active {
-  background-color: var(--lp-deep-asphalt);
-}
-
-.pl-btn:hover:not(.pl-btn--on) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(16, 29, 51, 0.3);
-}
-
-.pl-btn:active {
-  transform: translateY(1px) scale(0.94);
-  box-shadow: none;
 }
 
 .lp-nav-links a {
@@ -2375,14 +1858,12 @@ body {
 }
 
 .lp-textlink,
-.lp-footer-links a,
-.lp-more summary {
+.lp-footer-links a {
   transition: color 150ms ease, background-color 150ms ease, transform 120ms ease;
 }
 
 /* No background box: the underline thickens and the text shifts color */
-.lp-textlink,
-.lp-more summary {
+.lp-textlink {
   text-decoration-thickness: 2px;
   text-underline-offset: 5px;
   transition: color 150ms ease, text-decoration-thickness 150ms ease, text-underline-offset 150ms ease, transform 120ms ease;
@@ -2394,14 +1875,8 @@ body {
   text-underline-offset: 7px;
 }
 
-.lp-more summary:hover {
-  text-decoration-thickness: 4px;
-  text-underline-offset: 7px;
-}
-
 .lp-textlink:active,
-.lp-footer-links a:active,
-.lp-more summary:active {
+.lp-footer-links a:active {
   transform: translateY(1px);
 }
 
@@ -2414,25 +1889,11 @@ body {
   transform: scale(0.96);
 }
 
-.lp-faq-item summary {
-  transition: background-color 150ms ease;
-}
-
-.lp-faq-item summary:hover {
-  background-color: rgba(24, 43, 73, 0.08);
-}
-
-.lp-faq-item summary:active {
-  background-color: rgba(24, 43, 73, 0.16);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .lp-btn:hover,
-  .lp-btn:active,
-  .pl-btn:hover,
-  .pl-btn:active,
-  .lp-nav-links a:active,
-  .lp-intro-skip:active {
+.lp-btn:active,
+.lp-nav-links a:active,
+.lp-intro-skip:active {
     transform: none;
   }
 }
@@ -2464,14 +1925,7 @@ body {
   margin: 0;
 }
 
-.pr-lot {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-/* The ? glyphs: nobody can tell if these stalls are free, so they blink slowly */
-.pr-q {
+/* The ? glyphs: nobody can tell if these stalls are free {
   fill: #ffcd00;
   font-size: 34px;
   font-weight: 800;
@@ -2486,13 +1940,6 @@ body {
   }
   50% {
     opacity: 0.95;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pr-q {
-    animation: none;
-    opacity: 0.7;
   }
 }
 
@@ -2665,11 +2112,6 @@ body {
 
 .cp-tag--quiet {
   background: var(--lp-concrete);
-}
-
-@keyframes cp-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
 }
 
 .ad-top {
@@ -2938,12 +2380,6 @@ body {
   line-height: 1.45;
 }
 
-.et-fine {
-  margin: 8px 0 0;
-  font-size: 0.875rem;
-  color: #566277;
-}
-
 .et-facts {
   margin: 0;
   padding: 0;
@@ -2995,10 +2431,6 @@ body {
 .lp-block {
   min-height: calc(100vh - 64px);
   min-height: calc(100svh - 64px);
-  padding-block: clamp(24px, 5vh, 72px);
-}
-
-.lp-limits {
   padding-block: clamp(24px, 5vh, 72px);
 }
 
@@ -3384,6 +2816,7 @@ body {
 .cp-list:not(.cp-list--in) li {
   opacity: 0;
   transform: translateY(8px);
+  pointer-events: none;
 }
 
 .cp-list--in li {

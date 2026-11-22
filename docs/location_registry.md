@@ -40,9 +40,9 @@ when the dataset is built locally.
 | `registry_status` | `supported` (may be recommended if eligible), `restricted` (needs a supplemental permit or authorization), `unresolved` (name, location or scope unverified), `excluded` (out of scope). Only `supported` locations may be recommended. |
 | `coordinates`, `coordinate_status` | `verified` (UCSD GIS; check date in `coordinate_verified_on`), `approximate`, or `missing` (null). The API passes only verified coordinates. |
 | `coordinate_source`, `coordinate_verified_on` | Where the pin came from and when it was checked. |
+| `access_note` | Lot restriction text from Domain Research v1.2, section 4. |
 
 Lot pins are a point inside the lot's outline in UCSD's GIS lot layer (`Campus_Map_Vector/MapServer/21`, `Type = Parking Lot`), not the outline's area-weighted center: that center fell outside the lot for odd shapes (up to 230 m for P308) and put P001 in the ocean. Structure pins are UCSD's named building points. `tests/test_location_registry.py` checks every lot pin against the outlines saved in `tests/data/ucsd_parking_lot_outlines.json` (simplified to about 1 m, fetched 2026-11-22); lots GIS has no outline for (`LOTS_WITHOUT_OUTLINE`) are listed there. To add a lot, add its outline to the fixture.
-| `access_note` | Lot restriction text from Domain Research v1.2, section 4. |
 
 Current use is not stored in the file. `location_summary()` derives
 `current_use_status` from the dataset (`observed_in_latest_quarter`,

@@ -2,6 +2,7 @@
 
 import copy
 import json
+import math
 import re
 
 import pandas as pd
@@ -190,7 +191,7 @@ PIN_MATCH_DEGREES = 1e-5
 
 @pytest.mark.skipif(not FRONTEND_DATA.exists(), reason="frontend/ not present")
 def test_website_pins_match_registry_coordinates():
-    """A website pin sits where the registry says, so the map and the backend agree."""
+    """Each website pin sits where the registry says, so map and backend agree."""
     pin = re.compile(
         r"locationId:\s*['\"]([^'\"]+)['\"][^}]*?"
         r"latitude:\s*(-?[\d.]+),\s*longitude:\s*(-?[\d.]+)")
@@ -225,12 +226,17 @@ def test_cli_reports_unmapped_facilities(tmp_path, capsys):
     assert "mapped to exactly one location" in capsys.readouterr().out
 
 
-OUTLINES = DEFAULT_REGISTRY.parent.parent / "tests" / "data" / "ucsd_parking_lot_outlines.json"
-# Lots that UCSD's GIS lot layer has no outline for, so their pins cannot be checked this way.
-# A new lot must not join this list silently: add its outline to the fixture instead.
+OUTLINES = (DEFAULT_REGISTRY.parent.parent / "tests" / "data"
+            / "ucsd_parking_lot_outlines.json")
+# Lots UCSD's GIS lot layer has no outline for, so their pins cannot be
+# checked this way. A new lot must not join this list silently: add its
+# outline to the fixture instead.
 LOTS_WITHOUT_OUTLINE = {"p386", "torrey-pines-center-south"}
-# Outlines in the fixture are simplified to about 1 m, so a pin this close to the edge counts as inside
+# Fixture outlines are simplified to about 1 m, so a pin this close to the
+# edge counts as inside.
 EDGE_TOLERANCE_METERS = 3.0
+# Meters per degree of latitude (and of longitude at the equator); longitude
+# is scaled by cos(latitude) below. Accurate to well under 1% at UCSD.
 METERS_PER_DEGREE = 111_320.0
 
 
@@ -240,15 +246,14 @@ def _inside(point, rings):
     inside = False
     for ring in rings:
         for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1]):
-            if (y0 > y) != (y1 > y) and x < (x1 - x0) * (y - y0) / (y1 - y0) + x0:
+            crosses = (y0 > y) != (y1 > y)
+            if crosses and x < (x1 - x0) * (y - y0) / (y1 - y0) + x0:
                 inside = not inside
     return inside
 
 
 def _meters_to_edge(point, rings):
     """Distance in meters from a (lon, lat) point to the nearest polygon edge."""
-    import math
-
     cos_lat = math.cos(math.radians(point[1]))
     best = float("inf")
     for ring in rings:
@@ -257,9 +262,17 @@ def _meters_to_edge(point, rings):
             bx, by = (x1 - point[0]) * cos_lat, y1 - point[1]
             dx, dy = bx - ax, by - ay
             length = dx * dx + dy * dy
-            t = 0.0 if length == 0 else max(0.0, min(1.0, -(ax * dx + ay * dy) / length))
-            best = min(best, math.hypot(ax + t * dx, ay + t * dy) * METERS_PER_DEGREE)
+            t = 0.0 if length == 0 else -(ax * dx + ay * dy) / length
+            t = max(0.0, min(1.0, t))
+            nearest = math.hypot(ax + t * dx, ay + t * dy)
+            best = min(best, nearest * METERS_PER_DEGREE)
     return best
+
+
+def _on_lot(point, rings):
+    """Inside the outline, or within the simplification tolerance of its edge."""
+    return (_inside(point, rings)
+            or _meters_to_edge(point, rings) <= EDGE_TOLERANCE_METERS)
 
 
 def test_lot_pins_are_inside_their_ucsd_gis_lot_outline():
@@ -277,11 +290,9 @@ def test_lot_pins_are_inside_their_ucsd_gis_lot_outline():
         if not polygons:
             missing_outline.add(location["location_id"])
             continue
-        point = (location["coordinates"]["longitude"], location["coordinates"]["latitude"])
-        on_lot = any(
-            _inside(point, rings) or _meters_to_edge(point, rings) <= EDGE_TOLERANCE_METERS
-            for rings in polygons
-        )
+        coords = location["coordinates"]
+        point = (coords["longitude"], coords["latitude"])
+        on_lot = any(_on_lot(point, rings) for rings in polygons)
         if not on_lot:
             off_lot.append(location["location_id"])
     assert off_lot == [], f"pins outside their lot outline: {off_lot}"
@@ -292,7 +303,4 @@ def test_a_pin_off_its_lot_is_caught():
     """The check itself works: the old P001 pin (in the ocean) fails it."""
     outlines = json.loads(OUTLINES.read_text())["lots"]["P001"]
     old_pin = (-117.25554, 32.8649)
-    assert not any(
-        _inside(old_pin, rings) or _meters_to_edge(old_pin, rings) <= EDGE_TOLERANCE_METERS
-        for rings in outlines
-    )
+    assert not any(_on_lot(old_pin, rings) for rings in outlines)

@@ -647,7 +647,10 @@ scripts/sync_frontend.sh            # or --ref <branch|commit>, --source <clone>
 It needs bash, `tar` and `rsync` (macOS/Linux, or WSL/Git Bash on Windows).
 The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
 `node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
-the tests, type check and build. Review `git diff -- frontend` before committing.
+the website tests, type check and build, then the backend's
+`tests/test_location_registry.py` (website pins must match the registry). With
+`--source` it stops if the clone has uncommitted changes (only commits are copied) and
+notes when the clone is not on `main`. Review `git diff -- frontend` before committing.
 
 Before opening or updating a PR run `scripts/check.sh` (backend tests, then website tests, type check
 and build; `--backend` or `--website` for one half). Fastest way to run the real backend and website together, already connected (API mode,

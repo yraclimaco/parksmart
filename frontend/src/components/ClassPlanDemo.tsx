@@ -93,7 +93,8 @@ export const ClassPlanDemo: React.FC = () => {
           )}
         </p>
 
-        <div className={`cp-file${showList ? ' cp-file--done' : ''}`}>
+        {/* Keyed so the drop-in animation replays when the demo comes into view and on Replay */}
+        <div key={`${run}-${seen}`} className={`cp-file${showList ? ' cp-file--done' : ''}`}>
           <FileText aria-hidden="true" />
           <span>
             <strong>schedule.ics</strong> {showList ? `${DEMO_CLASSES.length} classes found` : 'Reading your classes…'}
