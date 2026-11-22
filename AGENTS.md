@@ -648,7 +648,9 @@ It needs bash, `tar` and `rsync` (macOS/Linux, or WSL/Git Bash on Windows).
 The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
 `node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
 the website tests, type check and build, then the backend's
-`tests/test_location_registry.py` (website pins must match the registry). With
+`tests/test_location_registry.py` (website pins must match the registry) and
+`tests/test_website_facts.py` (the landing page's lot count, accuracy figures and permit
+map must match the registry, `docs/issue18_predictions.md` and `check_eligibility`). With
 `--source` it stops if the clone has uncommitted changes (only commits are copied) and
 notes when the clone is not on `main`. Review `git diff -- frontend` before committing.
 
@@ -699,9 +701,9 @@ scroll freely): hero, Why ParkSmart funnel, Import your classes, permit map, wea
 construction, how it works, how a pick is chosen, How accurate is it?, coverage, what's
 next. Its figures (76,102 readings; 21.0 and 13.7 pp error on 11,665 held-out readings;
 4,458 with no estimate) come from `docs/issue11_findings.md` and
-`docs/issue18_predictions.md`, so update them if the model or dataset changes. The
-permit map's `ACCESS` table in `PermitMap.tsx` is generated from `check_eligibility`
-(`src/eligibility.py`) for three example times; regenerate it when permit rules change. A
+`docs/issue18_predictions.md`, and the permit map's `ACCESS` table in `PermitMap.tsx`
+comes from `check_eligibility` for three example times. `tests/test_website_facts.py`
+fails when any of these drift; fix them in ParkSmart-Website and sync. A
 canvas car cursor with a single black dashed trail runs on the landing page only, for a mouse
 with reduced motion off; the planner keeps the normal cursor.
 The planner has no Refine controls: every search is `balanced` with the default 20-minute

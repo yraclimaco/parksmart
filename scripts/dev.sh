@@ -47,7 +47,7 @@ if ! curl -fs http://127.0.0.1:8000/health >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Backend ready. Website: http://localhost:3000 (add ?home to see the landing page)"
+echo "Backend ready. Website: http://localhost:3000"
 cd frontend
 VITE_API_BASE_URL=http://127.0.0.1:8000 VITE_RECOMMENDATION_SOURCE=api \
   npm run dev -- --port 3000 --strictPort

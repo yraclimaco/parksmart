@@ -126,7 +126,6 @@ interface MapContainerProps {
   /** A dropped pin is currently the destination; the Drop pin button then removes it. */
   hasDroppedPin: boolean;
   onClearPin: () => void;
-  /** Time tool: the toggle sits in the map's control row and its panel opens beneath it. */
   /** Called once the first tiles have drawn (or a few seconds have passed). */
   onReady?: () => void;
   /** Whether the left planner panel is showing; controls how much map is covered. */
@@ -135,10 +134,10 @@ interface MapContainerProps {
   isDetailOpen: boolean;
   /** Current first choice / backup, labeled on the map. */
   rankedLotIds: { first: string | null; backup: string | null; third: string | null };
-  /** Time the pins' availability colors represent (the time scrubber). */
+  /** Time the pins' availability colors represent: the planner's arrival time. */
   availabilityTime: Date;
   /**
-   * Color pins and offer the Time tool from the sample availability model. Off when
+   * Color pins from the sample availability model. Off when
    * results come from the backend, so the map never shows sample numbers beside them.
    */
   showSampleAvailability?: boolean;
@@ -667,7 +666,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     scheduleLayout();
   }, [lots, selectedLocationId, onSelectLot, basemap, rankedLotIds, scheduleLayout]);
 
-  // Time scrubber: recolor each pin's availability dot in place (no pin rebuilds)
+  // Arrival time changed: recolor each pin's availability dot in place (no pin rebuilds)
   useEffect(() => {
     for (const lot of lots) {
       const dot = lotMarkersRef.current.get(lot.locationId)?.getElement().querySelector<HTMLElement>('.ps-avail');

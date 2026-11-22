@@ -75,13 +75,14 @@ npm test
 npm run lint
 npm run build
 
-# Backend tests that read frontend/: website pins must use registry IDs and registry coordinates.
+# Backend tests that read frontend/: pins must match the registry, and the landing page's
+# figures and permit rules must match the backend (tests/test_website_facts.py).
 cd "$repo_root"
 PYTHON="python3"
 if [[ -x .venv/bin/python ]]; then PYTHON=".venv/bin/python"; fi
 echo
-echo "== Backend checks on the synced website (location IDs and pin coordinates) =="
-MPLBACKEND=Agg "$PYTHON" -m pytest -q tests/test_location_registry.py
+echo "== Backend checks on the synced website (pins, figures, permit rules) =="
+MPLBACKEND=Agg "$PYTHON" -m pytest -q tests/test_location_registry.py tests/test_website_facts.py
 
 echo
 echo "Synced frontend/ from ParkSmart-Website commit $commit ($branch)."
