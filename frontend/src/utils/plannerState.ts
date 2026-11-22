@@ -67,3 +67,27 @@ export function shouldAutoRefresh(
     arrivalError === null
   );
 }
+
+/**
+ * True when a search for these inputs is already on its way, so sending it again would only
+ * double the requests (a quick second tap, or an auto-refresh landing on a running search).
+ */
+export function isDuplicateSearch(inFlight: ParkingPlannerRequest | null, next: ParkingPlannerRequest): boolean {
+  return inFlight !== null && sameRequest(inFlight, next);
+}
+
+/**
+ * The form changes for planning a class. A class whose building is not known sets the time but
+ * clears the destination: the old building must never be searched for a different class.
+ */
+export function classTripChanges(trip: {
+  destinationId?: string;
+  arrivalDate: string;
+  arrivalTime: string;
+}): Pick<ParkingPlannerRequest, 'destinationId' | 'arrivalDate' | 'arrivalTime'> {
+  return {
+    destinationId: trip.destinationId ?? '',
+    arrivalDate: trip.arrivalDate,
+    arrivalTime: trip.arrivalTime,
+  };
+}

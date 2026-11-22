@@ -653,7 +653,8 @@ Fastest way to run the real backend and website together, already connected (API
 port 3000): `scripts/dev.sh` from the repo root (Ctrl+C stops both). To build and ZIP the
 hosted-demo site against the deployed API: `scripts/build_site.sh <new-revision-id>`
 (see `docs/frontend_deployment.md`). The hosted backend has routing off, so there
-`/routes` answers 503 and the card shows "Not available right now" for the drive.
+`/routes` answers 503 and the card shows "Not available right now" for the drive; the site then
+remembers that for 10 minutes (`utils/routeLoader.ts`) and sends no more `/routes` requests.
 
 Run the website by hand (Node 20.19+ or 22.12+), from `frontend/`:
 
@@ -676,7 +677,8 @@ also gets driving/walking routes from `POST /routes` (see Issue #25 below)
 and weather/construction trip alerts from `POST /trip-alerts` (Issue #35); alert
 failures never affect the parking results. They show inside that result's card
 (`TripDetails.tsx`): drive and walk time and distance, then weather and construction on
-one collapsed line that opens for the full notices. There are no separate Directions or
+one collapsed line that opens for the full notices; a source that only partly answered is labeled
+"incomplete check" in both the line and the details, never read as an all-clear. There are no separate Directions or
 Trip alerts cards, and the tips live in one collapsed "Notes and limits" row. Cards come
 from the backend's whole ranked `options` list (first choice, backup, #3, ...): the top 3
 show, then "Show 5 more" right under them. The weather source refuses past arrivals, so an
@@ -701,7 +703,7 @@ like the iPhone clock; arrow keys also work) instead of a typed time; there are 
 Picking a destination searches immediately, and after a first search changing the
 permit or arrival time refreshes the results once changes have been quiet
 for 1 s (`AUTO_REFRESH_DELAY_MS`), so the rate-limited hosted API sees one request per
-settled change. Results offer a single "Open in Google Maps" action (it also selects
+settled change; a search identical to one still running is not sent again. Results offer a single "Open in Google Maps" action (it also selects
 the lot; there is no separate Select step). A "Clear all" pill under the hamburger resets the
 destination, time, permit and results (it keeps the imported schedule, starred and recent
 places and the visit's Recent searches), and an already-granted browser location is
@@ -713,9 +715,10 @@ the arrival 20 min before class and searches if its building matches for sure: a
 alias written out (longest wins), then a schedule code written like one (capitals, or
 followed by a room number); ties between buildings more than 150 m apart, remote classes
 and common one-word aliases never match. A repeat rule's weekdays move with the start time
-when it is converted to campus time. Unmatched or remote classes never guess a destination. Cancelled events
+when it is converted to campus time. Unmatched or remote classes never guess a destination: they set the time, clear the previous
+destination and its results, and ask for a pick. Cancelled events
 are dropped, a moved or cancelled single session replaces that day's normal one, and
-duplicate classes show once. Details are in the website README. The landing intro
+duplicate classes show once. Details are in the website README. The landing FAQ explains the class import. The landing intro
 has no buttons: it lifts and fades on scroll, swipe up or Enter/Space/Down.
 Saved settings are per browser, never sent to the backend. Local API-mode testing must
 use port 3000 or 5173, the only CORS-allowed dev origins.

@@ -4,28 +4,14 @@
  */
 
 import { useEffect, useState } from 'react';
-import { fetchRoute, type ApiRoute, type LatLng, type TravelMode } from '../api/routes.ts';
-import { planRoutes, tripKey, type PlannedLeg } from '../utils/routePlan.ts';
+import type { LatLng, TravelMode } from '../api/routes.ts';
+import { planRoutes } from '../utils/routePlan.ts';
+import { initialLegState, loadLeg, needsRequest, type LegState } from '../utils/routeLoader.ts';
 
-export type LegState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'ok'; route: ApiRoute }
-  /** Not requested: missing start, destination or lot pin. */
-  | { status: 'skipped'; message: string }
-  /** Routing is turned off on the backend. */
-  | { status: 'unavailable'; message: string }
-  | { status: 'error'; message: string };
-
+export type { LegState };
 export type RouteLegs = Record<TravelMode, LegState>;
 
 const IDLE: RouteLegs = { driving: { status: 'idle' }, walking: { status: 'idle' } };
-
-/**
- * Successful routes for this visit, so switching between first choice and backup
- * (or re-running the same search) never asks the backend twice for the same trip.
- */
-const routeCache = new Map<string, ApiRoute>();
 
 /**
  * Loads driving and walking routes for the chosen parking location. Changing the
@@ -52,20 +38,14 @@ export function useRoutes(
     }
     const plan = planRoutes(lot, destination, start);
     const controller = new AbortController();
-    const next: RouteLegs = { driving: initial(plan.driving), walking: initial(plan.walking) };
+    const next: RouteLegs = { driving: initialLegState(plan.driving), walking: initialLegState(plan.walking) };
     setLegs(next);
 
     for (const leg of [plan.driving, plan.walking]) {
-      if (!('trip' in leg) || routeCache.has(tripKey(leg.trip))) continue;
-      const cacheKey = tripKey(leg.trip);
-      fetchRoute(leg.trip, { signal: controller.signal })
-        .then((outcome) => {
+      if (!needsRequest(leg)) continue;
+      loadLeg(leg.trip, { signal: controller.signal })
+        .then((state) => {
           if (controller.signal.aborted) return;
-          if (outcome.kind === 'ok') routeCache.set(cacheKey, outcome.route);
-          const state: LegState =
-            outcome.kind === 'ok'
-              ? { status: 'ok', route: outcome.route }
-              : { status: outcome.kind, message: outcome.message };
           setLegs((prev) => ({ ...prev, [leg.mode]: state }));
         })
         .catch(() => {
@@ -77,10 +57,4 @@ export function useRoutes(
   }, [enabled, key, retryToken]);
 
   return legs;
-}
-
-function initial(leg: PlannedLeg): LegState {
-  if (!('trip' in leg)) return { status: 'skipped', message: leg.skipped };
-  const cached = routeCache.get(tripKey(leg.trip));
-  return cached ? { status: 'ok', route: cached } : { status: 'loading' };
 }

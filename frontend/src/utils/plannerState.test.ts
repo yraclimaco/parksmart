@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { ParkingPlannerRequest } from '../types.ts';
-import { blankRequest, formatLocalDate, formatLocalTime, isResultStale, sameRequest, shouldAutoRefresh } from './plannerState.ts';
+import {
+  blankRequest,
+  classTripChanges,
+  formatLocalDate,
+  formatLocalTime,
+  isDuplicateSearch,
+  isResultStale,
+  sameRequest,
+  shouldAutoRefresh,
+} from './plannerState.ts';
 
 const base: ParkingPlannerRequest = {
   destinationId: 'geisel-library',
@@ -73,5 +82,41 @@ describe('shouldAutoRefresh', () => {
   it('does not fire again for the same inputs after a search finished', () => {
     const changed = { ...base, permitType: 'B' as const };
     expect(shouldAutoRefresh(changed, changed, null)).toBe(false); // the finished search became "searched"
+  });
+});
+
+describe('isDuplicateSearch (no identical search while one is running)', () => {
+  it('is false when nothing is running', () => {
+    expect(isDuplicateSearch(null, base)).toBe(false);
+  });
+
+  it('is true for the same trip, so a second tap or an auto-refresh is not sent again', () => {
+    expect(isDuplicateSearch(base, { ...base })).toBe(true);
+  });
+
+  it('is false when anything about the trip differs, so a newer search still replaces the old one', () => {
+    expect(isDuplicateSearch(base, { ...base, arrivalTime: '09:05' })).toBe(false);
+    expect(isDuplicateSearch(base, { ...base, permitType: 'B' })).toBe(false);
+    expect(isDuplicateSearch(base, { ...base, destinationId: 'price-center-west' })).toBe(false);
+  });
+});
+
+describe('classTripChanges (planning a class)', () => {
+  const when = { arrivalDate: '2026-11-23', arrivalTime: '08:40' };
+
+  it('sets the building and time for a class whose building is known', () => {
+    expect(classTripChanges({ destinationId: 'center-hall', ...when })).toEqual({ destinationId: 'center-hall', ...when });
+  });
+
+  it('clears the destination for a class whose building is not known', () => {
+    expect(classTripChanges(when)).toEqual({ destinationId: '', ...when });
+    expect(classTripChanges({ destinationId: undefined, ...when }).destinationId).toBe('');
+  });
+
+  it('never leaves the previous building to be searched or auto-refreshed for an unmatched class', () => {
+    // Searched Geisel, then tapped a class in an unknown room
+    const next = { ...base, ...classTripChanges(when) };
+    expect(next.destinationId).toBe('');
+    expect(shouldAutoRefresh(base, next, null)).toBe(false);
   });
 });

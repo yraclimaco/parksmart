@@ -9,6 +9,7 @@ import {
   matchLabel,
   weatherSummary,
   constructionSummary,
+  INCOMPLETE_LABEL,
 } from './alertFormat.ts';
 
 const forecast = {
@@ -120,5 +121,31 @@ describe('collapsed alert summaries', () => {
     expect(constructionSummary(source('no_relevant'))).toBe('None found nearby');
     expect(constructionSummary(source('unavailable'))).toBe('Construction unavailable');
     expect(constructionSummary({ ...source('stale'), alerts: [] })).toBe('None found nearby (older data)');
+  });
+});
+
+describe('partial checks are labeled incomplete', () => {
+  const tip = { alert_id: 'a', message: 'Bring an umbrella', match_basis: null } as unknown as AlertSource['alerts'][number];
+
+  it('collapsed weather summary says the check was incomplete', () => {
+    expect(weatherSummary({ ...source('partial'), forecast })).toBe(`68°F, 30% rain (${INCOMPLETE_LABEL})`);
+    expect(weatherSummary(source('partial'))).toBe(`No forecast details (${INCOMPLETE_LABEL})`);
+  });
+
+  it('collapsed construction summary never reads as "None found" without the label', () => {
+    expect(constructionSummary(source('partial'))).toBe(`None found nearby (${INCOMPLETE_LABEL})`);
+    expect(constructionSummary({ ...source('partial'), alerts: [tip] })).toBe(`1 notice nearby (${INCOMPLETE_LABEL})`);
+  });
+
+  it('expanded details explain that nothing listed is not an all-clear', () => {
+    for (const kind of ['weather', 'construction'] as const) {
+      expect(emptySourceMessage(kind, source('partial'))).toMatch(/incomplete/);
+      expect(emptySourceMessage(kind, source('partial'))).toMatch(/doesn't mean there is nothing/);
+    }
+  });
+
+  it('does not label complete checks', () => {
+    expect(weatherSummary({ ...source('available'), forecast })).not.toMatch(/incomplete/);
+    expect(constructionSummary(source('no_relevant'))).not.toMatch(/incomplete/);
   });
 });

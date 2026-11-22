@@ -64,6 +64,10 @@ const FAQ = [
     a: 'You choose your permit type (A, B, S, SR, D, or V) and lots it cannot use are filtered out. Your permit letter is on your UCSD permit or in your parking account. Always check UCSD\'s permit pages for the final rules.',
   },
   {
+    q: 'Can I use my class schedule?',
+    a: 'Yes. Import your calendar (.ics) in the planner and it lists your classes. Tap one and ParkSmart sets your arrival 20 minutes before it starts and finds parking near that building. If it cannot tell the building, you pick one. The file stays on your device.',
+  },
+  {
     q: 'Is the data live?',
     a: 'No. Estimates come from past parking counts, not a live feed.',
   },
@@ -170,7 +174,7 @@ const SCORE_NOTES = [
 ] as const;
 const TOP_LIMITS = 3;
 /** The first FAQ answers start open so the page answers the obvious questions without a click. */
-const FAQ_OPEN = 2;
+const FAQ_OPEN = 3;
 
 export const LandingPage: React.FC<LandingPageProps> = ({ isExiting, onPlanClick }) => {
   const [introActive, setIntroActive] = React.useState(shouldPlayIntro);

@@ -52,6 +52,9 @@ const SourceBlock: React.FC<{ kind: 'weather' | 'construction'; source: AlertSou
         {source.status === 'stale' && (
           <span className="ml-1 px-1.5 rounded bg-[#D98A00]/15 text-[#835300] font-medium">Older data</span>
         )}
+        {source.status === 'partial' && (
+          <span className="ml-1 px-1.5 rounded bg-[#D98A00]/15 text-[#835300] font-medium">Incomplete check</span>
+        )}
       </div>
       {forecastLine && (
         <p className="text-[12px] text-navy leading-snug">
@@ -68,6 +71,11 @@ const SourceBlock: React.FC<{ kind: 'weather' | 'construction'; source: AlertSou
           </p>
         );
       })}
+      {source.status === 'partial' && !showEmpty && (
+        <p className="text-[12px] text-muted leading-snug">
+          Some of this check didn't finish, so the list above may be missing items.
+        </p>
+      )}
       {showEmpty && <p className="text-[12px] text-muted leading-snug">{emptySourceMessage(kind, source)}</p>}
       <p className="text-xs text-muted leading-snug">
         <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="underline">

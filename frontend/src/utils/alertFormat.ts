@@ -60,6 +60,9 @@ export function describeForecast(forecast: WeatherForecast): string {
   return parts.join(' · ');
 }
 
+/** Shown wherever a source only partly answered, so a short list is never read as the whole picture. */
+export const INCOMPLETE_LABEL = 'incomplete check';
+
 /**
  * What to say when a source has nothing to list. Never an all-clear unless the backend
  * checked fresh data and found nothing; unavailable and stale data say so instead.
@@ -74,6 +77,8 @@ export function emptySourceMessage(kind: 'weather' | 'construction', source: Ale
       return `We couldn't check ${kind} for this location.`;
     case 'unavailable':
       return kind === 'weather' ? "Weather isn't available right now." : "Construction notices aren't available right now.";
+    case 'partial':
+      return `This check was incomplete, so having nothing listed doesn't mean there is nothing. Try again in a moment.`;
     case 'stale':
       return kind === 'weather' ? 'No weather suggestions in the last saved forecast.' : 'No matching notices in the last saved list.';
     default:
@@ -108,7 +113,7 @@ export function weatherSummary(source: AlertSource): string {
   }
   if (source.alerts.length > 0) parts.push(source.alerts.length === 1 ? '1 tip' : `${source.alerts.length} tips`);
   const text = parts.length > 0 ? parts.join(', ') : 'No forecast details';
-  return source.status === 'stale' ? `${text} (older data)` : text;
+  return withSourceNote(text, source);
 }
 
 /**
@@ -120,5 +125,12 @@ export function constructionSummary(source: AlertSource): string {
   if (source.status === 'missing_location') return 'Construction not checked';
   const n = source.alerts.length;
   const text = n > 0 ? (n === 1 ? '1 notice nearby' : `${n} notices nearby`) : 'None found nearby';
-  return source.status === 'stale' ? `${text} (older data)` : text;
+  return withSourceNote(text, source);
+}
+
+/** Adds how much to trust a summary: older data, or a check that only partly finished. */
+function withSourceNote(text: string, source: AlertSource): string {
+  if (source.status === 'stale') return `${text} (older data)`;
+  if (source.status === 'partial') return `${text} (${INCOMPLETE_LABEL})`;
+  return text;
 }

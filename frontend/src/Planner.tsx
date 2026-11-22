@@ -30,8 +30,10 @@ import { findDestination, makePinDestinationId } from './data/destinations.ts';
 import { alertArrivalTime, getArrivalError } from './utils/arrival.ts';
 import {
   blankRequest,
+  classTripChanges,
   formatLocalDate,
   formatLocalTime,
+  isDuplicateSearch,
   isResultStale,
   sameRequest,
   shouldAutoRefresh,
@@ -160,6 +162,8 @@ export default function Planner({ onBack }: PlannerProps) {
   const [rankedOptions, setRankedOptions] = useState<Record<string, RankedOption>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const requestRef = useRef<AbortController | null>(null);
+  // The search on its way, so the same one is never sent twice while it runs
+  const inFlightRef = useRef<ParkingPlannerRequest | null>(null);
 
   // The exact request the current results were computed for. null until the first
   // search, which is how the panel knows to show its "enter your trip" prompt.
@@ -234,6 +238,7 @@ export default function Planner({ onBack }: PlannerProps) {
       if (getArrivalError(inputs)) return; // the form shows the message; nothing to search
       const destination = findDestination(inputs.destinationId);
       if (!destination) return; // no destination picked yet
+      if (USE_API && isDuplicateSearch(inFlightRef.current, inputs)) return; // already running
       if (!destination.isPin) recordRecentDestination(destination.id); // one-tap repeat trips
       setIsLoading(true);
       setErrorMessage(null);
@@ -255,6 +260,7 @@ export default function Planner({ onBack }: PlannerProps) {
           );
         }
         searchedRequestRef.current = inputs;
+        inFlightRef.current = null;
         setSearchedRequest(inputs);
         setIsLoading(false);
 
@@ -267,6 +273,7 @@ export default function Planner({ onBack }: PlannerProps) {
         requestRef.current?.abort();
         const controller = new AbortController();
         requestRef.current = controller;
+        inFlightRef.current = inputs;
         fetchRecommendations(inputs, { signal: controller.signal })
           .then((outcome) => {
             if (controller.signal.aborted) return;
@@ -275,6 +282,7 @@ export default function Planner({ onBack }: PlannerProps) {
               setResultInfo(null);
               setRankedOptions({});
               setErrorMessage(outcome.message);
+              inFlightRef.current = null;
               setIsLoading(false);
               return;
             }
@@ -328,9 +336,15 @@ export default function Planner({ onBack }: PlannerProps) {
   // Park for a class from the imported schedule: set the arrival just before it starts and,
   // when its building is known, search right away (a destination pick searches on its own)
   const handlePlanClass = (trip: ClassTrip) => {
-    const { destinationId, arrivalDate, arrivalTime } = trip;
-    if (destinationId) handleDestinationOrFormChange({ destinationId, arrivalDate, arrivalTime });
-    else handleFormChange({ arrivalDate, arrivalTime });
+    const changes = classTripChanges(trip);
+    if (changes.destinationId) {
+      handleDestinationOrFormChange(changes);
+      return;
+    }
+    // Building unknown: set the time, but drop the old destination and its results, so nothing
+    // searches (or auto-refreshes) the previous building for this class
+    clearShownResults();
+    handleFormChange(changes);
   };
 
   // Back to the first-visit permit (S); the effect below forgets the saved one
@@ -342,8 +356,17 @@ export default function Planner({ onBack }: PlannerProps) {
   // permit) and everything shown from the search (results, selection, routes' start, errors) reset.
   // The imported schedule, starred and recent places and "Recent" searches this visit stay.
   const handleClearAll = () => {
-    requestRef.current?.abort(); // a search still in flight must not fill the cleared panel
+    clearShownResults();
     setFormInputs(blankRequest());
+    setStartPoint(null);
+    setLocateError(null);
+  };
+
+  // Empties everything shown from a search (results, selection, errors) and cancels a search on
+  // its way. The trip form is left to the caller.
+  const clearShownResults = () => {
+    requestRef.current?.abort(); // a search still in flight must not fill the cleared panel
+    inFlightRef.current = null;
     setRecommendations([]);
     setResultInfo(null);
     setRankedOptions({});
@@ -353,8 +376,6 @@ export default function Planner({ onBack }: PlannerProps) {
     setSearchedRequest(null);
     setSelectedLocationId(null);
     setIsDetailOpen(false);
-    setStartPoint(null);
-    setLocateError(null);
     setPinNotice(null);
   };
 
