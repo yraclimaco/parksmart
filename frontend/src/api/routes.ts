@@ -56,6 +56,8 @@ export const OSM_FIX_THE_MAP_URL = 'https://www.openstreetmap.org/fixthemap';
 export const ROUTE_TIMEOUT_MS = 12_000;
 
 const FAILED = "Directions couldn't load right now. Try again in a moment.";
+/** Start of the backend's own answer when routing is switched off (src/api/main.py ROUTING_OFF). */
+const ROUTING_OFF_DETAIL = 'Routes are not available';
 const UNAVAILABLE: RouteOutcome = { kind: 'unavailable', message: 'Directions are not set up on this server yet.' };
 /** FastAPI's body for a path that does not exist. */
 const NO_SUCH_ENDPOINT = 'Not Found';
@@ -81,7 +83,12 @@ export async function fetchRoute(
         console.warn(`[ParkSmart] Could not reach ${baseUrl}/routes.`, error);
         return { kind: 'error', message: FAILED };
       }
-      if (response.status === 503) return UNAVAILABLE;
+      if (response.status === 503) {
+        // Only the backend's own "routing is off" answer counts. A gateway or cold-start 503 is a
+        // passing failure: the person can retry, and the site must not stop asking for 10 minutes.
+        const message = await detail(response);
+        return message?.startsWith(ROUTING_OFF_DETAIL) ? UNAVAILABLE : { kind: 'error', message: FAILED };
+      }
       if (response.status === 404 || response.status === 400) {
         const message = await detail(response);
         // FastAPI's generic 404 means this backend has no /routes yet (older version)

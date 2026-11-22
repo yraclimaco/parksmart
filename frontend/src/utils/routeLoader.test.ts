@@ -82,6 +82,13 @@ describe('routing turned off on the backend', () => {
     expect(outcome.status).toBe('error');
     expect(needsRequest(walkLeg)).toBe(true);
   });
+
+  it('does not remember a gateway or cold-start 503 either, so the next search can still get routes', async () => {
+    const outcome = await loadLeg(WALK, { fetchImpl: reply(503, { message: 'Service Unavailable' }) });
+    expect(outcome.status).toBe('error');
+    expect(needsRequest(walkLeg)).toBe(true);
+    expect(needsRequest(driveLeg)).toBe(true);
+  });
 });
 
 describe('saved routes', () => {

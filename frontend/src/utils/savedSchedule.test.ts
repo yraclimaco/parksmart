@@ -26,6 +26,22 @@ const EVENT: ScheduleEvent = {
   exdates: ['2026-11-25'],
 };
 
+describe('saved schedule: zones', () => {
+  it('keeps the zone of a repeating class, so it stays right across daylight saving after a reload', () => {
+    const utc: ScheduleEvent = { ...EVENT, source: { zone: 'UTC', date: '2026-09-28', minutes: 960 } };
+    const store = fakeStore();
+    saveSchedule([utc], store);
+    expect(loadSchedule(store)[0].source).toEqual({ zone: 'UTC', date: '2026-09-28', minutes: 960 });
+  });
+
+  it('ignores a malformed zone instead of dropping the class', () => {
+    const bad = { ...EVENT, source: { zone: 5, date: 'x' } };
+    const loaded = loadSchedule(fakeStore(JSON.stringify([bad])));
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].source).toBeUndefined();
+  });
+});
+
 describe('saved schedule', () => {
   it('starts empty and ignores unreadable data', () => {
     expect(loadSchedule(fakeStore())).toEqual([]);

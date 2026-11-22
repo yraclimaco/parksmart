@@ -57,6 +57,14 @@ function sanitizeEvent(value: unknown): ScheduleEvent | null {
     }
     rule = { interval: r.interval, byDay: r.byDay, untilTotal: r.untilTotal as number | null, count: r.count as number | null };
   }
+  // A repeating class written in another zone keeps its zone, so it stays right across daylight saving
+  let source: ScheduleEvent['source'];
+  if (rule && typeof e.source === 'object' && e.source !== null) {
+    const s = e.source as Record<string, unknown>;
+    if (isString(s.zone) && isString(s.date) && /^\d{4}-\d{2}-\d{2}$/.test(s.date) && isNumber(s.minutes)) {
+      source = { zone: s.zone, date: s.date, minutes: s.minutes };
+    }
+  }
   return {
     id: e.id,
     title: e.title,
@@ -66,6 +74,7 @@ function sanitizeEvent(value: unknown): ScheduleEvent | null {
     durationMinutes: e.durationMinutes,
     rule,
     exdates: e.exdates.filter(isString),
+    ...(source ? { source } : {}),
   };
 }
 

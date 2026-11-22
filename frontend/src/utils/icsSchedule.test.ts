@@ -358,3 +358,53 @@ describe('date-only EXDATE and RECURRENCE-ID', () => {
     expect(classesOn(events, '2026-11-30')).toHaveLength(1);
   });
 });
+
+describe('daylight saving and zone names', () => {
+  // Monday 4 PM UTC = 9:00 AM Pacific Daylight; after Nov 1 the same UTC time is 8:00 AM Pacific Standard
+  const UTC_WEEKLY = event(
+    'UID:utc@x',
+    'SUMMARY:UTC class',
+    'LOCATION:CENTR 115',
+    'DTSTART:20260928T160000Z',
+    'DTEND:20260928T165000Z',
+    'RRULE:FREQ=WEEKLY;BYDAY=MO;UNTIL=20261221T000000Z'
+  );
+
+  it('a repeating UTC class moves an hour in campus time when daylight saving ends', () => {
+    const events = parseIcs(wrap(UTC_WEEKLY));
+    expect(classesOn(events, '2026-10-26')[0].startMinutes).toBe(9 * 60);
+    expect(classesOn(events, '2026-11-02')[0].startMinutes).toBe(8 * 60);
+    expect(classesOn(events, '2026-11-02')[0].endMinutes).toBe(8 * 60 + 50);
+    expect(classesOn(events, '2026-11-23')[0].startMinutes).toBe(8 * 60);
+  });
+
+  it('a repeating class written in campus time does not move', () => {
+    const events = parseIcs(wrap(WEEKLY_MWF));
+    expect(classesOn(events, '2026-11-16')[0].startMinutes).toBe(9 * 60 + 30);
+    expect(classesOn(events, '2026-12-07')[0].startMinutes).toBe(9 * 60 + 30);
+  });
+
+  it('a single UTC class is just converted once', () => {
+    const events = parseIcs(wrap(event('UID:one', 'SUMMARY:One', 'DTSTART:20261124T170000Z')));
+    expect(classesOn(events, '2026-11-24')[0].startMinutes).toBe(9 * 60);
+  });
+
+  it('reads a Windows zone name like Outlook writes it', () => {
+    const events = parseIcs(wrap(event('UID:w', 'SUMMARY:Outlook class', 'DTSTART;TZID=Eastern Standard Time:20261124T120000')));
+    expect(classesOn(events, '2026-11-24')[0].startMinutes).toBe(9 * 60);
+  });
+});
+
+describe('very large calendars', () => {
+  const single = (i: number, date: string) => event(`UID:s${i}`, `SUMMARY:Event ${i}`, `DTSTART;TZID=America/Los_Angeles:${date}T090000`);
+
+  it('drops old single events first, so this term\'s classes are never cut by the cap', () => {
+    const old = Array.from({ length: 300 }, (_, i) => single(i, '20240115'));
+    const current = Array.from({ length: 150 }, (_, i) => single(1000 + i, '20261117'));
+    const events = parseIcs(wrap(...old, ...current, WEEKLY_MWF), new Date('2026-11-20T12:00:00'));
+    expect(events.length).toBeLessThanOrEqual(400);
+    expect(events.filter((e) => e.date === '2026-11-17')).toHaveLength(150);
+    expect(events.some((e) => e.id === 'cse100@x')).toBe(true);
+    expect(events.some((e) => e.date === '2024-01-15')).toBe(false);
+  });
+});

@@ -58,3 +58,26 @@ export function alertArrivalTime(date: string, time: string, now: Date = new Dat
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${use.getFullYear()}-${pad(use.getMonth() + 1)}-${pad(use.getDate())}T${pad(use.getHours())}:${pad(use.getMinutes())}:00`;
 }
+
+/** A reused alert arrival must still be at least this far ahead of now, or the weather source may refuse it. */
+export const ALERT_REUSE_MARGIN_MINUTES = 1;
+
+/**
+ * The arrival to send to the trip-alerts backend, keeping the one already worked out for this
+ * search while it is still ahead of now (so unrelated re-renders never change the request) and
+ * working it out again once it has slipped into the past. Without this, tapping another result
+ * card, or retrying, minutes after a "now" search would send a past arrival, and the weather
+ * source would answer "no forecast yet".
+ */
+export function reuseAlertArrival(
+  previous: string | null,
+  date: string,
+  time: string,
+  now: Date = new Date()
+): string {
+  if (previous) {
+    const at = new Date(previous).getTime(); // local time, no zone marker
+    if (Number.isFinite(at) && at >= now.getTime() + ALERT_REUSE_MARGIN_MINUTES * 60_000) return previous;
+  }
+  return alertArrivalTime(date, time, now);
+}

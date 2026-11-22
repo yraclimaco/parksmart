@@ -41,6 +41,12 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# The loop above also ends when it runs out of tries: check again, so a slow start is not reported as ready
+if ! curl -fs http://127.0.0.1:8000/health >/dev/null 2>&1; then
+  echo "Backend did not answer on port 8000 within 60 seconds. Check the messages above." >&2
+  exit 1
+fi
+
 echo "Backend ready. Website: http://localhost:3000 (add ?home to see the landing page)"
 cd frontend
 VITE_API_BASE_URL=http://127.0.0.1:8000 VITE_RECOMMENDATION_SOURCE=api \

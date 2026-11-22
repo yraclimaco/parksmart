@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { isCompleteAlerts } from '../utils/alertFormat.ts';
 import { fetchTripAlerts, type TripAlertsQuery, type TripAlertsResponse } from '../api/tripAlerts.ts';
 
 export type AlertsState =
@@ -53,7 +54,8 @@ export function useTripAlerts(enabled: boolean, query: TripAlertsQuery | null, r
       .then((outcome) => {
         if (controller.signal.aborted) return;
         if (outcome.kind === 'ok') {
-          alertsCache.set(key, outcome.alerts);
+          // Only a full, fresh answer is kept; an incomplete one is asked for again on a recheck
+          if (isCompleteAlerts(outcome.alerts)) alertsCache.set(key, outcome.alerts);
           setState({ status: 'ok', alerts: outcome.alerts });
         } else {
           setState({ status: outcome.kind, message: outcome.message });

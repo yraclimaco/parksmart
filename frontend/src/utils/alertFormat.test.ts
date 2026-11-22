@@ -10,6 +10,7 @@ import {
   weatherSummary,
   constructionSummary,
   INCOMPLETE_LABEL,
+  isCompleteAlerts,
 } from './alertFormat.ts';
 
 const forecast = {
@@ -147,5 +148,21 @@ describe('partial checks are labeled incomplete', () => {
   it('does not label complete checks', () => {
     expect(weatherSummary({ ...source('available'), forecast })).not.toMatch(/incomplete/);
     expect(constructionSummary(source('no_relevant'))).not.toMatch(/incomplete/);
+  });
+});
+
+describe('isCompleteAlerts (what is kept for the visit)', () => {
+  const both = (w: AlertSource['status'], c: AlertSource['status']) => ({ weather: source(w), construction: source(c) });
+
+  it('keeps full, fresh answers', () => {
+    expect(isCompleteAlerts(both('available', 'no_relevant'))).toBe(true);
+    expect(isCompleteAlerts(both('available', 'available'))).toBe(true);
+    expect(isCompleteAlerts(both('out_of_range', 'no_relevant'))).toBe(true);
+  });
+
+  it('does not keep a partial, older or unavailable source, so "check again" really asks again', () => {
+    expect(isCompleteAlerts(both('available', 'partial'))).toBe(false);
+    expect(isCompleteAlerts(both('stale', 'available'))).toBe(false);
+    expect(isCompleteAlerts(both('available', 'unavailable'))).toBe(false);
   });
 });

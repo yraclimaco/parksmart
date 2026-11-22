@@ -27,7 +27,7 @@ import {
 } from './utils/savedPreferences.ts';
 import { ANIMATION_TIMINGS, DEFAULT_PRIORITY, PRIORITY_OPTIONS, isOnCampus } from './constants.ts';
 import { findDestination, makePinDestinationId } from './data/destinations.ts';
-import { alertArrivalTime, getArrivalError } from './utils/arrival.ts';
+import { getArrivalError, reuseAlertArrival } from './utils/arrival.ts';
 import {
   blankRequest,
   classTripChanges,
@@ -463,6 +463,12 @@ export default function Planner({ onBack }: PlannerProps) {
     setIsDetailOpen(true);
   }, []);
 
+  // The latest form and search, for handlers that must stay stable between renders
+  const latest = useRef({ formInputs, runPlanner });
+  useEffect(() => {
+    latest.current = { formInputs, runPlanner };
+  });
+
   // "Drop pin" on the map: use the clicked spot as the destination
   const [pinNotice, setPinNotice] = useState<string | null>(null);
   const handleDropPin = useCallback((latitude: number, longitude: number): boolean => {
@@ -471,7 +477,10 @@ export default function Planner({ onBack }: PlannerProps) {
       return false;
     }
     setPinNotice(null);
-    setFormInputs((prev) => ({ ...prev, destinationId: makePinDestinationId(latitude, longitude) }));
+    const destinationId = makePinDestinationId(latitude, longitude);
+    setFormInputs((prev) => ({ ...prev, destinationId }));
+    // A dropped pin searches at once, like picking a place from the list
+    latest.current.runPlanner({ ...latest.current.formInputs, destinationId });
     return true;
   }, []);
 
@@ -593,10 +602,20 @@ export default function Planner({ onBack }: PlannerProps) {
   const [alertsRetry, setAlertsRetry] = useState(0);
   // The arrival sent for weather is worked out once per search. "Now" moves every minute, so
   // recomputing it on each render would change the request every minute and refetch for nothing.
-  const alertArrival = useMemo(
-    () => (searchedRequest ? alertArrivalTime(searchedRequest.arrivalDate, searchedRequest.arrivalTime) : null),
-    [searchedRequest]
-  );
+  // It is worked out again only when a request is due anyway (another search, card or retry), and
+  // only if the old one has slipped into the past, so a later tap never sends a stale arrival.
+  const alertArrivalRef = useRef<{ request: ParkingPlannerRequest | null; value: string | null }>({
+    request: null,
+    value: null,
+  });
+  const alertArrival = useMemo(() => {
+    if (!searchedRequest) return null;
+    const previous = alertArrivalRef.current.request === searchedRequest ? alertArrivalRef.current.value : null;
+    const value = reuseAlertArrival(previous, searchedRequest.arrivalDate, searchedRequest.arrivalTime);
+    alertArrivalRef.current = { request: searchedRequest, value };
+    return value;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the selected lot and retry trigger a new request
+  }, [searchedRequest, selectedLocationId, alertsRetry]);
   const tripAlerts = useTripAlerts(
     routedRecommendation !== null && searchedRequest !== null,
     routedRecommendation && searchedRequest

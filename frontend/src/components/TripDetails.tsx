@@ -10,6 +10,7 @@ import type { AlertsState } from '../hooks/useTripAlerts.ts';
 import type { LegState, RouteLegs } from '../hooks/useRoutes.ts';
 import {
   constructionSummary,
+  isCompleteAlerts,
   describeForecast,
   emptySourceMessage,
   formatAlertTime,
@@ -303,6 +304,16 @@ const AlertsLine: React.FC<{
             <li key={note}>{note}</li>
           ))}
         </ul>
+        {!isCompleteAlerts(alerts.alerts) && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-1 px-2 min-h-[32px] rounded-lg border border-line text-navy text-[12px] font-semibold cursor-pointer hover:bg-paper"
+          >
+            <RefreshCw className="w-3 h-3" aria-hidden="true" />
+            Check again
+          </button>
+        )}
       </div>
     </details>
   );

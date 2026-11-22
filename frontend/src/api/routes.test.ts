@@ -47,9 +47,16 @@ describe('fetchRoute', () => {
     expect(outcome.kind).toBe('unavailable');
   });
 
-  it('treats 503 as routes being turned off, not as a failure', async () => {
-    const outcome = await fetchRoute(TRIP, { fetchImpl: fakeFetch(503, { detail: 'off' }) });
+  it('treats the backend\'s "routing is off" 503 as routes being turned off, not as a failure', async () => {
+    const outcome = await fetchRoute(TRIP, {
+      fetchImpl: fakeFetch(503, { detail: 'Routes are not available on this server. Recommendations still work.' }),
+    });
     expect(outcome.kind).toBe('unavailable');
+  });
+
+  it('treats any other 503 (gateway, cold start) as a passing error that can be retried', async () => {
+    expect((await fetchRoute(TRIP, { fetchImpl: fakeFetch(503, { message: 'Service Unavailable' }) })).kind).toBe('error');
+    expect((await fetchRoute(TRIP, { fetchImpl: fakeFetch(503, 'not json') })).kind).toBe('error');
   });
 
   it.each([

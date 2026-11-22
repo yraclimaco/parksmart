@@ -25,6 +25,8 @@ const MINUTES_PER_DAY = 24 * 60;
 const MAX_COUNT_SCAN_DAYS = 800;
 /** Upper bound on events kept from one file, so a huge calendar cannot fill storage. */
 export const MAX_EVENTS = 400;
+/** When a file has more events than that, single events older than this many days are dropped first. */
+export const STALE_EVENT_DAYS = 60;
 
 /** iCalendar weekday codes by JavaScript getUTCDay() index (0 = Sunday). */
 const WEEKDAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const;
@@ -51,6 +53,12 @@ export interface ScheduleEvent {
   rule: WeeklyRule | null;
   /** Skipped dates, "YYYY-MM-DD". */
   exdates: string[];
+  /**
+   * Only for a repeating class whose start was written in another zone (UTC or a TZID). Such a
+   * class keeps its time in that zone, so its campus time moves when daylight saving changes
+   * and is worked out again for each week.
+   */
+  source?: { zone: string; date: string; minutes: number };
 }
 
 /** One class on one specific day. */
@@ -162,6 +170,40 @@ function readLines(text: string): Line[] {
   return lines;
 }
 
+/** Windows zone names (Outlook exports) for the US zones, as IANA names. */
+const WINDOWS_ZONES: Record<string, string> = {
+  'pacific standard time': 'America/Los_Angeles',
+  'mountain standard time': 'America/Denver',
+  'us mountain standard time': 'America/Phoenix',
+  'central standard time': 'America/Chicago',
+  'eastern standard time': 'America/New_York',
+  'alaskan standard time': 'America/Anchorage',
+  'hawaiian standard time': 'Pacific/Honolulu',
+  'utc': 'UTC',
+};
+
+/** The IANA name for a TZID, reading common Windows names too. */
+function zoneOf(tzid: string): string {
+  return WINDOWS_ZONES[tzid.trim().toLowerCase()] ?? tzid;
+}
+
+/**
+ * Where a start time was written, when that is not campus time: "UTC" for a trailing Z, or the
+ * TZID's zone. Null when the time is already campus time (or the zone name is not understood).
+ */
+function readSource(value: string, params: Record<string, string>): ScheduleEvent['source'] | null {
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z?)$/.exec(value.trim());
+  if (!m || params.VALUE === 'DATE') return null;
+  const zone = m[7] === 'Z' ? 'UTC' : params.TZID ? zoneOf(params.TZID) : null;
+  if (!zone || zone === CAMPUS_TIME_ZONE) return null;
+  try {
+    wallClock(0, zone); // throws for a zone name the browser does not know
+  } catch {
+    return null;
+  }
+  return { zone, date: `${m[1]}-${m[2]}-${m[3]}`, minutes: Number(m[4]) * 60 + Number(m[5]) };
+}
+
 /**
  * A DATE-TIME value as a campus-time reading, or null for date-only or unreadable values.
  * "Z" means UTC, a TZID names its zone, and no marker means the time is already campus time.
@@ -173,7 +215,7 @@ function readDateTime(value: string, params: Record<string, string>): Local | nu
   const local: Local = { date: `${m[1]}-${m[2]}-${m[3]}`, minutes: Number(m[4]) * 60 + Number(m[5]) };
   try {
     if (m[7] === 'Z') return wallClock(instantOf(local, 'UTC'), CAMPUS_TIME_ZONE);
-    const zone = params.TZID;
+    const zone = params.TZID ? zoneOf(params.TZID) : null;
     if (zone && zone !== CAMPUS_TIME_ZONE) return wallClock(instantOf(local, zone), CAMPUS_TIME_ZONE);
   } catch {
     // Unknown zone name: read the time as campus time
@@ -241,7 +283,7 @@ function readRule(value: string, start: Local, weekdayShift: number): WeeklyRule
 }
 
 /** The timed events in an .ics file (empty if it is not a calendar or has none). */
-export function parseIcs(text: string): ScheduleEvent[] {
+export function parseIcs(text: string, now: Date = new Date()): ScheduleEvent[] {
   const events: ScheduleEvent[] = [];
   /** Dates of single sessions that were changed or cancelled, keyed by the repeating class's UID. */
   const skipped: Array<{ uid: string; date: string }> = [];
@@ -264,7 +306,18 @@ export function parseIcs(text: string): ScheduleEvent[] {
   skipped.forEach(({ uid, date }) =>
     events.filter((e) => e.id === uid && e.rule).forEach((e) => e.exdates.push(date))
   );
-  return events.slice(0, MAX_EVENTS);
+  return events.length > MAX_EVENTS ? withoutOldEvents(events, now).slice(0, MAX_EVENTS) : events;
+}
+
+/**
+ * For a huge calendar (personal exports hold many non-class events): drop the single events and
+ * finished repeats from well before today, so the cap never cuts this term's classes.
+ */
+function withoutOldEvents(events: ScheduleEvent[], now: Date): ScheduleEvent[] {
+  const cutoff = dayNumber(wallClock(now.getTime(), CAMPUS_TIME_ZONE).date) - STALE_EVENT_DAYS;
+  return events.filter((e) =>
+    e.rule ? e.rule.untilTotal === null || Math.floor(e.rule.untilTotal / MINUTES_PER_DAY) >= cutoff : dayNumber(e.date) >= cutoff
+  );
 }
 
 interface ReadEvent {
@@ -312,6 +365,8 @@ function readEvent(lines: Line[], index: number): ReadEvent | null {
     rule: rrule ? readRule(rrule.value, start, dtstart ? campusDayShift(dtstart.value, dtstart.params) : 0) : null,
     exdates,
   };
+  const source = rrule && dtstart ? readSource(dtstart.value, dtstart.params) : null;
+  if (event.rule && source) event.source = source;
   return { event, uid, replacesDate };
 }
 
@@ -338,6 +393,23 @@ function occursOn(event: ScheduleEvent, day: number): boolean {
   return true;
 }
 
+/**
+ * When the class starts on this campus day. A repeating class written in UTC or another zone keeps
+ * its time there, so after daylight saving changes its campus time shifts by an hour.
+ */
+export function startOn(event: ScheduleEvent, date: string): number {
+  const { source } = event;
+  if (!source || !event.rule) return event.startMinutes;
+  try {
+    // The week's source-zone date is the campus date moved by the same days as the first session
+    const shift = dayNumber(event.date) - dayNumber(source.date);
+    const sourceDate = dateOfDayNumber(dayNumber(date) - shift);
+    return wallClock(instantOf({ date: sourceDate, minutes: source.minutes }, source.zone), CAMPUS_TIME_ZONE).minutes;
+  } catch {
+    return event.startMinutes;
+  }
+}
+
 /** The classes on one day ("YYYY-MM-DD"), earliest first. */
 export function classesOn(events: ScheduleEvent[], date: string): ClassSession[] {
   const day = dayNumber(date);
@@ -345,20 +417,21 @@ export function classesOn(events: ScheduleEvent[], date: string): ClassSession[]
   const seen = new Set<string>();
   return events
     .filter((e) => occursOn(e, day))
-    .filter((e) => {
+    .map((e) => ({ e, start: startOn(e, date) }))
+    .filter(({ e, start }) => {
       // The same class listed twice (copied calendars) is shown once
-      const key = `${e.title}|${e.startMinutes}|${e.location}`;
+      const key = `${e.title}|${start}|${e.location}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     })
-    .map((e) => ({
+    .map(({ e, start }) => ({
       id: e.id,
       title: e.title,
       location: e.location,
       date,
-      startMinutes: e.startMinutes,
-      endMinutes: e.startMinutes + e.durationMinutes,
+      startMinutes: start,
+      endMinutes: start + e.durationMinutes,
     }))
     .sort((a, b) => a.startMinutes - b.startMinutes || a.title.localeCompare(b.title));
 }

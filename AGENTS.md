@@ -654,7 +654,8 @@ port 3000): `scripts/dev.sh` from the repo root (Ctrl+C stops both). To build an
 hosted-demo site against the deployed API: `scripts/build_site.sh <new-revision-id>`
 (see `docs/frontend_deployment.md`). The hosted backend has routing off, so there
 `/routes` answers 503 and the card shows "Not available right now" for the drive; the site then
-remembers that for 10 minutes (`utils/routeLoader.ts`) and sends no more `/routes` requests.
+remembers that for 10 minutes (`utils/routeLoader.ts`) and sends no more `/routes` requests (only the
+backend's own "Routes are not available" 503 counts; a gateway 503 is a retryable error).
 
 Run the website by hand (Node 20.19+ or 22.12+), from `frontend/`:
 
@@ -703,7 +704,7 @@ like the iPhone clock; arrow keys also work) instead of a typed time; there are 
 Picking a destination searches immediately, and after a first search changing the
 permit or arrival time refreshes the results once changes have been quiet
 for 1 s (`AUTO_REFRESH_DELAY_MS`), so the rate-limited hosted API sees one request per
-settled change; a search identical to one still running is not sent again. Results offer a single "Open in Google Maps" action (it also selects
+settled change; a search identical to one still running is not sent again. A dropped pin searches at once. Incomplete or older weather/construction answers are not kept for the visit and offer "Check again". Results offer a single "Open in Google Maps" action (it also selects
 the lot; there is no separate Select step). A "Clear all" pill under the hamburger resets the
 destination, time, permit and results (it keeps the imported schedule, starred and recent
 places and the visit's Recent searches), and an already-granted browser location is
@@ -715,7 +716,8 @@ the arrival 20 min before class and searches if its building matches for sure: a
 alias written out (longest wins), then a schedule code written like one (capitals, or
 followed by a room number); ties between buildings more than 150 m apart, remote classes
 and common one-word aliases never match. A repeat rule's weekdays move with the start time
-when it is converted to campus time. Unmatched or remote classes never guess a destination: they set the time, clear the previous
+when it is converted to campus time, and a repeating UTC or other-zone class keeps its time in that
+zone, so its campus time shifts when daylight saving changes (`startOn`). Unmatched or remote classes never guess a destination: they set the time, clear the previous
 destination and its results, and ask for a pick. Cancelled events
 are dropped, a moved or cancelled single session replaces that day's normal one, and
 duplicate classes show once. Details are in the website README. The landing FAQ explains the class import. The landing intro

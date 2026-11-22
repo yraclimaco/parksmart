@@ -134,3 +134,12 @@ function withSourceNote(text: string, source: AlertSource): string {
   if (source.status === 'partial') return `${text} (${INCOMPLETE_LABEL})`;
   return text;
 }
+
+/**
+ * Whether both sources gave a full, fresh answer. An incomplete, older or unavailable answer must
+ * not be kept for the visit, or "try again" would show the same short answer until a reload.
+ */
+export function isCompleteAlerts(alerts: { weather: AlertSource; construction: AlertSource }): boolean {
+  const incomplete = (s: AlertSource) => s.status === 'partial' || s.status === 'stale' || s.status === 'unavailable';
+  return !incomplete(alerts.weather) && !incomplete(alerts.construction);
+}
