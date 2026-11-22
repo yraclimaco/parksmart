@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -51,14 +52,20 @@ def helper_workspace(tmp_path):
         shutil.copyfile(PROJECT_ROOT / "scripts" / name, scripts / name)
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    docker = bin_dir / "docker"
-    docker.write_text(
-        f"#!{sys.executable}\n"
+    # The stub is a Python file run by a small shell wrapper. The interpreter path is quoted,
+    # so the wrapper still works when the project path contains a space (a "#!" line would not).
+    stub = bin_dir / "docker_stub.py"
+    stub.write_text(
         "import json, os, sys\n"
         "with open(os.environ['DOCKER_CALL_LOG'], 'a') as stream:\n"
         "    stream.write(json.dumps(sys.argv[1:]) + '\\n')\n"
         "if sys.argv[1] == 'build' and os.environ.get('FAIL_FAKE_BUILD'):\n"
         "    raise SystemExit(17)\n"
+    )
+    docker = bin_dir / "docker"
+    docker.write_text(
+        "#!/bin/sh\n"
+        f"exec {shlex.quote(sys.executable)} {shlex.quote(str(stub))} \"$@\"\n"
     )
     docker.chmod(0o755)
     log = tmp_path / "docker-calls.jsonl"

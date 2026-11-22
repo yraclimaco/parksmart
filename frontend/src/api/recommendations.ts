@@ -216,25 +216,41 @@ export function parseResponse(data: unknown): ApiRecommendationResponse | null {
   return data as unknown as ApiRecommendationResponse;
 }
 
-/** Turns API choices into the cards the results list already renders. */
-export function toRecommendations(response: ApiRecommendationResponse): ParkingRecommendation[] {
-  const choices: [ApiChoice | null, string][] = [
-    [response.first_choice, 'First choice'],
-    [response.backup_choice, 'Backup'],
-  ];
-  return choices.flatMap(([choice, badgeLabel], index) =>
-    choice
-      ? [{
-          badgeLabel,
-          rank: index + 1,
-          lot: lotFor(choice.location),
-          score: 0,
-          reason: choice.explanation,
-          access: { status: 'never' as const },
-          estimate: toEstimate(choice, response.is_example),
-        }]
-      : []
+/** "First choice", "Backup", then "#3", "#4", ... */
+function badgeFor(rank: number): string {
+  return rank === 1 ? 'First choice' : rank === 2 ? 'Backup' : `#${rank}`;
+}
+
+/**
+ * Every ranked choice, best first: the first choice and backup lead, then the rest of the
+ * backend's ranked options. Each location appears once. Older backends without `options`
+ * give just the two picks.
+ */
+function rankedChoices(response: ApiRecommendationResponse): ApiChoice[] {
+  const seen = new Set<string>();
+  return [response.first_choice, response.backup_choice, ...(response.options ?? [])].filter(
+    (choice): choice is ApiChoice => {
+      if (choice === null || seen.has(choice.location.location_id)) return false;
+      seen.add(choice.location.location_id);
+      return true;
+    }
   );
+}
+
+/** Turns API choices into the cards the results list renders (top 3 first, the rest behind "Show more"). */
+export function toRecommendations(response: ApiRecommendationResponse): ParkingRecommendation[] {
+  return rankedChoices(response).map((choice, index) => {
+    const rank = choice.rank ?? index + 1;
+    return {
+      badgeLabel: badgeFor(rank),
+      rank,
+      lot: lotFor(choice.location),
+      score: 0,
+      reason: choice.explanation,
+      access: { status: 'never' as const },
+      estimate: toEstimate(choice, response.is_example),
+    };
+  });
 }
 
 /** Backend numbers and reasons for one choice, as the cards and detail card use them. */
@@ -264,15 +280,11 @@ export interface RankedOption {
  * estimate, walk and fit reason. Falls back to the two picks for older backends.
  */
 export function toRankedOptions(response: ApiRecommendationResponse): Record<string, RankedOption> {
-  const choices =
-    response.options && response.options.length > 0
-      ? response.options
-      : [response.first_choice, response.backup_choice].filter((c): c is ApiChoice => c !== null);
   const ranked: Record<string, RankedOption> = {};
-  choices.forEach((choice, index) => {
+  rankedChoices(response).forEach((choice, index) => {
     const rank = choice.rank ?? index + 1;
     ranked[choice.location.location_id] = {
-      badgeLabel: rank === 1 ? 'First choice' : rank === 2 ? 'Backup' : `#${rank}`,
+      badgeLabel: badgeFor(rank),
       estimate: toEstimate(choice, response.is_example),
     };
   });

@@ -4,32 +4,18 @@
  */
 
 import { useEffect, useState } from 'react';
-import { fetchRoute, type ApiRoute, type LatLng, type TravelMode } from '../api/routes.ts';
+import type { LatLng, TravelMode } from '../api/routes.ts';
 import { planRoutes, tripKey, type PlannedLeg } from '../utils/routePlan.ts';
+import { initialLegState, loadLeg, needsRequest, type LegState } from '../utils/routeLoader.ts';
 
-export type LegState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'ok'; route: ApiRoute }
-  /** Not requested: missing start, destination or lot pin. */
-  | { status: 'skipped'; message: string }
-  /** Routing is turned off on the backend. */
-  | { status: 'unavailable'; message: string }
-  | { status: 'error'; message: string };
-
+export type { LegState };
 export type RouteLegs = Record<TravelMode, LegState>;
 
-const IDLE: RouteLegs = { driving: { status: 'idle' }, walking: { status: 'idle' } };
-
 /**
- * Successful routes for this visit, so switching between first choice and backup
- * (or re-running the same search) never asks the backend twice for the same trip.
- */
-const routeCache = new Map<string, ApiRoute>();
-
-/**
- * Loads driving and walking routes for the chosen parking location. Changing the
- * lot, destination or start cancels requests for the old choice.
+ * Loads driving and walking routes for the chosen parking location. Changing the lot or
+ * destination cancels the walking request for the old choice; changing the lot or the start
+ * cancels the driving one. Each leg has its own request, so a start point arriving late (the
+ * browser's location) never cancels and resends the walking route.
  *
  * @param enabled false keeps everything idle (sample mode has no backend).
  * @param lot chosen parking location's map point, or null when nothing is chosen.
@@ -41,46 +27,39 @@ export function useRoutes(
   start: LatLng | null,
   retryToken = 0
 ): RouteLegs {
-  const [legs, setLegs] = useState<RouteLegs>(IDLE);
-  // Primitive deps so a new object with the same coordinates does not refetch
-  const key = [lot, destination, start].map((p) => (p ? `${p.latitude},${p.longitude}` : '-')).join(';');
-
-  useEffect(() => {
-    if (!enabled || !lot) {
-      setLegs(IDLE);
-      return;
-    }
-    const plan = planRoutes(lot, destination, start);
-    const controller = new AbortController();
-    const next: RouteLegs = { driving: initial(plan.driving), walking: initial(plan.walking) };
-    setLegs(next);
-
-    for (const leg of [plan.driving, plan.walking]) {
-      if (!('trip' in leg) || routeCache.has(tripKey(leg.trip))) continue;
-      const cacheKey = tripKey(leg.trip);
-      fetchRoute(leg.trip, { signal: controller.signal })
-        .then((outcome) => {
-          if (controller.signal.aborted) return;
-          if (outcome.kind === 'ok') routeCache.set(cacheKey, outcome.route);
-          const state: LegState =
-            outcome.kind === 'ok'
-              ? { status: 'ok', route: outcome.route }
-              : { status: outcome.kind, message: outcome.message };
-          setLegs((prev) => ({ ...prev, [leg.mode]: state }));
-        })
-        .catch(() => {
-          // Cancelled by a newer choice; that choice owns the state.
-        });
-    }
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` covers the coordinates
-  }, [enabled, key, retryToken]);
-
-  return legs;
+  const plan = enabled && lot ? planRoutes(lot, destination, start) : null;
+  return {
+    driving: useLeg(plan?.driving ?? null, retryToken),
+    walking: useLeg(plan?.walking ?? null, retryToken),
+  };
 }
 
-function initial(leg: PlannedLeg): LegState {
-  if (!('trip' in leg)) return { status: 'skipped', message: leg.skipped };
-  const cached = routeCache.get(tripKey(leg.trip));
-  return cached ? { status: 'ok', route: cached } : { status: 'loading' };
+const IDLE_LEG: LegState = { status: 'idle' };
+
+/** One leg's state. It asks again only when this leg's own trip changes (or on a retry). */
+function useLeg(leg: PlannedLeg | null, retryToken: number): LegState {
+  const [state, setState] = useState<LegState>(IDLE_LEG);
+  // Primitive key, so a new object for the same trip never refetches
+  const key = leg === null ? '' : 'trip' in leg ? tripKey(leg.trip) : `skipped:${leg.skipped}`;
+
+  useEffect(() => {
+    if (leg === null) {
+      setState(IDLE_LEG);
+      return;
+    }
+    setState(initialLegState(leg));
+    if (!needsRequest(leg)) return;
+    const controller = new AbortController();
+    loadLeg(leg.trip, { signal: controller.signal })
+      .then((next) => {
+        if (!controller.signal.aborted) setState(next);
+      })
+      .catch(() => {
+        // Cancelled by a newer choice; that choice owns the state.
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` covers this leg's trip
+  }, [key, retryToken]);
+
+  return state;
 }

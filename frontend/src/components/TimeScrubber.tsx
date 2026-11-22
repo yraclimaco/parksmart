@@ -83,7 +83,7 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = ({
           type="button"
           onClick={() => onPlayingChange(!isPlaying)}
           aria-label={isPlaying ? 'Pause timeline' : 'Play timeline: watch campus fill up'}
-          className="shrink-0 w-9 h-9 rounded-full bg-navy text-white flex items-center justify-center hover:bg-navy-2 active:scale-95 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 cursor-pointer"
+          className="relative before:content-[''] before:absolute before:-inset-2 shrink-0 w-9 h-9 rounded-full bg-navy text-white flex items-center justify-center hover:bg-navy-2 active:scale-95 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
         >
           {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 translate-x-px" />}
         </button>
@@ -99,7 +99,7 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = ({
           <button
             type="button"
             onClick={onUseTime}
-            className="shrink-0 px-2.5 py-1.5 rounded-lg bg-paper border border-line hover:bg-line/60 text-[12px] font-semibold text-navy transition-colors cursor-pointer"
+            className="shrink-0 px-2.5 py-1.5 rounded-lg bg-paper border border-line hover:bg-line/60 text-[12px] font-semibold text-navy transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
           >
             Use this time
           </button>

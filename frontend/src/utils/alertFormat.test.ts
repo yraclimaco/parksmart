@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { AlertSource } from '../api/tripAlerts.ts';
-import { celsiusToFahrenheit, describeForecast, emptySourceMessage, formatAlertTime, kmhToMph } from './alertFormat.ts';
+import {
+  celsiusToFahrenheit,
+  describeForecast,
+  emptySourceMessage,
+  formatAlertTime,
+  kmhToMph,
+  matchLabel,
+  weatherSummary,
+  constructionSummary,
+  INCOMPLETE_LABEL,
+  isCompleteAlerts,
+  sourceNote,
+} from './alertFormat.ts';
 
 const forecast = {
   forecast_time: '2026-11-18T10:00:00-08:00',
@@ -51,7 +63,9 @@ describe('describeForecast', () => {
 
 describe('emptySourceMessage', () => {
   it('only says nothing matched for a fresh no_relevant check, and never claims there is none', () => {
-    expect(emptySourceMessage('construction', source('no_relevant'))).toMatch(/doesn't prove there is none/);
+    const message = emptySourceMessage('construction', source('no_relevant'));
+    expect(message).toMatch(/doesn't prove there is none/);
+    expect(message).toMatch(/within about 650 ft \(200 m\)/);
   });
 
   it('does not read as an all-clear when a source is unavailable or stale', () => {
@@ -71,5 +85,109 @@ describe('formatAlertTime', () => {
     expect(formatAlertTime('2026-11-18T18:00:00Z')).toMatch(/Nov 18, 10:00 AM/);
     expect(formatAlertTime(null)).toBeNull();
     expect(formatAlertTime('not a date')).toBeNull();
+  });
+});
+
+describe('matchLabel', () => {
+  it('tells on-site notices from nearby ones, and gives unknown bases no label', () => {
+    expect(matchLabel('intersects_geometry')).toBe('At this location');
+    expect(matchLabel('within_200m')).toBe('Within about 650 ft (200 m)');
+    expect(matchLabel('something_new')).toBeNull();
+    expect(matchLabel(null)).toBeNull();
+  });
+});
+
+describe('collapsed alert summaries', () => {
+  const tip = { alert_id: 'a', message: 'Bring an umbrella', match_basis: null } as unknown as AlertSource['alerts'][number];
+
+  it('weather: temperature and rain chance, leaving out what is unknown', () => {
+    expect(weatherSummary({ ...source('available'), forecast })).toBe('68°F, 30% rain');
+    expect(
+      weatherSummary({
+        ...source('available'),
+        forecast: { ...forecast, temperature_c: null, precipitation_probability_percent: null },
+      })
+    ).toBe('No forecast details');
+  });
+
+  it('weather: counts tips, and says when data is older or missing', () => {
+    expect(weatherSummary({ ...source('available'), forecast, alerts: [tip, tip] })).toBe('68°F, 30% rain, 2 tips');
+    expect(weatherSummary({ ...source('stale'), forecast })).toBe('68°F, 30% rain (older data)');
+    expect(weatherSummary(source('unavailable'))).toBe('Weather unavailable');
+    expect(weatherSummary(source('out_of_range'))).toBe('No forecast yet');
+  });
+
+  it('construction: counts notices and never reads as an all-clear when unavailable', () => {
+    expect(constructionSummary({ ...source('available'), alerts: [tip] })).toBe('1 notice nearby');
+    expect(constructionSummary({ ...source('available'), alerts: [tip, tip] })).toBe('2 notices nearby');
+    expect(constructionSummary(source('no_relevant'))).toBe('None found nearby');
+    expect(constructionSummary(source('unavailable'))).toBe('Construction unavailable');
+    expect(constructionSummary({ ...source('stale'), alerts: [] })).toBe('None found nearby (older data)');
+  });
+});
+
+describe('partial checks are labeled incomplete', () => {
+  const tip = { alert_id: 'a', message: 'Bring an umbrella', match_basis: null } as unknown as AlertSource['alerts'][number];
+
+  it('collapsed weather summary says the check was incomplete', () => {
+    expect(weatherSummary({ ...source('partial'), forecast })).toBe(`68°F, 30% rain (${INCOMPLETE_LABEL})`);
+    expect(weatherSummary(source('partial'))).toBe(`No forecast details (${INCOMPLETE_LABEL})`);
+  });
+
+  it('collapsed construction summary never reads as "None found" without the label', () => {
+    expect(constructionSummary(source('partial'))).toBe(`None found nearby (${INCOMPLETE_LABEL})`);
+    expect(constructionSummary({ ...source('partial'), alerts: [tip] })).toBe(`1 notice nearby (${INCOMPLETE_LABEL})`);
+  });
+
+  it('expanded details explain that nothing listed is not an all-clear', () => {
+    for (const kind of ['weather', 'construction'] as const) {
+      expect(emptySourceMessage(kind, source('partial'))).toMatch(/incomplete/);
+      expect(emptySourceMessage(kind, source('partial'))).toMatch(/doesn't mean there is nothing/);
+    }
+  });
+
+  it('does not label complete checks', () => {
+    expect(weatherSummary({ ...source('available'), forecast })).not.toMatch(/incomplete/);
+    expect(constructionSummary(source('no_relevant'))).not.toMatch(/incomplete/);
+  });
+});
+
+describe('isCompleteAlerts (what is kept for the visit)', () => {
+  const both = (w: AlertSource['status'], c: AlertSource['status']) => ({ weather: source(w), construction: source(c) });
+
+  it('keeps full, fresh answers', () => {
+    expect(isCompleteAlerts(both('available', 'no_relevant'))).toBe(true);
+    expect(isCompleteAlerts(both('available', 'available'))).toBe(true);
+    expect(isCompleteAlerts(both('out_of_range', 'no_relevant'))).toBe(true);
+  });
+
+  it('does not keep a partial, older or unavailable source, so "check again" really asks again', () => {
+    expect(isCompleteAlerts(both('available', 'partial'))).toBe(false);
+    expect(isCompleteAlerts(both('stale', 'available'))).toBe(false);
+    expect(isCompleteAlerts(both('available', 'unavailable'))).toBe(false);
+  });
+});
+
+describe('sourceNote (one rule for the collapsed line and the expanded details)', () => {
+  it('names a partial check as incomplete and an old one as older data', () => {
+    expect(sourceNote(source('partial'))).toBe(INCOMPLETE_LABEL);
+    expect(sourceNote(source('stale'))).toBe('older data');
+  });
+
+  it('says nothing for full, fresh answers', () => {
+    for (const status of ['available', 'no_relevant', 'out_of_range', 'unavailable', 'missing_location'] as const) {
+      expect(sourceNote(source(status))).toBeNull();
+    }
+  });
+
+  it('the collapsed summary carries exactly the note the details badge shows', () => {
+    for (const status of ['partial', 'stale', 'available'] as const) {
+      const note = sourceNote(source(status));
+      const summaries = [weatherSummary(source(status)), constructionSummary(source(status))];
+      for (const text of summaries) {
+        if (note) expect(text).toContain(`(${note})`);
+        else expect(text).not.toMatch(/incomplete|older data/);
+      }
+    }
   });
 });

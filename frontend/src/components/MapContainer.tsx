@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Clock, MapPin, MapPinOff } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
-import { ROUTE_COLORS } from './DirectionsPanel.tsx';
+import { ROUTE_COLORS } from '../utils/routePlan.ts';
 // MapLibre draws tiles in a background Web Worker. Vite bundles the main library
 // but does not copy the worker file, so the default worker URL 404s and the map
 // renders blank. `?url` makes Vite emit the worker as an asset and give us its URL.
@@ -837,7 +837,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                     role="radio"
                     aria-checked={basemap === mode}
                     onClick={() => setBasemap(mode)}
-                    className={`relative h-[28px] px-3 text-xs font-semibold rounded-[8px] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 cursor-pointer ${
+                    className={`relative h-[28px] max-sm:h-[40px] px-3 text-xs font-semibold rounded-[8px] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer ${
                       basemap === mode ? 'text-white' : 'text-muted hover:text-navy'
                     }`}
                   >

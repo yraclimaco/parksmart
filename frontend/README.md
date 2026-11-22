@@ -1,8 +1,26 @@
 # ParkSmart - UCSD Parking Planner Prototype
 
-A desktop-first web prototype for UCSD parking planning. This prototype uses sample data to explore parking options, walking times, and recommendation scoring.
+A web planner for UCSD parking: pick a destination, permit and arrival time and get a first choice, a backup and more options, with walk time, drive time, weather and construction notes. It runs in two modes:
 
-> **Disclaimer**: This is a front-end only prototype using clearly labeled SAMPLE data. Nothing in it is a real prediction or live availability. It never claims guaranteed availability.
+- **API mode** (`VITE_RECOMMENDATION_SOURCE=api`): searches go to the ParkSmart backend (`POST /recommendations`, `/routes`, `/trip-alerts`). This is the real thing, with historical estimates, not live availability.
+- **Sample mode** (the default with no setup): clearly labeled sample data, so the site works with no backend.
+
+> **Disclaimer**: Estimates come from past parking surveys. Nothing here is live availability or a guaranteed space.
+
+## Quick start
+
+```bash
+npm ci
+npm test            # Vitest
+npm run lint        # TypeScript type check
+npm run dev         # http://localhost:3000, sample mode
+
+# Real backend: from the parksmart repo, `scripts/dev.sh` runs the backend and this site together.
+# Or point this site at one yourself:
+VITE_API_BASE_URL=http://127.0.0.1:8000 VITE_RECOMMENDATION_SOURCE=api npm run dev
+```
+
+Dev must run on port 3000 or 5173, the only origins the backend allows. To change something: branch from `main`, run the tests, open a PR here, then sync it into parksmart with `scripts/sync_frontend.sh` (see the note below).
 
 > **Where to edit**: the source of truth is [dylanwang-main/ParkSmart-Website](https://github.com/dylanwang-main/ParkSmart-Website), synced with Google AI Studio. The `frontend/` folder in [yraclimaco/parksmart](https://github.com/yraclimaco/parksmart) is a one-way copy made with `scripts/sync_frontend.sh`. Do not edit website files there; the next sync overwrites them. Make the change in ParkSmart-Website, then sync.
 
@@ -16,7 +34,7 @@ A desktop-first web prototype for UCSD parking planning. This prototype uses sam
   - **Satellite (default):** USGS National Map imagery (public domain, cached to zoom 16)
   - **Map:** OpenFreeMap Positron vector tiles
 - **Motion (`motion/react`)** for smooth, subtle card stagger transitions
-- No backend, no routing, no external authentication required
+- Talks to the ParkSmart backend only in API mode (no keys in the site; routing providers and API keys live on the backend)
 
 ---
 
@@ -71,20 +89,26 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 
 ## Directions
 
-**In API mode**, the selected result (the first choice after a search, or whichever card or pin is picked) gets a **Directions** box and route lines on the map (`src/components/DirectionsPanel.tsx`, `src/hooks/useRoutes.ts`):
+**In API mode**, the selected result (the first choice after a search, or whichever card or pin is picked) shows **Drive** and **Walk** rows inside its own card and route lines on the map (`src/components/TripDetails.tsx`, `src/hooks/useRoutes.ts`; there is no separate Directions box):
 
 - **Walk** (dashed gold line): from the parking location to the destination.
-- **Drive** (navy line): from the starting point to the parking location. It appears after **Use my location**; without a starting point the box says so and still shows the walk.
+- **Drive** (navy line): from the starting point to the parking location. It appears after **Use my location**; without a starting point the card offers it and still shows the walk.
 - Each leg shows distance and a typical travel time. Times are never described as traffic-aware: the routing provider has no live traffic.
 - Routes come from the backend's `POST /routes` (`src/api/routes.ts`), which holds any provider key. The website never calls a routing provider directly.
-- Parking ends use the lot's map point (a UCSD GIS building point), which may not be its vehicle entrance or pedestrian exit; the box says so.
+- Parking ends use the lot's map point (a UCSD GIS building point), which may not be its vehicle entrance or pedestrian exit; the card says so under the times, with the OpenStreetMap credit and a **Fix the map** link.
 - Successful routes are kept for the visit, so switching between first choice and backup does not repeat requests. Changing the selection cancels requests for the old one.
-- If the backend has routing turned off (503), the box says directions are not set up and points to Google Maps. Route failures show the reason and **Try directions again**.
-- The browser location is requested only when **Use my location** is pressed, is sent only to the ParkSmart backend to compute the route, and is never saved.
+- If the backend has routing turned off (503), the card says directions are not available and points to Google Maps. Only the backend's own "routes are not available" 503 counts (a gateway or cold-start 503 is a retryable error). The site remembers that for 10 minutes (`src/utils/routeLoader.ts`) and sends no more `/routes` requests meanwhile, so each search only costs the recommendation and alerts calls. A search identical to one already running is not sent twice. Route failures show the reason and **Try directions again**.
+- The browser location is requested only when **Use my location** is pressed (a browser that already allowed location for the site is used silently, never prompted), is sent only to the ParkSmart backend to compute the route, and is never saved.
 
 Sample mode has no backend, so it shows no routes.
 
-After **Select this spot**, **Open in Google Maps** opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free and no API key.
+**Open in Google Maps** on a result card (or a lot card) opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free and no API key.
+
+## Class schedule import
+
+The planner has an **Import schedule (.ics)** panel. Students export their calendar (Google Calendar: Settings, Import & export; Apple Calendar: File, Export) and pick the file. It is read in the browser with a small built-in parser (`src/utils/icsSchedule.ts`): timed events, TZID or UTC times, and weekly repeats (INTERVAL, BYDAY, UNTIL, COUNT, EXDATE). All-day events are skipped, and any other repeat rule is read as a single class. Times are converted to campus time (America/Los_Angeles), a repeat rule's weekdays move with the start time (a Monday 5 PM class exported in UTC repeats on Mondays, not Tuesdays), and a repeating class written in UTC or another zone keeps its time there, so its campus time shifts by an hour when daylight saving changes (`startOn`). Windows zone names from Outlook ("Eastern Standard Time") are read; a zone name the browser does not know is read as campus time. A file with more than 400 events drops old single events first, so this term's classes are not cut. Messy exports are handled: cancelled events are dropped, a single moved or cancelled session of a repeating class replaces just that day (RECURRENCE-ID), identical classes listed twice show once, and unreadable events are skipped without stopping the import. Not supported: changes to "this and all future" sessions (`RANGE=THISANDFUTURE`) and repeats other than weekly. Non-class events (birthdays, meetings) are not filtered out, since nothing in the file says which events are classes.
+
+The panel lists the classes on the planner's arrival date. Tapping one sets the arrival time 20 minutes before it starts (`ARRIVE_BEFORE_CLASS_MINUTES`, our choice: about a 10-minute walk plus a margin) and, if the room matches a campus building for sure (`matchBuilding` in `src/utils/scheduleTrips.ts`), searches for parking there. Matching tries a building or alias written out in full first, longest wins ("Price Center East 101" is East, not "Price Center" or the code PRICE, which belongs to West), then a schedule code at the start, which only counts when it is written like one (capitals, or followed by a room number). It never guesses: remote classes, unknown rooms, a one-word alias that is really a common word (the data gives a distant forum the alias "Auditorium") and buildings that tie more than 150 m apart only set the time, clear the previous destination and its results, and ask the student to pick a destination (the old building is never searched for a different class). The schedule is saved in this browser only (`parksmart.schedule.v1`) so it is imported once, is never uploaded, and can be removed with the X.
 
 ## Scoring Formula
 
@@ -170,8 +194,9 @@ VITE_RECOMMENDATION_SOURCE=api npm run dev
   (`REQUEST_TIMEOUT_MS`, generous for AWS Lambda cold starts) stops with a
   "taking too long" message instead of loading forever. API mode never falls back
   to sample data.
-- Selecting a spot ("Select this spot") also selects its card and map pin, so the
-  highlighted card, the pin and the route always describe the same lot.
+- Opening directions for a spot ("Open in Google Maps") also selects its card and map pin,
+  so the highlighted card, the pin and the route always describe the same lot. There is no
+  separate "Select this spot" step.
 - Availability labels (all worded as historical patterns, never live availability):
   **Usually open** at 20% open or more (green), **Usually full** at 10% or less (red;
   the backend's "Often nearly full" cutoff), **Usually tight** between (yellow).

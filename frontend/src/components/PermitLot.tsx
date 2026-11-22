@@ -27,9 +27,22 @@ export const PermitLot: React.FC = () => {
 
   return (
     <div className="pl" ref={ref}>
+      <div className="pl-controls">
       <div className="pl-readout">
         <strong>{yours}</strong>
         <span>of {STALLS.length} stalls are yours</span>
+      </div>
+      <div className="pl-buttons" role="group" aria-label="Choose a permit">
+        {PERMITS.map((p) => (
+          <button key={p} type="button" className={`pl-btn${p === permit ? ' pl-btn--on' : ''}`} aria-pressed={p === permit} onClick={() => setPermit(p)}>
+            {p}
+          </button>
+        ))}
+      </div>
+      <p className="pl-legend">
+        <span className="pl-key pl-key--yours" aria-hidden="true" /> Your permit
+        <span className="pl-key pl-key--other" aria-hidden="true" /> Not your permit (faded)
+      </p>
       </div>
       <svg className={`pl-lot${seen ? ' pl-lot--in' : ''}`} viewBox="0 0 800 360" role="img" aria-label={`Example lot with the ${permit} permit stalls highlighted`}>
         <rect width="800" height="360" fill="#101D33" />
@@ -65,13 +78,6 @@ export const PermitLot: React.FC = () => {
           );
         })}
       </svg>
-      <div className="pl-buttons" role="group" aria-label="Choose a permit">
-        {PERMITS.map((p) => (
-          <button key={p} type="button" className={`pl-btn${p === permit ? ' pl-btn--on' : ''}`} aria-pressed={p === permit} onClick={() => setPermit(p)}>
-            {p}
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

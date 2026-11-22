@@ -34,7 +34,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onResetFilters, permitTy
         <button
           type="button"
           onClick={onResetFilters}
-          className="text-xs font-semibold text-navy hover:text-ink underline underline-offset-4 focus:outline-none cursor-pointer"
+          className="text-xs font-semibold text-navy hover:text-ink underline underline-offset-4 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky rounded cursor-pointer"
         >
           Reset to default permit (S)
         </button>
