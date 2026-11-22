@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { Clock, MapPin, MapPinOff } from 'lucide-react';
+import { MapPin, MapPinOff } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
 import { ROUTE_COLORS } from '../utils/routePlan.ts';
 // MapLibre draws tiles in a background Web Worker. Vite bundles the main library
@@ -127,9 +127,6 @@ interface MapContainerProps {
   hasDroppedPin: boolean;
   onClearPin: () => void;
   /** Time tool: the toggle sits in the map's control row and its panel opens beneath it. */
-  isTimeOpen: boolean;
-  onTimeToggle: () => void;
-  timePanel: React.ReactNode;
   /** Called once the first tiles have drawn (or a few seconds have passed). */
   onReady?: () => void;
   /** Whether the left planner panel is showing; controls how much map is covered. */
@@ -207,9 +204,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   onDropPin,
   hasDroppedPin,
   onClearPin,
-  isTimeOpen,
-  onTimeToggle,
-  timePanel,
   onReady,
   isPanelOpen,
   isDetailOpen,
@@ -812,19 +806,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 )}
                 {hasDroppedPin ? 'Remove pin' : isPinMode ? 'Tap the map' : 'Drop pin'}
               </button>
-              {showSampleAvailability && (
-                <button
-                  type="button"
-                  aria-pressed={isTimeOpen}
-                  aria-expanded={isTimeOpen}
-                  onClick={onTimeToggle}
-                  className={CONTROL_BUTTON}
-                  data-tone="navy"
-                >
-                  <Clock className="w-4 h-4" aria-hidden="true" />
-                  Time
-                </button>
-              )}
               <div
                 role="radiogroup"
                 aria-label="Map style"
@@ -861,14 +842,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({
               >
                 {pinMessage}
               </p>
-            )}
-
-            {/* Desktop: opens to the left of the Time button, level with the buttons.
-                Phone: no room beside it, so it drops below. */}
-            {isTimeOpen && (
-              <div className="absolute max-sm:right-0 max-sm:top-[calc(100%+8px)] sm:right-full sm:mr-2 sm:top-0">
-                {timePanel}
-              </div>
             )}
           </div>,
           basemapControlEl

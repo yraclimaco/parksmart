@@ -4,41 +4,37 @@
  */
 
 import React from 'react';
-import { RECOMMENDATION_SOURCE } from '../config';
 import { LotCar, prefersReducedMotion, useInView } from './LotParts';
 
-/** The hosted build talks to the AWS backend; other builds (previews) use labeled sample data. */
-const LIVE = RECOMMENDATION_SOURCE === 'api';
-
-/** Where a recommendation comes from, in order. Status says honestly how far along each part is. */
+/** Where a recommendation comes from, in order, as it runs today. Status says how far along each part is. */
 const STAGES = [
   {
     name: 'Public data',
-    method: 'UCSD QPASS survey workbooks and Parking Space Inventory reports, cleaned and matched to lots.',
-    why: 'They are the only public counts. They mostly cover the first weeks of each quarter since 2018, with gaps.',
-    status: 'Public sources',
+    method: 'UCSD QPASS survey workbooks and Parking Space Inventory reports, cleaned into 76,102 readings and matched to campus lots and structures.',
+    why: 'They are UCSD\'s own counts. They come from the first two weeks of each quarter, which represent the whole quarter.',
+    status: 'June 2018 to October 2026',
   },
   {
     name: 'Forecast',
-    method: 'The average open share for the same lot, weekday, time and quarter.',
+    method: 'The average open share for the same lot, weekday, time and quarter, loaded once when the server starts.',
     why: 'In our tests it beat a trained regression model on nearly full lots, and it is easy to explain.',
-    status: LIVE ? 'Historical averages' : 'Prototype uses a sample curve. Real averages run in the hosted app.',
+    status: 'Historical averages',
   },
   {
     name: 'Backend',
-    method: 'A FastAPI service checks permit rules, attaches the forecast, scores and ranks lots.',
-    why: 'One service means the website and a future app give the same answer.',
-    status: LIVE ? 'Live on AWS' : 'Prototype uses sample data. Backend deploys on AWS next.',
+    method: 'A FastAPI service checks your permit\'s rules for your arrival, drops lots over a 20-minute walk, scores the rest, and adds weather and construction notes.',
+    why: 'One service means the website and the iOS app being built give the same answer.',
+    status: 'Live on AWS',
   },
   {
     name: 'Routing',
-    method: 'Walking and driving paths from OpenStreetMap-based routing, with any key kept on the server.',
-    why: 'Real paths beat straight-line guesses, but the free public server is for light use only.',
-    status: LIVE ? 'Off in this demo. Walk times are estimates; routing is planned.' : 'Prototype uses estimates. Routing is planned after the AWS demo.',
+    method: 'Walking and driving routes from OpenStreetMap-based routing, with any key kept on the server.',
+    why: 'Real paths beat straight-line guesses. Until a routing server is set up, walk times are straight-line estimates.',
+    status: 'Built, off in the hosted demo',
   },
   {
     name: 'This website',
-    method: 'React and a MapLibre map that show a first choice and a backup.',
+    method: 'React and a MapLibre map. Import your class schedule and each class gets a first choice and a backup.',
     why: 'The answer sits next to the map, so you can check it against where you are going.',
     status: 'You are here',
   },
@@ -78,7 +74,7 @@ export const Pipeline: React.FC = () => {
         ))}
       </ol>
       <p className="lp-note">
-        {LIVE ? 'Hosted on AWS: Amplify, Lambda with API Gateway, and S3.' : 'Preview on sample data. The full app runs on AWS.'}
+        Hosted on AWS: Amplify, Lambda with API Gateway, and S3.
       </p>
     </div>
   );

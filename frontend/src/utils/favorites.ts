@@ -12,6 +12,15 @@ const MAX_FAVORITES = 20;
 
 /** Minimal slice of the Storage API, so tests can pass a fake. */
 type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
+type RemovableStore = Pick<Storage, 'removeItem'>;
+
+function defaultRemovableStore(): RemovableStore | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 function defaultStore(): KeyValueStore | null {
   try {
@@ -45,4 +54,13 @@ export function toggleFavorite(id: string, store: KeyValueStore | null = default
     // Storage full or blocked: the star still works this visit, it just is not remembered
   }
   return next;
+}
+
+/** Forgets every starred place. */
+export function clearFavorites(store: RemovableStore | null = defaultRemovableStore()): void {
+  try {
+    store?.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing to do if storage is blocked
+  }
 }

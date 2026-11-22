@@ -675,8 +675,8 @@ in `frontend/.env.local`, never with secrets. Searches use labeled sample data
 unless `VITE_RECOMMENDATION_SOURCE=api`, which sends them to
 `POST /recommendations` (`frontend/src/api/recommendations.ts`) and never falls
 back to sample data. Website data marked sample in `frontend/README.md` is not a
-real prediction. Website pins must use registry `location_id` values; a test in
-`tests/test_location_registry.py` checks this. In API mode the selected result
+real prediction. Website pins must use registry `location_id` values and the registry's coordinates;
+tests in `tests/test_location_registry.py` check both, so fix a pin in both places. In API mode the selected result
 also gets driving/walking routes from `POST /routes` (see Issue #25 below)
 and weather/construction trip alerts from `POST /trip-alerts` (Issue #35); alert
 failures never affect the parking results. They show inside that result's card
@@ -690,10 +690,15 @@ from the backend's whole ranked `options` list (first choice, backup, #3, ...): 
 show, then "Show 5 more" right under them. The weather source refuses past arrivals, so an
 arrival of "now" is sent to `/trip-alerts` as now + 2 min (`alertArrivalTime` in
 `utils/arrival.ts`); later arrivals are sent unchanged.
-The landing page is nine one-screen sections (proximity scroll-snap only on wide
-mouse/trackpad screens) with a sticky header; its figures (76,102 readings, 21.0 pp
-MAE on 11,665 held-out readings) come from `docs/issue11_findings.md` and
-`docs/issue18_predictions.md`, so update them if the model or dataset changes. A
+The landing page is ten sections, each sized to fit one laptop/desktop screen below the
+64px sticky header (proximity scroll-snap only on wide mouse/trackpad screens; phones
+scroll freely): hero, Why ParkSmart funnel, Import your classes, permit map, weather and
+construction, how it works, how a pick is chosen, How accurate is it?, coverage, what's
+next. Its figures (76,102 readings; 21.0 and 13.7 pp error on 11,665 held-out readings;
+4,458 with no estimate) come from `docs/issue11_findings.md` and
+`docs/issue18_predictions.md`, so update them if the model or dataset changes. The
+permit map's `ACCESS` table in `PermitMap.tsx` is generated from `check_eligibility`
+(`src/eligibility.py`) for three example times; regenerate it when permit rules change. A
 canvas car cursor with a single black dashed trail runs on the landing page only, for a mouse
 with reduced motion off; the planner keeps the normal cursor.
 The planner has no Refine controls: every search is `balanced` with the default 20-minute
@@ -701,9 +706,8 @@ walk limit (the API still supports `preference` and `max_walk_minutes`). A saved
 walk limit made searches return no results, so only the permit is remembered, in
 `localStorage` (`parksmart.preferences.v2`, restored on load, with a Reset note; the old
 `v1` key is ignored and deleted). It also remembers the last three
-searched places (Recent in the destination list) and whether the planner was opened
-before. A returning browser skips the intro and landing page and opens the planner;
-adding `?home` to the address always shows the landing page (use it for demos). Arrival defaults to now in campus (Pacific) time, whatever the browser's zone (`utils/campusClock.ts`), and is set with a rolling hour/minute/AM-PM wheel (`TimeWheel.tsx`,
+searched places (Recent in the destination list). Every visit opens on the landing page
+and its intro, including for returning browsers. Arrival defaults to now in campus (Pacific) time, whatever the browser's zone (`utils/campusClock.ts`), and is set with a rolling hour/minute/AM-PM wheel (`TimeWheel.tsx`,
 like the iPhone clock; arrow keys also work) instead of a typed time; there are no generic time chips, the imported class schedule
 (below) is the one-tap shortcut.
 Picking a destination searches immediately, and after a first search changing the
@@ -711,8 +715,8 @@ permit or arrival time refreshes the results once changes have been quiet
 for 1 s (`AUTO_REFRESH_DELAY_MS`), so the rate-limited hosted API sees one request per
 settled change; a search identical to one still running is not sent again. A dropped pin searches at once, and a "Recent" search whose time has passed re-runs at now. The auto-refresh never scrolls the panel. Incomplete or older weather/construction answers are not kept for the visit and offer "Check again". Results offer a single "Open in Google Maps" action (it also selects
 the lot; there is no separate Select step). A "Clear all" pill under the hamburger resets the
-destination, time, permit and results (it keeps the imported schedule, starred and recent
-places and the visit's Recent searches), and an already-granted browser location is
+destination, time, permit and results and forgets everything saved on the device: the
+imported schedule, starred and recent places and the saved permit (`clearAllSavedData`), and an already-granted browser location is
 used silently as the driving start (the site never prompts on its own). A class-schedule
 panel imports an `.ics` file in the browser (no upload, no new dependency; parser in
 `src/utils/icsSchedule.ts`, building matching in `scheduleTrips.ts`), saves it in
@@ -725,7 +729,7 @@ when it is converted to campus time, and a repeating UTC or other-zone class kee
 zone, so its campus time shifts when daylight saving changes (`startOn`). Unmatched or remote classes never guess a destination: they set the time, clear the previous
 destination and its results, and ask for a pick. Cancelled events
 are dropped, a moved or cancelled single session replaces that day's normal one, and
-duplicate classes show once. Details are in the website README. The landing FAQ explains the class import. The landing intro
+duplicate classes show once. Details are in the website README. The landing page's class-import screen demos the import (its example buildings are checked against `matchBuilding`). The landing intro
 has no buttons: it lifts and fades on scroll, swipe up or Enter/Space/Down.
 Saved settings are per browser, never sent to the backend. Local API-mode testing must
 use port 3000 or 5173, the only CORS-allowed dev origins.

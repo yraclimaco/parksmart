@@ -12,7 +12,6 @@ import { LoadingScreen } from './components/LoadingScene.tsx';
 import { PreferenceForm } from './components/PreferenceForm.tsx';
 import { ResultsList } from './components/ResultsList.tsx';
 import { LotDetailCard } from './components/LotDetailCard.tsx';
-import { SCRUB_MAX, SCRUB_MIN, TimeScrubber } from './components/TimeScrubber.tsx';
 import ucsdLogo from './assets/ucsd-logo.png';
 import parkSmartLogo from './assets/parksmart-logo.png';
 import { SchedulePanel, type ClassTrip } from './components/SchedulePanel.tsx';
@@ -29,6 +28,7 @@ import { ANIMATION_TIMINGS, DEFAULT_PRIORITY, PRIORITY_OPTIONS, isOnCampus } fro
 import { findDestination, makePinDestinationId } from './data/destinations.ts';
 import { getArrivalError, reuseAlertArrival } from './utils/arrival.ts';
 import { createSearchGate } from './utils/searchGate.ts';
+import { clearAllSavedData } from './utils/savedData.ts';
 import { campusNow } from './utils/campusClock.ts';
 import {
   blankRequest,
@@ -90,18 +90,6 @@ function useIsMobile(): boolean {
 const USE_API = RECOMMENDATION_SOURCE === 'api';
 
 
-/** "HH:MM" to minutes after midnight, clamped to the scrubber's range. */
-function minutesOf(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  const minutes = Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : 9 * 60;
-  return Math.min(SCRUB_MAX, Math.max(SCRUB_MIN, minutes));
-}
-
-/** Minutes after midnight to "HH:MM". */
-function timeOf(minutes: number): string {
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-}
-
 /** The setting that is remembered between visits: the permit. */
 function preferencesOf(request: Pick<ParkingPlannerRequest, 'permitType'>): SavedPreferences {
   return { permitType: request.permitType };
@@ -135,6 +123,8 @@ export default function Planner({ onBack }: PlannerProps) {
   // Earlier searches this visit, most recent first (the current one is not included).
   // Picking one swaps it with the current search, so X then Y, then "Recent", returns to X.
   const [searchHistory, setSearchHistory] = useState<ParkingPlannerRequest[]>([]);
+  // Bumped by Clear all so the schedule and place lists reload from the emptied storage
+  const [savedDataVersion, setSavedDataVersion] = useState(0);
 
   // 2. Recommendations State
   const [recommendations, setRecommendations] = useState<ParkingRecommendation[]>([]);
@@ -183,30 +173,11 @@ export default function Planner({ onBack }: PlannerProps) {
   // Lot detail card (opened by clicking a pin on the map)
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
 
-  // Time scrubber: previewed time of day (minutes after midnight) and play state.
-  // Follows the arrival time until the user scrubs.
-  const [previewMinutes, setPreviewMinutes] = useState<number>(() => minutesOf(formInputs.arrivalTime));
-  const [isTimelinePlaying, setIsTimelinePlaying] = useState<boolean>(false);
-  // The Time tool is a toggle in the map's controls; closing it snaps the map and every
-  // number back to the arrival time, so nothing keeps showing a time you can no longer see.
-  const [isTimeOpen, setIsTimeOpen] = useState<boolean>(false);
-  useEffect(() => {
-    setPreviewMinutes(minutesOf(formInputs.arrivalTime));
-  }, [formInputs.arrivalTime]);
-  const handleTimeToggle = useCallback(() => {
-    setIsTimeOpen((open) => {
-      if (open) setIsTimelinePlaying(false);
-      return !open;
-    });
-  }, []);
-  useEffect(() => {
-    if (!isTimeOpen) setPreviewMinutes(minutesOf(formInputs.arrivalTime));
-  }, [isTimeOpen, formInputs.arrivalTime]);
-  const previewTime = useMemo(() => {
-    const day = parseArrival(formInputs.arrivalDate, '00:00') ?? new Date();
-    day.setHours(Math.floor(previewMinutes / 60), previewMinutes % 60, 0, 0);
-    return day;
-  }, [formInputs.arrivalDate, previewMinutes]);
+  // The time the map's sample availability dots and the cards read: the arrival time
+  const availabilityTime = useMemo(
+    () => parseArrival(formInputs.arrivalDate, formInputs.arrivalTime) ?? new Date(),
+    [formInputs.arrivalDate, formInputs.arrivalTime]
+  );
 
   // Side panel open/closed (hamburger toggle)
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(true);
@@ -360,9 +331,12 @@ export default function Planner({ onBack }: PlannerProps) {
   };
 
   // Clear all: back to an empty planner, like a fresh visit. The trip form (destination, arrival,
-  // permit) and everything shown from the search (results, selection, routes' start, errors) reset.
-  // The imported schedule, starred and recent places and "Recent" searches this visit stay.
+  // permit), everything shown from the search (results, selection, routes' start, errors) and
+  // everything saved on this device (imported classes, starred and recent places) are cleared.
   const handleClearAll = () => {
+    clearAllSavedData(); // imported classes, starred and recent places, saved permit
+    setSearchHistory([]);
+    setSavedDataVersion((v) => v + 1); // the panels that loaded those re-read the now-empty storage
     clearShownResults();
     autoLocateTried.current = false; // the next search may use an already-granted location again
     setFormInputs(blankRequest());
@@ -659,23 +633,10 @@ export default function Planner({ onBack }: PlannerProps) {
         onDropPin={handleDropPin}
         hasDroppedPin={currentDestination?.isPin === true}
         onClearPin={handleClearPin}
-        isTimeOpen={isTimeOpen}
-        onTimeToggle={handleTimeToggle}
-        timePanel={
-          <TimeScrubber
-            day={previewTime}
-            minutes={previewMinutes}
-            onMinutesChange={setPreviewMinutes}
-            isPlaying={isTimelinePlaying}
-            onPlayingChange={setIsTimelinePlaying}
-            differsFromArrival={previewMinutes !== minutesOf(formInputs.arrivalTime)}
-            onUseTime={() => handleFormChange({ arrivalTime: timeOf(previewMinutes) })}
-          />
-        }
         isPanelOpen={isPanelOpen}
         isDetailOpen={isDetailOpen}
         rankedLotIds={rankedLotIds}
-        availabilityTime={previewTime}
+        availabilityTime={availabilityTime}
         showSampleAvailability={!USE_API}
         routeLines={{
           driving: routeLegs.driving.status === 'ok' ? routeLegs.driving.route.geometry : null,
@@ -755,7 +716,7 @@ export default function Planner({ onBack }: PlannerProps) {
               <button
                 type="button"
                 onClick={handleClearAll}
-                aria-label="Clear all: reset the destination, time, permit and results"
+                aria-label="Clear all: reset the trip and results, and forget imported classes and saved places"
                 className="shrink-0 -ml-[44px] max-sm:ml-0 inline-flex relative before:content-[''] before:absolute before:-inset-2 items-center gap-1 h-7 pl-2 pr-2.5 rounded-full border border-line bg-white text-[12px] font-semibold text-navy transition-colors duration-200 hover:bg-paper active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
@@ -787,6 +748,7 @@ export default function Planner({ onBack }: PlannerProps) {
                 Trip Preferences
               </h2>
               <PreferenceForm
+                key={`prefs-${savedDataVersion}`}
                 formData={formInputs}
                 hasSavedSettings={isCustomized(preferencesOf(formInputs))}
                 onResetSettings={handleResetPreferences}
@@ -808,7 +770,7 @@ export default function Planner({ onBack }: PlannerProps) {
             </section>
 
             {/* Class schedule: import once, then park for any class in one tap */}
-            <SchedulePanel date={formInputs.arrivalDate} onPlanClass={handlePlanClass} />
+            <SchedulePanel key={`schedule-${savedDataVersion}`} date={formInputs.arrivalDate} onPlanClass={handlePlanClass} />
 
             {/* Subtle Divider */}
             <div className="flex items-center gap-3 py-0.5 text-[13px] font-semibold text-navy">
@@ -830,7 +792,7 @@ export default function Planner({ onBack }: PlannerProps) {
                 onRestoreSearch={handleRestoreSearch}
                 showIntroPrompt={searchedRequest === null}
                 isStale={isStale}
-                availabilityTime={previewTime}
+                availabilityTime={availabilityTime}
                 onChooseLot={handleChooseLot}
                 selectedLocationId={selectedLocationId}
                 onSelectLot={handleSelectLot}
@@ -915,7 +877,7 @@ export default function Planner({ onBack }: PlannerProps) {
                 lot={selectedLot}
                 userPermit={formInputs.permitType}
                 arrival={parseArrival(formInputs.arrivalDate, formInputs.arrivalTime)}
-                availabilityTime={previewTime}
+                availabilityTime={availabilityTime}
                 destination={currentDestination}
                 rankLabel={
                   isStale

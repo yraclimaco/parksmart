@@ -184,6 +184,33 @@ def test_website_location_ids_exist_in_registry():
     assert ids - registry_ids == set()
 
 
+# Website pins are written with 6 decimals (about 0.1 m); allow rounding only.
+PIN_MATCH_DEGREES = 1e-5
+
+
+@pytest.mark.skipif(not FRONTEND_DATA.exists(), reason="frontend/ not present")
+def test_website_pins_match_registry_coordinates():
+    """A website pin sits where the registry says, so the map and the backend agree."""
+    pin = re.compile(
+        r"locationId:\s*['\"]([^'\"]+)['\"][^}]*?"
+        r"latitude:\s*(-?[\d.]+),\s*longitude:\s*(-?[\d.]+)")
+    pins = []
+    for name in ("parkingLots.ts", "surfaceLots.ts"):
+        pins += pin.findall((FRONTEND_DATA / name).read_text())
+    assert pins, "no pins found in the website data"
+    registry = {loc["location_id"]: loc for loc in load_registry()}
+    off = []
+    for location_id, lat, lon in pins:
+        coords = registry[location_id].get("coordinates")
+        if not coords:
+            continue
+        if (abs(float(lat) - coords["latitude"]) > PIN_MATCH_DEGREES
+                or abs(float(lon) - coords["longitude"]) > PIN_MATCH_DEGREES):
+            off.append((location_id, (lat, lon),
+                        (coords["latitude"], coords["longitude"])))
+    assert off == []
+
+
 def test_cli_reports_unmapped_facilities(tmp_path, capsys):
     registry = tmp_path / "locations.json"
     registry.write_text(json.dumps({"schema_version": "0.1",

@@ -7,7 +7,6 @@ import { LoadingScreen } from './components/LoadingScene.tsx';
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { LandingPage } from './components/LandingPage.tsx';
 import { PlannerBoundary } from './components/PlannerBoundary.tsx';
-import { markPlannerVisited, shouldOpenPlannerDirectly } from './utils/returningVisitor.ts';
 
 // Lazy-load the planner so MapLibre, tile workers, and map APIs do not load until opened.
 const Planner = lazy(() => import('./Planner.tsx'));
@@ -15,9 +14,8 @@ const Planner = lazy(() => import('./Planner.tsx'));
 const FADE_DURATION_MS = 250;
 
 export default function App() {
-  const [view, setView] = useState<'landing' | 'planner'>(() =>
-    shouldOpenPlannerDirectly() ? 'planner' : 'landing'
-  );
+  // Every visit starts on the landing page and its intro, even for people who used the planner before
+  const [view, setView] = useState<'landing' | 'planner'>('landing');
   const [isExitingLanding, setIsExitingLanding] = useState(false);
   const timerRef = useRef<number | null>(null);
 
@@ -28,11 +26,6 @@ export default function App() {
       }
     };
   }, []);
-
-  // Remember that the planner was opened, so the next visit skips the intro
-  useEffect(() => {
-    if (view === 'planner') markPlannerVisited();
-  }, [view]);
 
   const handleOpenPlanner = () => {
     if (view === 'planner' || isExitingLanding) return;
