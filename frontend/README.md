@@ -1,8 +1,26 @@
 # ParkSmart - UCSD Parking Planner Prototype
 
-A desktop-first web prototype for UCSD parking planning. This prototype uses sample data to explore parking options, walking times, and recommendation scoring.
+A web planner for UCSD parking: pick a destination, permit and arrival time and get a first choice, a backup and more options, with walk time, drive time, weather and construction notes. It runs in two modes:
 
-> **Disclaimer**: This is a front-end only prototype using clearly labeled SAMPLE data. Nothing in it is a real prediction or live availability. It never claims guaranteed availability.
+- **API mode** (`VITE_RECOMMENDATION_SOURCE=api`): searches go to the ParkSmart backend (`POST /recommendations`, `/routes`, `/trip-alerts`). This is the real thing, with historical estimates, not live availability.
+- **Sample mode** (the default with no setup): clearly labeled sample data, so the site works with no backend.
+
+> **Disclaimer**: Estimates come from past parking surveys. Nothing here is live availability or a guaranteed space.
+
+## Quick start
+
+```bash
+npm ci
+npm test            # Vitest
+npm run lint        # TypeScript type check
+npm run dev         # http://localhost:3000, sample mode
+
+# Real backend: from the parksmart repo, `scripts/dev.sh` runs the backend and this site together.
+# Or point this site at one yourself:
+VITE_API_BASE_URL=http://127.0.0.1:8000 VITE_RECOMMENDATION_SOURCE=api npm run dev
+```
+
+Dev must run on port 3000 or 5173, the only origins the backend allows. To change something: branch from `main`, run the tests, open a PR here, then sync it into parksmart with `scripts/sync_frontend.sh` (see the note below).
 
 > **Where to edit**: the source of truth is [dylanwang-main/ParkSmart-Website](https://github.com/dylanwang-main/ParkSmart-Website), synced with Google AI Studio. The `frontend/` folder in [yraclimaco/parksmart](https://github.com/yraclimaco/parksmart) is a one-way copy made with `scripts/sync_frontend.sh`. Do not edit website files there; the next sync overwrites them. Make the change in ParkSmart-Website, then sync.
 
@@ -16,7 +34,7 @@ A desktop-first web prototype for UCSD parking planning. This prototype uses sam
   - **Satellite (default):** USGS National Map imagery (public domain, cached to zoom 16)
   - **Map:** OpenFreeMap Positron vector tiles
 - **Motion (`motion/react`)** for smooth, subtle card stagger transitions
-- No backend, no routing, no external authentication required
+- Talks to the ParkSmart backend only in API mode (no keys in the site; routing providers and API keys live on the backend)
 
 ---
 

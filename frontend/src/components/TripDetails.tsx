@@ -16,6 +16,7 @@ import {
   formatAlertTime,
   matchLabel,
   NEARBY_DISTANCE_TEXT,
+  sourceNote,
   weatherSummary,
 } from '../utils/alertFormat.ts';
 import { formatDistance, formatDuration, ROUTE_COLORS } from '../utils/routePlan.ts';
@@ -45,16 +46,16 @@ const SourceBlock: React.FC<{ kind: 'weather' | 'construction'; source: AlertSou
   const forecastTime = source.forecast ? formatAlertTime(source.forecast.forecast_time) : null;
   const checked = formatAlertTime(source.last_checked_at);
   const showEmpty = source.alerts.length === 0 && !forecastLine;
+  const note = sourceNote(source);
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1.5 text-[12px] font-semibold text-navy">
         <Icon className="w-3.5 h-3.5" aria-hidden="true" />
         <span>{kind === 'weather' ? 'Weather' : 'Construction'}</span>
-        {source.status === 'stale' && (
-          <span className="ml-1 px-1.5 rounded bg-[#D98A00]/15 text-[#835300] font-medium">Older data</span>
-        )}
-        {source.status === 'partial' && (
-          <span className="ml-1 px-1.5 rounded bg-[#D98A00]/15 text-[#835300] font-medium">Incomplete check</span>
+        {note && (
+          <span className="ml-1 px-1.5 rounded bg-[#D98A00]/15 text-[#835300] font-medium">
+            {note === 'older data' ? 'Older data' : 'Incomplete check'}
+          </span>
         )}
       </div>
       {forecastLine && (

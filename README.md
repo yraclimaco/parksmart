@@ -6,6 +6,23 @@ capacities before availability analysis. The project includes the data pipeline,
 local FastAPI recommendations, and a synced React website. Deployment and
 improved prediction artifacts are separate work.
 
+## Quick start
+
+New here? Three commands from the repository root (after the one-time setup in
+`AGENTS.md`: a Python venv with `requirements.txt`, and the integrated dataset):
+
+```bash
+scripts/dev.sh      # real backend + website together, already connected: http://localhost:3000
+scripts/check.sh    # every check a PR needs (backend tests, website tests, type check, build)
+scripts/build_site.sh <new-id>   # build and ZIP the site for the hosted demo (see docs/frontend_deployment.md)
+```
+
+How the pieces fit: `src/` is the Python backend (FastAPI), `frontend/` is the website,
+which is a **one-way copy** of the
+[ParkSmart-Website](https://github.com/dylanwang-main/ParkSmart-Website) repo. Never edit
+`frontend/` here: change the website repo, merge it, then run `scripts/sync_frontend.sh`
+(`AGENTS.md`, "Website"). Only the mentor merges pull requests.
+
 ## Local backend (Issues #12, #19 and #26)
 
 After installing `requirements.txt` in your virtual environment, run from the

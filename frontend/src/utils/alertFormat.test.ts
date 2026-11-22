@@ -11,6 +11,7 @@ import {
   constructionSummary,
   INCOMPLETE_LABEL,
   isCompleteAlerts,
+  sourceNote,
 } from './alertFormat.ts';
 
 const forecast = {
@@ -164,5 +165,29 @@ describe('isCompleteAlerts (what is kept for the visit)', () => {
     expect(isCompleteAlerts(both('available', 'partial'))).toBe(false);
     expect(isCompleteAlerts(both('stale', 'available'))).toBe(false);
     expect(isCompleteAlerts(both('available', 'unavailable'))).toBe(false);
+  });
+});
+
+describe('sourceNote (one rule for the collapsed line and the expanded details)', () => {
+  it('names a partial check as incomplete and an old one as older data', () => {
+    expect(sourceNote(source('partial'))).toBe(INCOMPLETE_LABEL);
+    expect(sourceNote(source('stale'))).toBe('older data');
+  });
+
+  it('says nothing for full, fresh answers', () => {
+    for (const status of ['available', 'no_relevant', 'out_of_range', 'unavailable', 'missing_location'] as const) {
+      expect(sourceNote(source(status))).toBeNull();
+    }
+  });
+
+  it('the collapsed summary carries exactly the note the details badge shows', () => {
+    for (const status of ['partial', 'stale', 'available'] as const) {
+      const note = sourceNote(source(status));
+      const summaries = [weatherSummary(source(status)), constructionSummary(source(status))];
+      for (const text of summaries) {
+        if (note) expect(text).toContain(`(${note})`);
+        else expect(text).not.toMatch(/incomplete|older data/);
+      }
+    }
   });
 });

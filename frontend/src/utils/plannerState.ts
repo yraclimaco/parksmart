@@ -91,3 +91,18 @@ export function classTripChanges(trip: {
     arrivalTime: trip.arrivalTime,
   };
 }
+
+/**
+ * What tapping a class does. A class with a known building searches for it. A class with no known
+ * building only sets the time, and empties the old destination and results: nothing may search
+ * (or auto-refresh) the previous building for a different class.
+ */
+export function planClassTrip(trip: { destinationId?: string; arrivalDate: string; arrivalTime: string }): {
+  changes: ReturnType<typeof classTripChanges>;
+  search: boolean;
+  clearResults: boolean;
+} {
+  const changes = classTripChanges(trip);
+  const known = changes.destinationId !== '';
+  return { changes, search: known, clearResults: !known };
+}

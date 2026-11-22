@@ -91,6 +91,62 @@ describe('routing turned off on the backend', () => {
   });
 });
 
+describe('driving and walking legs sent together', () => {
+  it('sends one request when routing is off, not one per leg', async () => {
+    const fetchImpl = reply(503, { detail: 'Routes are not available on this server.' });
+    const [driving, walking] = await Promise.all([loadLeg(DRIVE, { fetchImpl }), loadLeg(WALK, { fetchImpl })]);
+    expect(driving.status).toBe('unavailable');
+    expect(walking.status).toBe('unavailable');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends both once routing is known to be on', async () => {
+    const fetchImpl = reply(200, route);
+    const [driving, walking] = await Promise.all([loadLeg(DRIVE, { fetchImpl }), loadLeg(WALK, { fetchImpl })]);
+    expect(driving.status).toBe('ok');
+    expect(walking.status).toBe('ok');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    // From now on legs no longer wait in line
+    const again = await loadLeg({ ...WALK, destination: { latitude: 32.9, longitude: -117.2 } }, { fetchImpl });
+    expect(again.status).toBe('ok');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('when the first request is cancelled, only one waiting leg goes next (not both)', async () => {
+    let calls = 0;
+    const fetchImpl = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      calls += 1;
+      if (calls === 1) {
+        // The first request hangs until it is cancelled, like a search superseded by a newer one
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+        });
+      }
+      return new Response(JSON.stringify({ detail: 'Routes are not available on this server.' }), { status: 503 });
+    }) as unknown as typeof fetch;
+
+    const controller = new AbortController();
+    const first = loadLeg(WALK, { fetchImpl, signal: controller.signal });
+    const waiters = Promise.all([loadLeg(DRIVE, { fetchImpl }), loadLeg({ ...WALK, origin: DRIVE.origin }, { fetchImpl })]);
+    controller.abort();
+    await expect(first).rejects.toThrow();
+    const [a, b] = await waiters;
+    expect(a.status).toBe('unavailable');
+    expect(b.status).toBe('unavailable');
+    expect(fetchImpl).toHaveBeenCalledTimes(2); // the cancelled one, then exactly one more
+  });
+
+  it('lets the second leg try when the first request was cancelled', async () => {
+    const aborted = vi.fn(async () => {
+      throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    });
+    await expect(loadLeg(DRIVE, { fetchImpl: aborted as unknown as typeof fetch })).rejects.toThrow();
+    const fetchImpl = reply(200, route);
+    expect((await loadLeg(WALK, { fetchImpl })).status).toBe('ok');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('saved routes', () => {
   it('never asks twice for the same trip', async () => {
     const fetchImpl = reply(200, route);

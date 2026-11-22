@@ -7,6 +7,7 @@ import {
   formatLocalTime,
   isDuplicateSearch,
   isResultStale,
+  planClassTrip,
   sameRequest,
   shouldAutoRefresh,
 } from './plannerState.ts';
@@ -118,5 +119,31 @@ describe('classTripChanges (planning a class)', () => {
     const next = { ...base, ...classTripChanges(when) };
     expect(next.destinationId).toBe('');
     expect(shouldAutoRefresh(base, next, null)).toBe(false);
+  });
+});
+
+describe('planClassTrip (what tapping a class does)', () => {
+  const when = { arrivalDate: '2026-11-23', arrivalTime: '08:40' };
+
+  it('a class with a known building searches for it and keeps nothing else', () => {
+    expect(planClassTrip({ destinationId: 'center-hall', ...when })).toEqual({
+      changes: { destinationId: 'center-hall', ...when },
+      search: true,
+      clearResults: false,
+    });
+  });
+
+  it('a class with no known building searches nothing, clears the old destination and results', () => {
+    const plan = planClassTrip(when);
+    expect(plan.search).toBe(false);
+    expect(plan.clearResults).toBe(true);
+    expect(plan.changes.destinationId).toBe('');
+  });
+
+  it('after an unmatched class there is nothing for the auto-refresh to search', () => {
+    const plan = planClassTrip(when);
+    const nextForm = { ...base, ...plan.changes };
+    expect(shouldAutoRefresh(null, nextForm, null)).toBe(false); // results were cleared
+    expect(nextForm.destinationId).toBe('');
   });
 });

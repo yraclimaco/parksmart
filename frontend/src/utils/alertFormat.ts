@@ -128,11 +128,19 @@ export function constructionSummary(source: AlertSource): string {
   return withSourceNote(text, source);
 }
 
-/** Adds how much to trust a summary: older data, or a check that only partly finished. */
+/**
+ * How much to trust a source: "older data" or "incomplete check", or null for a full, fresh answer.
+ * The collapsed line and the expanded details both use this, so they can never disagree.
+ */
+export function sourceNote(source: AlertSource): 'older data' | typeof INCOMPLETE_LABEL | null {
+  if (source.status === 'stale') return 'older data';
+  if (source.status === 'partial') return INCOMPLETE_LABEL;
+  return null;
+}
+
 function withSourceNote(text: string, source: AlertSource): string {
-  if (source.status === 'stale') return `${text} (older data)`;
-  if (source.status === 'partial') return `${text} (${INCOMPLETE_LABEL})`;
-  return text;
+  const note = sourceNote(source);
+  return note ? `${text} (${note})` : text;
 }
 
 /**

@@ -28,12 +28,12 @@ import {
 import { ANIMATION_TIMINGS, DEFAULT_PRIORITY, PRIORITY_OPTIONS, isOnCampus } from './constants.ts';
 import { findDestination, makePinDestinationId } from './data/destinations.ts';
 import { getArrivalError, reuseAlertArrival } from './utils/arrival.ts';
+import { createSearchGate } from './utils/searchGate.ts';
 import {
   blankRequest,
-  classTripChanges,
+  planClassTrip,
   formatLocalDate,
   formatLocalTime,
-  isDuplicateSearch,
   isResultStale,
   sameRequest,
   shouldAutoRefresh,
@@ -163,7 +163,7 @@ export default function Planner({ onBack }: PlannerProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   // The search on its way, so the same one is never sent twice while it runs
-  const inFlightRef = useRef<ParkingPlannerRequest | null>(null);
+  const searchGate = useRef(createSearchGate()).current;
 
   // The exact request the current results were computed for. null until the first
   // search, which is how the panel knows to show its "enter your trip" prompt.
@@ -238,7 +238,7 @@ export default function Planner({ onBack }: PlannerProps) {
       if (getArrivalError(inputs)) return; // the form shows the message; nothing to search
       const destination = findDestination(inputs.destinationId);
       if (!destination) return; // no destination picked yet
-      if (USE_API && isDuplicateSearch(inFlightRef.current, inputs)) return; // already running
+      if (USE_API && searchGate.isRunning(inputs)) return; // already running: never send it twice
       if (!destination.isPin) recordRecentDestination(destination.id); // one-tap repeat trips
       setIsLoading(true);
       setErrorMessage(null);
@@ -260,7 +260,7 @@ export default function Planner({ onBack }: PlannerProps) {
           );
         }
         searchedRequestRef.current = inputs;
-        inFlightRef.current = null;
+        searchGate.end();
         setSearchedRequest(inputs);
         setIsLoading(false);
 
@@ -273,7 +273,7 @@ export default function Planner({ onBack }: PlannerProps) {
         requestRef.current?.abort();
         const controller = new AbortController();
         requestRef.current = controller;
-        inFlightRef.current = inputs;
+        searchGate.begin(inputs);
         fetchRecommendations(inputs, { signal: controller.signal })
           .then((outcome) => {
             if (controller.signal.aborted) return;
@@ -282,7 +282,7 @@ export default function Planner({ onBack }: PlannerProps) {
               setResultInfo(null);
               setRankedOptions({});
               setErrorMessage(outcome.message);
-              inFlightRef.current = null;
+              searchGate.end();
               setIsLoading(false);
               return;
             }
@@ -336,15 +336,15 @@ export default function Planner({ onBack }: PlannerProps) {
   // Park for a class from the imported schedule: set the arrival just before it starts and,
   // when its building is known, search right away (a destination pick searches on its own)
   const handlePlanClass = (trip: ClassTrip) => {
-    const changes = classTripChanges(trip);
-    if (changes.destinationId) {
-      handleDestinationOrFormChange(changes);
+    const plan = planClassTrip(trip);
+    if (plan.search) {
+      handleDestinationOrFormChange(plan.changes);
       return;
     }
     // Building unknown: set the time, but drop the old destination and its results, so nothing
     // searches (or auto-refreshes) the previous building for this class
-    clearShownResults();
-    handleFormChange(changes);
+    if (plan.clearResults) clearShownResults();
+    handleFormChange(plan.changes);
   };
 
   // Back to the first-visit permit (S); the effect below forgets the saved one
@@ -366,7 +366,7 @@ export default function Planner({ onBack }: PlannerProps) {
   // its way. The trip form is left to the caller.
   const clearShownResults = () => {
     requestRef.current?.abort(); // a search still in flight must not fill the cleared panel
-    inFlightRef.current = null;
+    searchGate.end();
     setRecommendations([]);
     setResultInfo(null);
     setRankedOptions({});

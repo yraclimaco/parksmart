@@ -649,13 +649,16 @@ The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
 `node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
 the tests, type check and build. Review `git diff -- frontend` before committing.
 
-Fastest way to run the real backend and website together, already connected (API mode,
+Before opening or updating a PR run `scripts/check.sh` (backend tests, then website tests, type check
+and build; `--backend` or `--website` for one half). Fastest way to run the real backend and website together, already connected (API mode,
 port 3000): `scripts/dev.sh` from the repo root (Ctrl+C stops both). To build and ZIP the
 hosted-demo site against the deployed API: `scripts/build_site.sh <new-revision-id>`
 (see `docs/frontend_deployment.md`). The hosted backend has routing off, so there
 `/routes` answers 503 and the card shows "Not available right now" for the drive; the site then
 remembers that for 10 minutes (`utils/routeLoader.ts`) and sends no more `/routes` requests (only the
-backend's own "Routes are not available" 503 counts; a gateway 503 is a retryable error).
+backend's own "Routes are not available" 503 counts; a gateway 503 is a retryable error). Until
+a first route answer proves routing is on, one `/routes` request goes alone and the other leg waits
+for it, and driving and walking each have their own request, so a late browser location never resends walking.
 
 Run the website by hand (Node 20.19+ or 22.12+), from `frontend/`:
 

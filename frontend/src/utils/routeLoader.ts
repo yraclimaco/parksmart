@@ -21,6 +21,10 @@ export type LegState =
 export const ROUTES_UNAVAILABLE_MEMORY_MS = 10 * 60 * 1000;
 
 let unavailableSince: number | null = null;
+/** True once any route came back, so routing is known to be on and requests no longer wait in line. */
+let routingConfirmedOn = false;
+/** The first request, while it has no answer yet. Other legs wait for it instead of sending their own. */
+let probe: Promise<void> | null = null;
 
 /** True while the backend's "routing is off" answer is still remembered. */
 export function routesKnownUnavailable(now: number = Date.now()): boolean {
@@ -40,6 +44,8 @@ export function rememberRoutesUnavailable(now: number = Date.now()): void {
 /** Forgets what was learned about routing (tests, and a fresh start). */
 export function resetRouteMemory(): void {
   unavailableSince = null;
+  routingConfirmedOn = false;
+  probe = null;
   routeCache.clear();
 }
 
@@ -74,8 +80,26 @@ export async function loadLeg(
   trip: RouteTrip,
   options: { signal?: AbortSignal; fetchImpl?: typeof fetch } = {}
 ): Promise<LegState> {
-  const outcome: RouteOutcome = await fetchRoute(trip, options);
+  // Until a first answer says routing is on, one request goes out and the other leg waits for it.
+  // Driving and walking would otherwise both be sent before "routing is off" could come back.
+  // (a loop: when the first request was cancelled, several waiters wake together and only one may go next)
+  while (!routingConfirmedOn && probe) await probe;
+  if (routesKnownUnavailable()) return { status: 'unavailable', message: ROUTING_OFF_MESSAGE };
+
+  const request: Promise<RouteOutcome> = fetchRoute(trip, options);
+  if (!routingConfirmedOn && !probe) {
+    const mine: Promise<void> = request.then(
+      () => undefined,
+      () => undefined // cancelled or failed: the next leg may try
+    );
+    probe = mine;
+    void mine.then(() => {
+      if (probe === mine) probe = null;
+    });
+  }
+  const outcome = await request;
   if (outcome.kind === 'ok') {
+    routingConfirmedOn = true;
     routeCache.set(tripKey(trip), outcome.route);
     return { status: 'ok', route: outcome.route };
   }
