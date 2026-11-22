@@ -779,7 +779,8 @@ paid usage. Steps, verification and cleanup: `docs/frontend_deployment.md`.
 
 `config/locations.json` holds every parking location with a stable
 `location_id`, its standardized dataset facilities, coordinates and
-`registry_status`; `src/location_registry.py` validates it. Check it against the
+`registry_status`; `src/location_registry.py` validates it. Lot pins must sit inside
+their UCSD GIS lot outline (a test checks it against `tests/data/ucsd_parking_lot_outlines.json`). Check it against the
 integrated dataset with `python -m src.location_registry`; tests:
 `python -m pytest tests/test_location_registry.py -q`. Never rename or reuse a
 `location_id`. Every dataset facility must map to exactly one location. Keep
