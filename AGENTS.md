@@ -683,7 +683,9 @@ failures never affect the parking results. They show inside that result's card
 (`TripDetails.tsx`): drive and walk time and distance, then weather and construction on
 one collapsed line that opens for the full notices; a source that only partly answered is labeled
 "incomplete check" in both the line and the details, never read as an all-clear. There are no separate Directions or
-Trip alerts cards, and the tips live in one collapsed "Notes and limits" row. Cards come
+Trip alerts cards, and the tips live in one collapsed "Notes and limits" row. Each backend card also has a collapsed
+"Permit and estimate details" line with the backend's explanation (permit window, limited-estimate note),
+and a card with a route shows "Typical times, not live traffic" with the OpenStreetMap credit. Cards come
 from the backend's whole ranked `options` list (first choice, backup, #3, ...): the top 3
 show, then "Show 5 more" right under them. The weather source refuses past arrivals, so an
 arrival of "now" is sent to `/trip-alerts` as now + 2 min (`alertArrivalTime` in
@@ -701,13 +703,13 @@ walk limit made searches return no results, so only the permit is remembered, in
 `v1` key is ignored and deleted). It also remembers the last three
 searched places (Recent in the destination list) and whether the planner was opened
 before. A returning browser skips the intro and landing page and opens the planner;
-adding `?home` to the address always shows the landing page (use it for demos). Arrival defaults to now and is set with a rolling hour/minute/AM-PM wheel (`TimeWheel.tsx`,
+adding `?home` to the address always shows the landing page (use it for demos). Arrival defaults to now in campus (Pacific) time, whatever the browser's zone (`utils/campusClock.ts`), and is set with a rolling hour/minute/AM-PM wheel (`TimeWheel.tsx`,
 like the iPhone clock; arrow keys also work) instead of a typed time; there are no generic time chips, the imported class schedule
 (below) is the one-tap shortcut.
 Picking a destination searches immediately, and after a first search changing the
 permit or arrival time refreshes the results once changes have been quiet
 for 1 s (`AUTO_REFRESH_DELAY_MS`), so the rate-limited hosted API sees one request per
-settled change; a search identical to one still running is not sent again. A dropped pin searches at once. Incomplete or older weather/construction answers are not kept for the visit and offer "Check again". Results offer a single "Open in Google Maps" action (it also selects
+settled change; a search identical to one still running is not sent again. A dropped pin searches at once, and a "Recent" search whose time has passed re-runs at now. The auto-refresh never scrolls the panel. Incomplete or older weather/construction answers are not kept for the visit and offer "Check again". Results offer a single "Open in Google Maps" action (it also selects
 the lot; there is no separate Select step). A "Clear all" pill under the hamburger resets the
 destination, time, permit and results (it keeps the imported schedule, starred and recent
 places and the visit's Recent searches), and an already-granted browser location is

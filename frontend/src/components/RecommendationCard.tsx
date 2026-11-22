@@ -144,6 +144,12 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       {/* Sample mode explains itself in a line; backend results show trip details instead
           (the permit explanation is in the results' Notes, and an example response is badged above) */}
       {!fromBackend && <p className={`mt-3 text-[13px] leading-relaxed ${hero ? 'text-white/90' : 'text-ink'}`}>{reason}</p>}
+      {fromBackend && reason && (
+        <details className={`mt-2 text-[12px] ${muted}`}>
+          <summary className="cursor-pointer min-h-[28px] flex items-center">Permit and estimate details</summary>
+          <p className={`pb-1 leading-relaxed ${hero ? 'text-white/90' : 'text-ink'}`}>{reason}</p>
+        </details>
+      )}
       {fromBackend && estimate.isExample && (
         <p className={`mt-2 text-xs ${muted}`}>Example only, not a real estimate.</p>
       )}

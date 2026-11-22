@@ -176,7 +176,7 @@ export const ResultsList: React.FC<ResultsListProps> = ({
       {/* Results no longer match the form: say so and grey them out */}
       {isStale && (
         <div role="status" className="px-3 py-2 rounded-xl bg-[#D98A00]/15 text-[12px] font-medium text-[#835300]">
-          Trip details changed. Press Update results to refresh these options.
+          {isLoading ? 'Updating these options…' : 'Trip details changed. These options update in a moment.'}
         </div>
       )}
 

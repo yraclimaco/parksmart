@@ -29,9 +29,11 @@ import { ANIMATION_TIMINGS, DEFAULT_PRIORITY, PRIORITY_OPTIONS, isOnCampus } fro
 import { findDestination, makePinDestinationId } from './data/destinations.ts';
 import { getArrivalError, reuseAlertArrival } from './utils/arrival.ts';
 import { createSearchGate } from './utils/searchGate.ts';
+import { campusNow } from './utils/campusClock.ts';
 import {
   blankRequest,
   planClassTrip,
+  restoreRequest,
   formatLocalDate,
   formatLocalTime,
   isResultStale,
@@ -63,12 +65,12 @@ const MAX_HISTORY = 5;
 
 /** Today's date as YYYY-MM-DD, local time. */
 function getTodayDateString(): string {
-  return formatLocalDate(new Date());
+  return formatLocalDate(campusNow());
 }
 
 /** The current local time as HH:MM (24-hour). */
 function getCurrentTimeString(): string {
-  return formatLocalTime(new Date());
+  return formatLocalTime(campusNow());
 }
 
 /** True on phone-width screens, where the planner becomes a bottom sheet instead of a left panel. */
@@ -217,9 +219,14 @@ export default function Planner({ onBack }: PlannerProps) {
     if (isMobile && isDetailOpen) setIsPanelOpen(false);
   }, [isMobile, isDetailOpen]);
 
+  // The request the planner started on its own, whose answer must not scroll the panel
+  const autoRefreshRequestRef = useRef<ParkingPlannerRequest | null>(null);
   // Bring the answer into view after each search: the form above it is tall on every screen size
   useEffect(() => {
     if (searchedRequest === null || isLoading) return;
+    // A refresh the planner started on its own (after a permit or time change) must not move the
+    // panel: the person is still adjusting the form above
+    if (searchedRequest === autoRefreshRequestRef.current) return;
     // Scroll only the sheet's own list (scrollIntoView can also shift the page behind it)
     const results = document.getElementById('planner-results');
     const box = document.getElementById('planner-scroll');
@@ -357,6 +364,7 @@ export default function Planner({ onBack }: PlannerProps) {
   // The imported schedule, starred and recent places and "Recent" searches this visit stay.
   const handleClearAll = () => {
     clearShownResults();
+    autoLocateTried.current = false; // the next search may use an already-granted location again
     setFormInputs(blankRequest());
     setStartPoint(null);
     setLocateError(null);
@@ -492,8 +500,9 @@ export default function Planner({ onBack }: PlannerProps) {
 
   // Re-run an earlier search from "Recent"
   const handleRestoreSearch = (request: ParkingPlannerRequest) => {
-    setFormInputs(request);
-    runPlanner(request);
+    const next = restoreRequest(request); // a time that has passed moves to now
+    setFormInputs(next);
+    runPlanner(next);
   };
 
   // Results go stale when any trip detail changes after the search that produced them
@@ -508,7 +517,10 @@ export default function Planner({ onBack }: PlannerProps) {
   const autoRefresh = shouldAutoRefresh(searchedRequest, formInputs, arrivalError);
   useEffect(() => {
     if (!autoRefresh) return;
-    const timer = window.setTimeout(() => runPlanner(formInputs), AUTO_REFRESH_DELAY_MS);
+    const timer = window.setTimeout(() => {
+      autoRefreshRequestRef.current = formInputs;
+      runPlanner(formInputs);
+    }, AUTO_REFRESH_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [autoRefresh, formInputs, runPlanner]);
 
@@ -832,7 +844,7 @@ export default function Planner({ onBack }: PlannerProps) {
                       tone={rec.badgeLabel === 'First choice' ? 'dark' : 'light'}
                       destinationName={routedDestination.name}
                       legs={routeLegs}
-                      fallbackWalkMinutes={rec.estimate?.walkingMinutes ?? rec.lot.walkingMinutes ?? null}
+                      fallbackWalkMinutes={rec.estimate ? rec.estimate.walkingMinutes : rec.lot.walkingMinutes ?? null}
                       startLabel={startPoint ? 'your location' : null}
                       isLocating={isLocating}
                       locateError={locateError}

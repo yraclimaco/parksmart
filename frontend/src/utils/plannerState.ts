@@ -5,6 +5,8 @@
 
 import { DEFAULT_PRIORITY } from '../constants.ts';
 import type { ParkingPlannerRequest } from '../types.ts';
+import { getArrivalError } from './arrival.ts';
+import { campusNow } from './campusClock.ts';
 import { DEFAULT_PREFERENCES } from './savedPreferences.ts';
 
 /** "2026-11-19" in local time. */
@@ -21,7 +23,7 @@ export function formatLocalTime(date: Date): string {
  * A fresh planner: no destination, arrival right now, the default permit, balanced with the
  * default walking limit. This is both the first-visit state and what Clear all returns to.
  */
-export function blankRequest(now: Date = new Date()): ParkingPlannerRequest {
+export function blankRequest(now: Date = campusNow()): ParkingPlannerRequest {
   return {
     destinationId: '',
     arrivalDate: formatLocalDate(now),
@@ -105,4 +107,13 @@ export function planClassTrip(trip: { destinationId?: string; arrivalDate: strin
   const changes = classTripChanges(trip);
   const known = changes.destinationId !== '';
   return { changes, search: known, clearResults: !known };
+}
+
+/**
+ * An earlier search to run again from "Recent". If its arrival has passed (it defaults to "now", so
+ * after a few minutes it has), the trip is moved to now instead of refusing to search.
+ */
+export function restoreRequest(request: ParkingPlannerRequest, now: Date = campusNow()): ParkingPlannerRequest {
+  if (getArrivalError(request, now) === null) return request;
+  return { ...request, arrivalDate: formatLocalDate(now), arrivalTime: formatLocalTime(now) };
 }

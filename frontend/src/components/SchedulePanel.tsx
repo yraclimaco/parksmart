@@ -29,7 +29,9 @@ interface SchedulePanelProps {
 /** "Wed, Nov 18" for a "YYYY-MM-DD" date. */
 function dayLabel(date: string): string {
   const [y, m, d] = date.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const day = new Date(y, m - 1, d);
+  if (Number.isNaN(day.getTime())) return ''; // the date field was cleared
+  return day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 /**
@@ -103,7 +105,7 @@ export const SchedulePanel: React.FC<SchedulePanelProps> = ({ date, onPlanClass 
       <div className="flex items-center justify-between gap-2">
         <h2 id="schedule-title" className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
           <CalendarDays className="w-4 h-4 text-navy" aria-hidden="true" />
-          {hasSchedule ? `Your classes, ${dayLabel(date)}` : 'Class schedule'}
+          {hasSchedule ? `Your classes${dayLabel(date) ? `, ${dayLabel(date)}` : ''}` : 'Class schedule'}
         </h2>
         {hasSchedule && (
           <div className="flex items-center gap-1">

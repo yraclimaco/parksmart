@@ -89,16 +89,16 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 
 ## Directions
 
-**In API mode**, the selected result (the first choice after a search, or whichever card or pin is picked) gets a **Directions** box and route lines on the map (`src/components/DirectionsPanel.tsx`, `src/hooks/useRoutes.ts`):
+**In API mode**, the selected result (the first choice after a search, or whichever card or pin is picked) shows **Drive** and **Walk** rows inside its own card and route lines on the map (`src/components/TripDetails.tsx`, `src/hooks/useRoutes.ts`; there is no separate Directions box):
 
 - **Walk** (dashed gold line): from the parking location to the destination.
-- **Drive** (navy line): from the starting point to the parking location. It appears after **Use my location**; without a starting point the box says so and still shows the walk.
+- **Drive** (navy line): from the starting point to the parking location. It appears after **Use my location**; without a starting point the card offers it and still shows the walk.
 - Each leg shows distance and a typical travel time. Times are never described as traffic-aware: the routing provider has no live traffic.
 - Routes come from the backend's `POST /routes` (`src/api/routes.ts`), which holds any provider key. The website never calls a routing provider directly.
-- Parking ends use the lot's map point (a UCSD GIS building point), which may not be its vehicle entrance or pedestrian exit; the box says so.
+- Parking ends use the lot's map point (a UCSD GIS building point), which may not be its vehicle entrance or pedestrian exit; the card says so under the times, with the OpenStreetMap credit and a **Fix the map** link.
 - Successful routes are kept for the visit, so switching between first choice and backup does not repeat requests. Changing the selection cancels requests for the old one.
 - If the backend has routing turned off (503), the card says directions are not available and points to Google Maps. Only the backend's own "routes are not available" 503 counts (a gateway or cold-start 503 is a retryable error). The site remembers that for 10 minutes (`src/utils/routeLoader.ts`) and sends no more `/routes` requests meanwhile, so each search only costs the recommendation and alerts calls. A search identical to one already running is not sent twice. Route failures show the reason and **Try directions again**.
-- The browser location is requested only when **Use my location** is pressed, is sent only to the ParkSmart backend to compute the route, and is never saved.
+- The browser location is requested only when **Use my location** is pressed (a browser that already allowed location for the site is used silently, never prompted), is sent only to the ParkSmart backend to compute the route, and is never saved.
 
 Sample mode has no backend, so it shows no routes.
 

@@ -8,6 +8,7 @@ import {
   isDuplicateSearch,
   isResultStale,
   planClassTrip,
+  restoreRequest,
   sameRequest,
   shouldAutoRefresh,
 } from './plannerState.ts';
@@ -145,5 +146,28 @@ describe('planClassTrip (what tapping a class does)', () => {
     const nextForm = { ...base, ...plan.changes };
     expect(shouldAutoRefresh(null, nextForm, null)).toBe(false); // results were cleared
     expect(nextForm.destinationId).toBe('');
+  });
+});
+
+describe('restoreRequest (running an earlier search again)', () => {
+  const nine = new Date(2026, 10, 23, 9, 30);
+
+  it('keeps a trip whose arrival is still ahead', () => {
+    const request = { ...base, arrivalDate: '2026-11-23', arrivalTime: '10:00' };
+    expect(restoreRequest(request, nine)).toBe(request);
+  });
+
+  it('moves a trip whose arrival has passed to now, so it still searches', () => {
+    const request = { ...base, arrivalDate: '2026-11-23', arrivalTime: '09:00' };
+    const next = restoreRequest(request, new Date(2026, 10, 23, 9, 40));
+    expect(next).toEqual({ ...request, arrivalDate: '2026-11-23', arrivalTime: '09:40' });
+  });
+
+  it('keeps the destination, permit and mix when it moves the time', () => {
+    const request = { ...base, arrivalDate: '2026-11-20', arrivalTime: '09:00', permitType: 'B' as const };
+    const next = restoreRequest(request, nine);
+    expect(next.destinationId).toBe(request.destinationId);
+    expect(next.permitType).toBe('B');
+    expect(next.arrivalDate).toBe('2026-11-23');
   });
 });

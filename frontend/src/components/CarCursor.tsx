@@ -55,6 +55,8 @@ interface TrailPoint {
 const canUseCarCursor = (): boolean => {
   try {
     return (
+      typeof CanvasRenderingContext2D !== 'undefined' &&
+      typeof CanvasRenderingContext2D.prototype.roundRect === 'function' &&
       window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
       !window.matchMedia('(prefers-reduced-motion: reduce)').matches
     );

@@ -19,7 +19,8 @@ import {
   sourceNote,
   weatherSummary,
 } from '../utils/alertFormat.ts';
-import { formatDistance, formatDuration, ROUTE_COLORS } from '../utils/routePlan.ts';
+import { OSM_FIX_THE_MAP_URL } from '../api/routes.ts';
+import { formatDistance, formatDuration, NO_START, ROUTE_COLORS } from '../utils/routePlan.ts';
 
 interface TripDetailsProps {
   /** The first-choice card is navy; the others are white. */
@@ -122,6 +123,7 @@ export const TripDetails: React.FC<TripDetailsProps> = ({
         <Row
           icon={<Car className="w-5 h-5" aria-hidden="true" style={{ color: dark ? '#FFCD00' : ROUTE_COLORS.driving }} />}
           label={startLabel ? 'Drive from you' : 'Drive'}
+          showSkipReason
           state={routingOff ? { status: 'idle' } : legs.driving}
           strong={strong}
           muted={muted}
@@ -190,10 +192,28 @@ export const TripDetails: React.FC<TripDetailsProps> = ({
         )}
       </div>
 
+      {(legs.driving.status === 'ok' || legs.walking.status === 'ok') && (
+        <p className={`text-xs leading-snug ${muted}`}>
+          Typical times, not live traffic. The parking end is the lot's map point, not a verified entrance.{' '}
+          {okAttribution(legs)}{' '}
+          <a href={OSM_FIX_THE_MAP_URL} target="_blank" rel="noopener noreferrer" className="underline">
+            Fix the map
+          </a>
+        </p>
+      )}
+
       <AlertsLine alerts={alerts} onRetry={onRetryAlerts} dark={dark} muted={muted} strong={strong} />
     </div>
   );
 };
+
+/** The OpenStreetMap credit from the first route that loaded, as its provider words it. */
+function okAttribution(legs: RouteLegs): string {
+  for (const leg of [legs.driving, legs.walking]) {
+    if (leg.status === 'ok' && leg.route.attribution) return leg.route.attribution;
+  }
+  return '';
+}
 
 /** One leg: icon, label, and "12 min · 4.2 mi" (or its loading, error or empty state). */
 const Row: React.FC<{
@@ -205,7 +225,9 @@ const Row: React.FC<{
   /** Shown when there is no route to show (not requested, or routing off). */
   emptyHint: React.ReactNode;
   action?: React.ReactNode;
-}> = ({ icon, label, state, strong, muted, emptyHint, action }) => (
+  /** Say why a leg was skipped (no map point for the lot), unless a start point is simply missing. */
+  showSkipReason?: boolean;
+}> = ({ icon, label, state, strong, muted, emptyHint, action, showSkipReason = false }) => (
   <div className="flex items-start gap-2">
     <span className="mt-0.5 shrink-0">{icon}</span>
     <div className="min-w-0 flex-1">
@@ -223,6 +245,8 @@ const Row: React.FC<{
           <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> Loading route…
         </p>
       ) : state.status === 'error' ? (
+        <p className={`text-[12px] ${muted}`}>{state.message}</p>
+      ) : showSkipReason && state.status === 'skipped' && state.message !== NO_START ? (
         <p className={`text-[12px] ${muted}`}>{state.message}</p>
       ) : (
         emptyHint

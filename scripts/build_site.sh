@@ -30,7 +30,9 @@ fi
 
 # Backend must be up so the built site is known to work with it
 echo "Checking $api_url ..."
-if ! curl -fs -m 30 "$api_url/readiness" | grep -q '"status":"ready"'; then
+# (body first, then grep: grep -q exiting early would otherwise make curl fail on a closed pipe)
+readiness=$(curl -fs -m 30 "$api_url/readiness" || true)
+if ! grep -q '"status":"ready"' <<<"$readiness"; then
   echo "The API at $api_url is not ready. Fix that before building." >&2
   exit 1
 fi

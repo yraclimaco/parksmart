@@ -69,7 +69,7 @@ export const ProblemLot: React.FC = () => {
             const cy = ROW_Y[r] + STALL_H / 2;
             const index = r * COLS + c;
             return kind === 'car' ? (
-              <LotCar key={`${r}-${c}`} cx={cx} cy={cy} color={CAR_COLORS[(index * 5) % 5]} scale={CAR_SCALE} />
+              <LotCar key={`${r}-${c}`} cx={cx} cy={cy} color={CAR_COLORS[(index * 7) % 5]} scale={CAR_SCALE} />
             ) : (
               <text
                 key={`${r}-${c}`}
