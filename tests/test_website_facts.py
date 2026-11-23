@@ -73,13 +73,18 @@ def _holdout_figures():
     unsupported = re.search(
         r"Holdout unsupported_experimental: ([\d,]+) readings", doc)
     dataset = re.search(r"Dataset: ([\d,]+) readings", doc)
-    assert supported and unsupported and dataset, "figures not found in the doc"
+    bias = re.search(r"Holdout supported near-full bias: mean forecast ([\d.]+)% "
+                     r"open vs ([\d.]+)% actual", doc)
+    assert supported and unsupported and dataset and bias, \
+        "figures not found in the doc"
     return {
         "tested": supported.group(1),
         "mae": round(float(supported.group(2))),
         "near_full_mae": round(float(supported.group(3))),
         "no_estimate": unsupported.group(1),
         "readings": dataset.group(1),
+        "near_full_forecast": round(float(bias.group(1))),
+        "near_full_actual": round(float(bias.group(2))),
     }
 
 
@@ -87,10 +92,19 @@ def test_accuracy_section_matches_the_evaluation():
     """The 'How accurate is it?' numbers are the documented holdout results."""
     figures = _holdout_figures()
     text = _read("EvidenceTest.tsx")
-    assert f"Off by {figures['mae']}%" in text
-    assert f"off by {figures['near_full_mae']}%" in text
+    # Errors are mean absolute errors in percentage points, not percentages or ranges.
+    assert f"Off by {figures['mae']} points" in text
+    assert f"off by {figures['mae']} percentage points" in text
+    assert f"off by about {figures['near_full_mae']} points" in text
     assert f"{figures['tested']} counts in all" in text
     assert f"For {figures['no_estimate']} counts" in text
+    # The holdout was inspected during development and forecasts overestimate
+    # nearly full lots (docs/issue18_predictions.md); the copy must not claim otherwise.
+    for claim in ("never seen", "40% to 80%", "Closer for full lots"):
+        assert claim not in text, claim
+    assert "look more open than they are" in text
+    assert (f"about {figures['near_full_forecast']}% open against about "
+            f"{figures['near_full_actual']}% in reality") in " ".join(text.split())
 
 
 def test_how_it_works_reading_count_matches_the_dataset():

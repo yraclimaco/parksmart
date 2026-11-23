@@ -51,6 +51,16 @@ if [[ "$branch" != "main" && "$ref" == "main" ]]; then
   echo "Note: syncing from branch '$branch', not main. Merge it into ParkSmart-Website main before the PR here."
 fi
 
+# The backend checks at the end need the repo's Python requirements; check before
+# frontend/ is overwritten, so a missing venv never leaves a half-finished sync.
+PYTHON="python3"
+if [[ -x "$repo_root/.venv/bin/python" ]]; then PYTHON="$repo_root/.venv/bin/python"; fi
+if ! "$PYTHON" -c "import pytest, pandas" 2>/dev/null; then
+  echo "$PYTHON lacks the backend requirements needed for the final checks." >&2
+  echo "Create .venv and run: python -m pip install -r requirements.txt" >&2
+  exit 1
+fi
+
 # Copy only tracked files, so local node_modules, builds, and .env files in the
 # source clone can never leak in.
 mkdir "$work/export"
@@ -78,8 +88,6 @@ npm run build
 # Backend tests that read frontend/: pins must match the registry, and the landing page's
 # figures and permit rules must match the backend (tests/test_website_facts.py).
 cd "$repo_root"
-PYTHON="python3"
-if [[ -x .venv/bin/python ]]; then PYTHON=".venv/bin/python"; fi
 echo
 echo "== Backend checks on the synced website (pins, figures, permit rules) =="
 MPLBACKEND=Agg "$PYTHON" -m pytest -q tests/test_location_registry.py tests/test_website_facts.py

@@ -261,6 +261,17 @@ concurrency, API rate 1/burst 2, timeout 30s, memory 1024 MB and seven-day logs;
 no provisioned concurrency. Credits and billing alerts are not spending caps.
 Track resource additions for the account owner's billing review.
 
+Registry edits (`config/locations.json`, e.g. PR #45 pin fixes) need a backend
+release first: the hosted API reads the registry from its S3 release, not the
+image. Daira creates a new prefix with the current release's unchanged
+`selected.pkl` and `analysis_dataset.csv` (passed explicitly; the defaults are not
+the deployed files), the new registry and a new manifest, running
+`scripts.prepare_serving_bundle` and `scripts.verify_prediction_release` in the
+pinned release-prep image rebuilt from merged `main` (no retraining; never pass
+the old `metadata.json`, which binds the old registry hash), sends Yra a change-set preview updating `ReleasePrefix`, verifies hosted
+`/locations` shows the corrected P001 point, then uploads the website ZIP. See
+`docs/frontend_deployment.md`.
+
 Amplify uses manual ZIP deployment to the existing `parksmart-website` app,
 branch `demo`. Build with the deployed API URL and API mode, then upload only
 contents of `frontend/dist/`; follow `docs/frontend_deployment.md`. ZIPs and
@@ -644,7 +655,8 @@ next sync overwrites them. Change ParkSmart-Website, then from the repo root:
 scripts/sync_frontend.sh            # or --ref <branch|commit>, --source <clone>
 ```
 
-It needs bash, `tar` and `rsync` (macOS/Linux, or WSL/Git Bash on Windows).
+It needs bash, `tar` and `rsync` (macOS/Linux, or WSL/Git Bash on Windows), plus
+the backend requirements (`.venv` if present), checked before anything is copied.
 The script copies tracked files only, drops AI Studio's `bun.lock`, keeps local
 `node_modules/`, `dist/` and `.env.local`, refreshes `package-lock.json`, and runs
 the website tests, type check and build, then the backend's

@@ -150,6 +150,8 @@ after selection is frozen; historical averages remain selected regardless.
 
 Holdout supported: 11,665 readings, 2,975 near-full; baseline MAE 21.047 pp, near-full MAE 13.729 pp.
 
+Holdout supported near-full bias: mean forecast 14.907% open vs 2.193% actual; forecasts overestimate availability for nearly full lots. 58.5% of supported holdout forecasts were within 20 pp. (Selected historical average, from `results/issue18/predictions.csv`; quoted on the website.)
+
 Holdout unsupported_experimental: 4,458 readings, 675 near-full; baseline MAE 40.341 pp, near-full MAE 27.706 pp.
 
 Fixed starting settings remain unchanged: Ridge alpha=10; Random Forest 60

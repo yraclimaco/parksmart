@@ -11,6 +11,9 @@ import { useInView } from './LotParts';
  * has never used ParkSmart. Figures are the supported holdout results in docs/issue18_predictions.md
  * (backend repo): 11,665 readings, 21.047 pp mean absolute error, 13.729 pp when nearly full
  * (10% or less open), and 4,458 readings with no supported estimate. The holdout starts 2025-10-08.
+ * It was inspected during development, so it is not a fresh untouched test, and the live model is
+ * refit on all data: the copy calls these figures an earlier evaluation, not today's model.
+ * Nearly full lots: forecasts averaged about 15% open against about 2% actual (overestimates).
  */
 const STEPS = [
   {
@@ -37,9 +40,11 @@ export const EvidenceTest: React.FC<{ heading: React.ReactNode }> = ({
         {heading}
         <p className="et-intro">
           ParkSmart forecasts what share of a lot&apos;s spaces is usually open,
-          like &ldquo;60% open.&rdquo; To check those forecasts fairly, we
-          tested them on real counts ParkSmart had never seen, the same
-          situation as forecasting a day that has not happened yet.
+          like &ldquo;60% open.&rdquo; To check the forecasts, we compared them
+          with UCSD&apos;s most recent hand counts (October 2025 on), which were
+          held out from the forecasts. This was an earlier evaluation, and we
+          looked at those counts during development, so treat it as a guide,
+          not a guarantee.
         </p>
       </div>
 
@@ -66,20 +71,22 @@ export const EvidenceTest: React.FC<{ heading: React.ReactNode }> = ({
       <div className="et-bottom">
         <div className="et-result">
           <p className="et-big">
-            Off by 21% <span>on average</span>
+            Off by 21 points <span>on average</span>
           </p>
           <p className="et-explain">
-            That is 21% of a lot&apos;s spaces. So when ParkSmart said a lot was
-            60% open, the real count was typically somewhere around 40% to 80%.
+            On average, a forecast was off by 21 percentage points. For example,
+            a lot forecast at 60% open was, on average, 21 points away from the
+            real count.
           </p>
         </div>
 
         <div className="et-side">
           <ul className="et-facts">
             <li>
-              <strong>Closer for full lots.</strong> When a lot really was
-              nearly full (10% or fewer spaces open), forecasts were off by 14%
-              on average.
+              <strong>Nearly full lots look more open than they are.</strong>{' '}
+              When a lot really was nearly full (10% or fewer spaces open),
+              forecasts averaged about 15% open against about 2% in reality
+              (off by about 14 points on average).
             </li>
             <li>
               <strong>No guessing.</strong> For 4,458 counts, ParkSmart had no

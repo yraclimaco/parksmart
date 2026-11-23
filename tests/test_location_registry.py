@@ -201,6 +201,8 @@ def test_website_pins_match_registry_coordinates():
     assert pins, "no pins found in the website data"
     registry = {loc["location_id"]: loc for loc in load_registry()}
     off = []
+    unknown = sorted({location_id for location_id, _, _ in pins} - set(registry))
+    assert unknown == [], f"website pins not in the registry: {unknown}"
     for location_id, lat, lon in pins:
         coords = registry[location_id].get("coordinates")
         if not coords:

@@ -53,6 +53,32 @@ outside this review request. Those were not applied. This is not a claim that
 the entire `frontend/` directory matches that commit; broader UI integration is
 separate. No files were deleted and no AWS redeployment was performed.
 
+### Registry changes: backend release before website
+
+The deployed backend reads `config/locations.json` from its immutable S3 release,
+not from the image. When a change edits the registry (for example the PR #45 lot
+pin fixes), uploading only the website ZIP makes the map pins correct while
+`/recommendations` keeps the old coordinates (P001 would still be in the ocean).
+Daira does these steps; nobody else runs AWS commands:
+
+1. Create a new release prefix with the unchanged `selected.pkl` and
+   `analysis_dataset.csv` of the current release, the new `locations.json` and a
+   new `manifest.json`. No retraining. Run it in the pinned release-prep image
+   (`infra/Dockerfile.release`, rebuilt from merged `main` so it holds the new
+   registry), because the artifact loads only with its exact library versions.
+   Pass the current release's files explicitly; the defaults
+   (`models/issue18/selected.pkl`, the local dataset) are not the deployed ones:
+   `python -m scripts.prepare_serving_bundle --artifact <current>/selected.pkl
+   --dataset <current>/analysis_dataset.csv --output-dir <new-bundle-dir>
+   --s3-prefix releases/<new-release-id>`, then
+   `python -m scripts.verify_prediction_release --release-dir <new-bundle-dir>`.
+2. Do not pass the old `metadata.json`. It binds the old registry hash, and the
+   script rejects it.
+3. Prepare a change-set preview that updates only `ReleasePrefix` and send it to
+   Yra before anything runs.
+4. After it is executed, check that hosted `GET /locations` returns the corrected
+   P001 point, then upload the website ZIP.
+
 ### Rebuild and update the existing site (one command)
 
 ```bash
