@@ -69,9 +69,9 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 
 ---
 
-## Time Scrubber and "Your Usual"
+## Availability labels and "Your Usual"
 
-- **Time scrubber** (top of the map): drag or press play to watch every pin recolor as campus fills and empties through the day. "Use this time" copies the previewed time into the arrival time. Availability by time comes from `src/utils/availabilityModel.ts`, a **sample** daily curve; swap `availabilityAt` for the real forecast when the backend connects. Labels pair numbers with plain words about past surveys (Usually open / Usually tight / Usually full). The percent is the share of spaces open in past surveys, not a chance of finding a space.
+- **No time scrubber.** The map's Time tool and the landing page's "Drag the clock" screen were removed: arrival is set with the rolling time wheel, and the class schedule is the shortcut. In sample mode the pins' availability dots follow the arrival time, from `src/utils/availabilityModel.ts`, a **sample** daily curve; swap `availabilityAt` for the real forecast when the backend connects. Labels pair numbers with plain words about past surveys (Usually open / Usually tight / Usually full). The percent is the share of spaces open in past surveys, not a chance of finding a space.
 - **Your usual**: only appears after you have searched. The last search is saved in this browser only (`localStorage`, `src/utils/usualTrip.ts`); next visit a card answers it instantly (the form is not prefilled), with "Forget my usual" to clear it.
 
 ---
@@ -103,6 +103,10 @@ Not modeled yet (open questions in the research doc): A 24/7, reserved, accessib
 Sample mode has no backend, so it shows no routes.
 
 **Open in Google Maps** on a result card (or a lot card) opens turn-by-turn driving directions to that lot in Google Maps (the app on phones), starting from the person's current location. It uses a plain Google Maps link: free and no API key.
+
+## Landing page
+
+Ten one-screen sections in `src/components/LandingPage.tsx`, with one message: ParkSmart plans UCSD parking around your class schedule, with your permit, a first choice and a backup, and weather and construction alerts. In order: hero, **Why ParkSmart** (`WhyFunnel.tsx`: a centered funnel of the filters, every campus lot, your permit, near your class, arrive on time, down to a first choice and a backup; no counts and no limitations here, those live in the coverage section), **Import your classes** (three steps beside `ClassPlanDemo.tsx`, which plays the import: a schedule.ics file arrives, classes appear with each room code read as a building, then a tapped class gets an arrival 20 minutes before and a first choice and backup near that building; Replay plays it again. The demo's buildings come from the real `matchBuilding`, checked by `classPlanDemo.test.ts`), **Your permit decides the map** (`PermitMap.tsx`: an example campus map with made-up lots; pick a permit and an arrival time and lots that permit cannot use fade out. Its `ACCESS` table is generated from the backend's `check_eligibility` for three example times, so regenerate it when permit rules change), **Weather and construction, built in** (`AlertsDemo.tsx`: notes only, they never change the score), how it works, how a pick is chosen, **How accurate is it?** (`EvidenceTest.tsx`: the set aside, forecast, compare test and its holdout results in plain words, errors given as a share of a lot's spaces, figures from the backend's `docs/issue18_predictions.md`), what it covers and what it doesn't (two columns, no repeats of other sections; the FAQ was folded in), **What's next** (`NextUp.tsx`: the class-reminder flagship as a labeled mockup reusing the CSE 100 example, then Next and Later roadmap lists; list only plans the team has agreed on). Header links come from `NAV`, and each section has a `data-screen` number that highlights its link, so adding a screen means renumbering the ones after it. The demos use made-up example classes and lots, labeled as examples; the 20-minute lead is the real `ARRIVE_BEFORE_CLASS_MINUTES` (`src/utils/classTime.ts`). The "first two weeks" line in How it works cites UCSD's Assistant Vice Chancellor of Transportation confirming those weeks accurately represent the whole quarter. The footer "Design doc" link is the Lucidchart view link (the document must be shared as "anyone with the link can view").
 
 ## Class schedule import
 
@@ -211,3 +215,7 @@ VITE_RECOMMENDATION_SOURCE=api npm run dev
 - All cards and markers support keyboard navigation (`Tab`, `Enter`, `Space`).
 - Accessible semantic HTML with proper labels and ARIA attributes (`role="radiogroup"`, `role="listbox"`, `aria-pressed`, `aria-label`).
 - Respects `prefers-reduced-motion` for map transitions and card entrance animations.
+
+## Clear all
+
+The "Clear all" pill under the hamburger button forgets everything, like a fresh visit: the destination, time, permit and results, plus what is saved on this device: the imported class schedule, starred places, recent places and the saved permit (`clearAllSavedData` in `src/utils/savedData.ts`, tested). To remove just the classes, use the X in the class schedule panel.

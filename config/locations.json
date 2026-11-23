@@ -224,12 +224,12 @@
       "kind": "lot",
       "dataset_facilities": [],
       "coordinates": {
-        "latitude": 32.8649,
-        "longitude": -117.25554
+        "latitude": 32.864344,
+        "longitude": -117.25384
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": "No observations in the analysis dataset; no availability estimate."
@@ -278,12 +278,12 @@
         "P006"
       ],
       "coordinates": {
-        "latitude": 32.86602,
-        "longitude": -117.25248
+        "latitude": 32.866145,
+        "longitude": -117.252873
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -296,12 +296,12 @@
         "P007"
       ],
       "coordinates": {
-        "latitude": 32.86704,
-        "longitude": -117.2537
+        "latitude": 32.866993,
+        "longitude": -117.253424
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -314,12 +314,12 @@
         "P008"
       ],
       "coordinates": {
-        "latitude": 32.86682,
-        "longitude": -117.2529
+        "latitude": 32.867066,
+        "longitude": -117.253113
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -332,12 +332,12 @@
         "P010"
       ],
       "coordinates": {
-        "latitude": 32.86886,
-        "longitude": -117.25336
+        "latitude": 32.868725,
+        "longitude": -117.25287
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -350,12 +350,12 @@
         "P011"
       ],
       "coordinates": {
-        "latitude": 32.86923,
-        "longitude": -117.25151
+        "latitude": 32.869462,
+        "longitude": -117.252661
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -368,12 +368,12 @@
         "P012"
       ],
       "coordinates": {
-        "latitude": 32.87005,
-        "longitude": -117.25263
+        "latitude": 32.87,
+        "longitude": -117.252221
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -386,12 +386,12 @@
         "P013"
       ],
       "coordinates": {
-        "latitude": 32.87007,
-        "longitude": -117.25161
+        "latitude": 32.870229,
+        "longitude": -117.251941
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Scripps (SIO) lot: needs a supplemental SIO permit 7 AM to 11 PM daily",
       "notes": null
@@ -458,12 +458,12 @@
         "P031"
       ],
       "coordinates": {
-        "latitude": 32.87087,
-        "longitude": -117.25252
+        "latitude": 32.870748,
+        "longitude": -117.252152
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -476,12 +476,12 @@
         "P032"
       ],
       "coordinates": {
-        "latitude": 32.87104,
-        "longitude": -117.25053
+        "latitude": 32.87134,
+        "longitude": -117.251737
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -494,12 +494,12 @@
         "P106"
       ],
       "coordinates": {
-        "latitude": 32.87305,
-        "longitude": -117.23851
+        "latitude": 32.873135,
+        "longitude": -117.23863
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -512,12 +512,12 @@
         "P113"
       ],
       "coordinates": {
-        "latitude": 32.87658,
-        "longitude": -117.24004
+        "latitude": 32.87653,
+        "longitude": -117.239749
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -530,12 +530,12 @@
         "P201"
       ],
       "coordinates": {
-        "latitude": 32.87788,
-        "longitude": -117.24192
+        "latitude": 32.877651,
+        "longitude": -117.241429
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -566,12 +566,12 @@
         "P303"
       ],
       "coordinates": {
-        "latitude": 32.88162,
-        "longitude": -117.24278
+        "latitude": 32.881852,
+        "longitude": -117.242707
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -692,12 +692,12 @@
         "P401"
       ],
       "coordinates": {
-        "latitude": 32.87941,
-        "longitude": -117.22917
+        "latitude": 32.879469,
+        "longitude": -117.229494
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -728,12 +728,12 @@
         "P406"
       ],
       "coordinates": {
-        "latitude": 32.87734,
-        "longitude": -117.2303
+        "latitude": 32.877536,
+        "longitude": -117.229723
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -782,12 +782,12 @@
         "P503"
       ],
       "coordinates": {
-        "latitude": 32.88219,
-        "longitude": -117.23547
+        "latitude": 32.882279,
+        "longitude": -117.23572
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -818,12 +818,12 @@
         "P507"
       ],
       "coordinates": {
-        "latitude": 32.88365,
-        "longitude": -117.22914
+        "latitude": 32.884818,
+        "longitude": -117.229093
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -836,12 +836,12 @@
         "P508"
       ],
       "coordinates": {
-        "latitude": 32.88054,
-        "longitude": -117.23423
+        "latitude": 32.88031,
+        "longitude": -117.233607
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -980,12 +980,12 @@
         "P703"
       ],
       "coordinates": {
-        "latitude": 32.87984,
-        "longitude": -117.22071
+        "latitude": 32.880324,
+        "longitude": -117.220344
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -1034,12 +1034,12 @@
         "P706"
       ],
       "coordinates": {
-        "latitude": 32.88269,
-        "longitude": -117.22216
+        "latitude": 32.883016,
+        "longitude": -117.222881
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "restricted",
       "access_note": "Preuss School lot: needs supplemental authorization 24/7",
       "notes": null
@@ -1070,12 +1070,12 @@
         "P753"
       ],
       "coordinates": {
-        "latitude": 32.87695,
-        "longitude": -117.22645
+        "latitude": 32.876939,
+        "longitude": -117.226266
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-21",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "supported",
       "access_note": null,
       "notes": null
@@ -1295,12 +1295,12 @@
         "P308"
       ],
       "coordinates": {
-        "latitude": 32.88263,
-        "longitude": -117.24202
+        "latitude": 32.881734,
+        "longitude": -117.239752
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-30",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "unresolved",
       "access_note": null,
       "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
@@ -1373,12 +1373,12 @@
         "P405"
       ],
       "coordinates": {
-        "latitude": 32.87876,
-        "longitude": -117.23482
+        "latitude": 32.878747,
+        "longitude": -117.234563
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-30",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "unresolved",
       "access_note": null,
       "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."
@@ -1406,12 +1406,12 @@
         "P502"
       ],
       "coordinates": {
-        "latitude": 32.88313,
-        "longitude": -117.23346
+        "latitude": 32.883286,
+        "longitude": -117.234468
       },
       "coordinate_status": "verified",
-      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); area-weighted outline center",
-      "coordinate_verified_on": "2026-10-30",
+      "coordinate_source": "UCSD campus GIS, parking lot outlines (BaseData/Campus_Map_Vector/MapServer/21); a point inside the lot's outline, not its area-weighted center, which fell outside the lot for odd-shaped lots and in the ocean for P001",
+      "coordinate_verified_on": "2026-11-22",
       "registry_status": "unresolved",
       "access_note": null,
       "notes": "Observed only through 2019; GIS outline found, but current use and allocation are unverified."

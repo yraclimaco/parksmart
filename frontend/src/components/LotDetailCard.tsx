@@ -20,7 +20,7 @@ interface LotDetailCardProps {
   userPermit: PermitType;
   /** Arrival time from the form; null if the date/time is missing or invalid. */
   arrival: Date | null;
-  /** Time the availability numbers describe (the time scrubber). */
+  /** Time the availability numbers describe: the planner's arrival time. */
   availabilityTime: Date;
   /** Null until the user picks a destination; the walk row is hidden then. */
   destination: CampusDestination | null;

@@ -2,6 +2,7 @@
 
 import copy
 import json
+import math
 import re
 
 import pandas as pd
@@ -184,6 +185,35 @@ def test_website_location_ids_exist_in_registry():
     assert ids - registry_ids == set()
 
 
+# Website pins are written with 6 decimals (about 0.1 m); allow rounding only.
+PIN_MATCH_DEGREES = 1e-5
+
+
+@pytest.mark.skipif(not FRONTEND_DATA.exists(), reason="frontend/ not present")
+def test_website_pins_match_registry_coordinates():
+    """Each website pin sits where the registry says, so map and backend agree."""
+    pin = re.compile(
+        r"locationId:\s*['\"]([^'\"]+)['\"][^}]*?"
+        r"latitude:\s*(-?[\d.]+),\s*longitude:\s*(-?[\d.]+)")
+    pins = []
+    for name in ("parkingLots.ts", "surfaceLots.ts"):
+        pins += pin.findall((FRONTEND_DATA / name).read_text())
+    assert pins, "no pins found in the website data"
+    registry = {loc["location_id"]: loc for loc in load_registry()}
+    off = []
+    unknown = sorted({location_id for location_id, _, _ in pins} - set(registry))
+    assert unknown == [], f"website pins not in the registry: {unknown}"
+    for location_id, lat, lon in pins:
+        coords = registry[location_id].get("coordinates")
+        if not coords:
+            continue
+        if (abs(float(lat) - coords["latitude"]) > PIN_MATCH_DEGREES
+                or abs(float(lon) - coords["longitude"]) > PIN_MATCH_DEGREES):
+            off.append((location_id, (lat, lon),
+                        (coords["latitude"], coords["longitude"])))
+    assert off == []
+
+
 def test_cli_reports_unmapped_facilities(tmp_path, capsys):
     registry = tmp_path / "locations.json"
     registry.write_text(json.dumps({"schema_version": "0.1",
@@ -196,3 +226,83 @@ def test_cli_reports_unmapped_facilities(tmp_path, capsys):
     mapped.to_csv(dataset, index=False)
     main(["--registry", str(registry), "--dataset", str(dataset)])
     assert "mapped to exactly one location" in capsys.readouterr().out
+
+
+OUTLINES = (DEFAULT_REGISTRY.parent.parent / "tests" / "data"
+            / "ucsd_parking_lot_outlines.json")
+# Lots UCSD's GIS lot layer has no outline for, so their pins cannot be
+# checked this way. A new lot must not join this list silently: add its
+# outline to the fixture instead.
+LOTS_WITHOUT_OUTLINE = {"p386", "torrey-pines-center-south"}
+# Fixture outlines are simplified to about 1 m, so a pin this close to the
+# edge counts as inside.
+EDGE_TOLERANCE_METERS = 3.0
+# Meters per degree of latitude (and of longitude at the equator); longitude
+# is scaled by cos(latitude) below. Accurate to well under 1% at UCSD.
+METERS_PER_DEGREE = 111_320.0
+
+
+def _inside(point, rings):
+    """Even-odd point-in-polygon test; point and rings are (lon, lat)."""
+    x, y = point
+    inside = False
+    for ring in rings:
+        for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1]):
+            crosses = (y0 > y) != (y1 > y)
+            if crosses and x < (x1 - x0) * (y - y0) / (y1 - y0) + x0:
+                inside = not inside
+    return inside
+
+
+def _meters_to_edge(point, rings):
+    """Distance in meters from a (lon, lat) point to the nearest polygon edge."""
+    cos_lat = math.cos(math.radians(point[1]))
+    best = float("inf")
+    for ring in rings:
+        for (x0, y0), (x1, y1) in zip(ring, ring[1:] + ring[:1]):
+            ax, ay = (x0 - point[0]) * cos_lat, y0 - point[1]
+            bx, by = (x1 - point[0]) * cos_lat, y1 - point[1]
+            dx, dy = bx - ax, by - ay
+            length = dx * dx + dy * dy
+            t = 0.0 if length == 0 else -(ax * dx + ay * dy) / length
+            t = max(0.0, min(1.0, t))
+            nearest = math.hypot(ax + t * dx, ay + t * dy)
+            best = min(best, nearest * METERS_PER_DEGREE)
+    return best
+
+
+def _on_lot(point, rings):
+    """Inside the outline, or within the simplification tolerance of its edge."""
+    return (_inside(point, rings)
+            or _meters_to_edge(point, rings) <= EDGE_TOLERANCE_METERS)
+
+
+def test_lot_pins_are_inside_their_ucsd_gis_lot_outline():
+    """Every lot pin must sit on its own lot (P001's pin was once in the ocean).
+
+    Outlines come from UCSD's campus GIS lot layer (see the fixture's source note).
+    """
+    outlines = json.loads(OUTLINES.read_text())["lots"]
+    missing_outline, off_lot = set(), []
+    for location in load_registry():
+        if location["kind"] != "lot" or not location.get("coordinates"):
+            continue
+        match = re.search(r"\bP\d{3}\b", location["name"])
+        polygons = outlines.get(match.group(0)) if match else None
+        if not polygons:
+            missing_outline.add(location["location_id"])
+            continue
+        coords = location["coordinates"]
+        point = (coords["longitude"], coords["latitude"])
+        on_lot = any(_on_lot(point, rings) for rings in polygons)
+        if not on_lot:
+            off_lot.append(location["location_id"])
+    assert off_lot == [], f"pins outside their lot outline: {off_lot}"
+    assert missing_outline == LOTS_WITHOUT_OUTLINE
+
+
+def test_a_pin_off_its_lot_is_caught():
+    """The check itself works: the old P001 pin (in the ocean) fails it."""
+    outlines = json.loads(OUTLINES.read_text())["lots"]["P001"]
+    old_pin = (-117.25554, 32.8649)
+    assert not any(_on_lot(old_pin, rings) for rings in outlines)

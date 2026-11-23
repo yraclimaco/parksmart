@@ -76,7 +76,7 @@ export const MAP_CONFIG = {
 export const MAP_PADDING = {
   left: 404,
   right: 60,
-  // Clears the time scrubber floating at the top of the map
+  // Clears the map's top control row (Drop pin, Map/Satellite)
   top: 100,
   bottom: 60,
 } as const;

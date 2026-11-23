@@ -12,6 +12,15 @@ export const MAX_RECENT_DESTINATIONS = 3;
 
 /** Minimal slice of the Storage API, so tests can pass a fake. */
 type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
+type RemovableStore = Pick<Storage, 'removeItem'>;
+
+function defaultRemovableStore(): RemovableStore | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 function defaultStore(): KeyValueStore | null {
   try {
@@ -47,4 +56,13 @@ export function recordRecentDestination(id: string, store: KeyValueStore | null 
     // Storage full or blocked: the list just is not remembered next visit
   }
   return next;
+}
+
+/** Forgets the recent places. */
+export function clearRecentDestinations(store: RemovableStore | null = defaultRemovableStore()): void {
+  try {
+    store?.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing to do if storage is blocked
+  }
 }

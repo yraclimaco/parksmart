@@ -46,7 +46,7 @@ interface ResultsListProps {
   showIntroPrompt: boolean;
   /** True when trip details changed since the search; results are greyed out. */
   isStale: boolean;
-  /** Time every availability number describes (follows the arrival time unless the Time tool is used). */
+  /** Time every availability number describes (the arrival time). */
   availabilityTime: Date;
   /** Chooses a lot when directions are opened for it (selects it, never toggles it off). */
   onChooseLot: (locationId: string) => void;
