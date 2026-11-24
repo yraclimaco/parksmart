@@ -12,9 +12,9 @@ A UCSD parking recommendation tool. Enter a destination, permit type, and arriva
 2. [System Architecture](#2-system-architecture)
 3. [Repository Structure](#3-repository-structure)
 4. [Key Design Decisions](#4-key-design-decisions)
-5. [Setup and Local Run](#5-setup-and-local-run)
+5. [Quick Start (Local)](#5-quick-start-local)
 6. [Environment Configuration (.env)](#6-environment-configuration-env)
-7. [Reproducing the Results](#7-reproducing-the-results)
+7. [Rebuilding the Data and Model (Advanced)](#7-rebuilding-the-data-and-model-advanced)
 8. [Deployment](#8-deployment)
 9. [API Reference](#9-api-reference)
 10. [Testing and Code Quality](#10-testing-and-code-quality)
@@ -32,12 +32,14 @@ A UCSD parking recommendation tool. Enter a destination, permit type, and arriva
 | Destination | First-choice lot and backup lot |
 | Permit type (A, B, S, SR, D, V) | Up to 12 ranked options with reasons |
 | Arrival time | Walk time for each lot |
-| Optional: walk limit (up to 20 min), preference | Optional weather and construction notices |
+| (none needed) | Optional weather and construction notices |
 
 **How a recommendation is made, in three steps:**
 1. Keep only lots the permit clearly allows at that time.
 2. Estimate how full each lot usually is, using historical survey data.
-3. Rank lots by availability and walk time (default weighting: 65% availability, 35% walk).
+3. Rank lots by availability and walk time (balanced weighting: 65% availability, 35% walk).
+
+**Website vs. API.** The public website always ranks with the balanced weighting and a 20-minute walk limit. The API also accepts a `preference` (`shorter_walk`, `balanced`, `more_availability`) and a `max_walk_minutes` limit (3 to 20). On the hosted demo, routing is off, so walk times are straight-line estimates, not mapped paths.
 
 ---
 
@@ -45,26 +47,33 @@ A UCSD parking recommendation tool. Enter a destination, permit type, and arriva
 
 ### 2.1 Request path
 
-What happens when a user presses Search.
+What happens when a user presses Search. Routes and trip alerts are separate requests from the browser; neither changes the ranking.
 
 ```mermaid
 flowchart LR
-    U["User<br/>destination, permit, time"] --> W["Website<br/>React"]
-    W --> A["API<br/>FastAPI"]
+    U["User<br/>destination, permit, time"] --> W["Website in browser<br/>React"]
+    W -- "POST /recommendations" --> A["API<br/>FastAPI"]
     A --> P{"Permit clearly<br/>allowed?"}
     P -- "No or unclear" --> X["Dropped<br/>never recommended"]
-    P -- Yes --> E["Availability estimate<br/>saved model"]
-    E --> R["Walk time<br/>OSRM or ORS"]
-    R --> S["Score and rank<br/>65% space, 35% walk"]
-    S --> O["First choice, backup,<br/>reasons"]
+    P -- Yes --> E["Availability estimate<br/>historical averages"]
+    E --> R["Walk time<br/>mapped route if routing is on,<br/>otherwise straight-line estimate"]
+    R --> S["Score and rank<br/>balanced: 65% space, 35% walk"]
+    S --> O["First choice, backup,<br/>ranked options"]
     O --> W
-    A -.-> T["Trip alerts<br/>info only, never ranks"]
-    T -.-> W
+    W -. "POST /routes<br/>separate request" .-> RT["Driving and walking route<br/>off on hosted demo"]
+    W -. "POST /trip-alerts<br/>separate request" .-> T["Weather and construction<br/>info only"]
 ```
+
+Which backend answers depends on where it runs:
+
+| Where | App | Availability estimates |
+| --- | --- | --- |
+| Local (`scripts/dev.sh`) | Baseline app, `src.api.main:app` | Historical averages fitted from your local dataset at startup |
+| Hosted demo (AWS Lambda) | Configured app, `src.api.saved_model:create_configured_app` | Approved saved model from a private S3 release |
 
 ### 2.2 Offline data pipeline
 
-Runs before launch, never per request.
+Runs before launch, never per request. Training on your machine does not publish anything; a model reaches the hosted API only through the reviewed release process ([model storage](docs/model_storage.md)).
 
 ```mermaid
 flowchart LR
@@ -72,20 +81,22 @@ flowchart LR
     I["UCSD Inventory"] --> C
     C --> M["Match lot capacity"]
     M --> D["Dataset"]
-    D --> T["Train and validate"]
-    T --> S["Versioned model in S3"]
-    S --> API["API loads at startup"]
+    D --> T["Train and validate<br/>local"]
+    T -. "reviewed release process" .-> S["Private S3 release<br/>model, dataset, registry"]
+    S --> API["Hosted API loads it<br/>at cold start"]
 ```
 
 ### 2.3 Hosting
 
 ```mermaid
 flowchart LR
-    B["Browser"] --> AM["AWS Amplify<br/>website"]
-    AM --> GW["API Gateway"]
+    B["Browser"] -- "loads static files" --> AM["AWS Amplify<br/>static website"]
+    B -- "API requests" --> GW["API Gateway<br/>HTTP API"]
     GW --> L["Lambda<br/>FastAPI container"]
-    L --> S3["S3<br/>saved model"]
+    ECR["ECR<br/>container image"] -. "image" .-> L
+    S3["S3 private release<br/>model, dataset, registry"] -- "loaded at cold start" --> L
     L --> CW["CloudWatch<br/>logs"]
+    L -. "disabled" .-> RO["Routing provider<br/>off in hosted demo"]
 ```
 
 ---
@@ -127,56 +138,75 @@ parksmart/
 | --- | --- | --- |
 | Historical averages, not live counts | No validated live UCSD parking feed is connected | Cannot react to today's conditions |
 | Permit rules filter first | A wrong lot can mean a ticket | Lots with unclear rules are hidden |
-| Default ranking: 65% space, 35% walk | Finding a space matters more than a short walk | Users can switch to "shorter walk" or "more availability" |
-| Free routing only (OSRM or ORS) | The project must not enable paid usage | Public OSRM has no uptime guarantee |
+| Balanced ranking: 65% space, 35% walk | Finding a space matters more than a short walk | The API also offers "shorter walk" and "more availability"; the website uses balanced only |
+| Free routing only (OSRM or ORS) | The project must not enable paid usage | Public OSRM has no uptime guarantee; routing is off on the hosted demo |
 | Alerts never affect ranking | Weather and construction are not validated signals | Shown as extra context only |
-| Data preparation is offline | Fast, predictable API startup | Model updates need a rebuild and release |
+| Data preparation is offline | Fast, predictable API startup | Model updates need a rebuild and a reviewed release |
 
 Further reading: [recommendations](docs/recommendations.md), [routing](docs/routing.md), [expert feedback](docs/expert_feedback_summary.md).
 
 ---
 
-## 5. Setup and Local Run
+## 5. Quick Start (Local)
 
-**Requirements:** Python 3.11 or newer (3.12 matches the Lambda image), Node.js 20.19+ or 22.12+ (with npm), Git.
+**Prerequisites**
+
+| Tool | Version | Check |
+| --- | --- | --- |
+| Python | 3.11 or newer, built with OpenSSL (3.12 matches the Lambda image) | `python3.12 --version` |
+| Node.js and npm | 20.19+ or 22.12+ | `node --version` |
+| Git | any recent version | `git --version` |
+
+On macOS, the built-in `python3` is 3.9, which is too old. Install 3.12 with `brew install python@3.12`. Details: [Supported Python setup](docs/backend.md#supported-python-setup).
+
+**Steps** (run from the folder you want the project in):
 
 ```bash
-# 1. Clone and install
+# 1. Get the code and install Python packages
 git clone https://github.com/yraclimaco/parksmart.git
 cd parksmart
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 
-# 2. Configure (see Section 6)
-cp .env.example .env
-set -a; source .env; set +a
-
-# 3. Get data (public UCSD files, no key needed; build takes about 1 minute)
+# 2. Download the public UCSD data and build the dataset (about 1 minute)
 python -m src.download_qpass
 python -m src.download_inventory
 python -m src.build_dataset
 
-# 4. Run backend and website together
+# 3. Start the backend and website together (first run also installs website packages)
 scripts/dev.sh
 ```
 
-| Service | URL |
-| --- | --- |
-| Website | http://localhost:3000 |
-| API docs | http://127.0.0.1:8000/docs |
+**Expected result**
 
-**Verify:** `GET /readiness` confirms the model loaded. `/health` only confirms the server is running.
+- The terminal prints `Backend ready. Website: http://localhost:3000`.
+- http://localhost:3000 opens the website, and searches return real results.
+- http://127.0.0.1:8000/docs opens the API docs.
+- In a second terminal, `curl http://127.0.0.1:8000/readiness` returns:
+
+  ```json
+  {"status":"ready","catalog_ready":true,"predictions_ready":true,"prediction_mode":"baseline"}
+  ```
+
+`prediction_mode` is `baseline` because `scripts/dev.sh` runs the baseline app (`src.api.main:app`), which fits historical averages from your local dataset at startup. It is not the approved saved model the hosted demo serves. To run the saved-model app locally, see [the saved-model guide](docs/issue26_handoff.md). `/health` only confirms the server is running. Ctrl+C stops both.
+
+Optional settings (routing provider, alerts, CORS) are in Section 6.
 
 ---
 
 ## 6. Environment Configuration (.env)
 
-ParkSmart has no `.env` loader. Copy the template and load it into your shell (Section 5, step 2). All variables are optional.
+ParkSmart has no `.env` loader. To use the template, copy it and load it into your shell before starting the backend. All variables are optional.
+
+```bash
+cp .env.example .env
+set -a; source .env; set +a
+```
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `PARKSMART_ROUTING_PROVIDER` | `ors`, `osrm`, or `none` (walk times off) | `ors` if a key is set, otherwise `osrm` |
+| `PARKSMART_ROUTING_PROVIDER` | `ors`, `osrm`, or `none` (no routes; walk times become straight-line estimates) | `ors` if a key is set, otherwise `osrm` |
 | `ORS_API_KEY` | OpenRouteService key (free tier) | empty |
 | `PARKSMART_CORS_ORIGINS` | Extra website origins allowed to call the API | localhost ports 3000 and 5173 |
 | `PARKSMART_TRIP_ALERTS_ENABLED` | `false` turns off weather and construction calls | `true` |
@@ -185,26 +215,30 @@ ParkSmart has no `.env` loader. Copy the template and load it into your shell (S
 
 ---
 
-## 7. Reproducing the Results
+## 7. Rebuilding the Data and Model (Advanced)
 
-Rebuild everything from raw public data:
+Not needed for the quick start. These commands rebuild the dataset and retrain the model from raw public data.
+
+**Files the default commands overwrite:**
+
+| Command | Overwrites |
+| --- | --- |
+| `python -m src.build_dataset` | `data/processed/pipeline/` (dataset, audit, summary) and `data/interim/pipeline/capacity/` |
+| `python -m src.train_availability` | `models/issue18/selected.pkl`, `models/issue18/baseline.pkl`, and `results/issue18/` (including `metadata.json`) |
+
+Everything these commands produce is local and unreviewed. To keep your existing files, write to separate folders instead (about 2 minutes in total):
 
 ```bash
 python -m src.download_qpass
 python -m src.download_inventory
-python -m src.run_capacity_matching --rebuild-inventory
-python -m src.build_dataset
-python -m src.train_availability
-python -m pytest -q
+python -m src.build_dataset --output-dir data/processed/rebuild --capacity-dir data/interim/rebuild-capacity
+python -m src.train_availability --dataset data/processed/rebuild/analysis_dataset.csv \
+    --output-dir results/rebuild --model-dir models/rebuild
 ```
 
-Serve the saved, reviewed model locally:
+Rebuilding locally does not change or upload anything on AWS. The hosted demo only changes through the approved release process: [model storage and releases](docs/model_storage.md) and [deployment resources](docs/deployment_resources.md).
 
-```bash
-python -m uvicorn src.api.saved_model:create_saved_app --factory --reload
-```
-
-Guides: [pipeline](docs/pipeline.md), [capacity matching](docs/capacity_matching_summary.md), [model training](docs/issue18_predictions.md), [model releases in S3](docs/model_storage.md).
+Guides: [pipeline](docs/pipeline.md), [capacity matching](docs/capacity_matching_summary.md), [model training](docs/issue18_predictions.md).
 
 ---
 
@@ -223,7 +257,7 @@ Guides: [pipeline](docs/pipeline.md), [capacity matching](docs/capacity_matching
 | Endpoint | Purpose |
 | --- | --- |
 | `POST /recommendations` | First choice, backup, ranked options, reasons |
-| `POST /routes` | Driving or walking route |
+| `POST /routes` | Driving or walking route (returns 503 on the hosted demo, where routing is off) |
 | `POST /trip-alerts` | Weather and construction notices |
 | `GET /locations` | Parking locations |
 | `GET /health`, `GET /readiness` | Server running, model loaded |
@@ -254,9 +288,13 @@ This runs backend tests, website tests, the type check, and the build. The last 
 | Surveys mostly cover the first weeks of each quarter, and some quarters are missing | Accuracy on later quarters is not validated |
 | Winter 2025-26 workbook excluded by team decision | Less recent data |
 | Fall 2026-27 has no Inventory workbook | Capacity relies on QPASS alone |
-| Hosted demo has routing off | Walk times are straight-line estimates |
+| Hosted demo has routing off | Walk times are straight-line estimates, not mapped paths, and the drive time shows "Not available right now" |
+| Website planner has no ranking controls | Every website search uses balanced ranking and a 20-minute walk limit; other preferences and limits are API-only |
 | First search after a long idle period is not verified to finish within the website's 20 second timeout | Possible slow first load |
-| Ranking presets other than "balanced" are starting values, not tuned | Weights may change |
+| API ranking presets other than "balanced" are starting values, not tuned | Weights may change |
+| Hosted trip alerts: freshness and failure states not yet verified on AWS | Alert behavior on the demo is unconfirmed |
+| Permit and location mappings still need review | Some eligibility results may change |
+| Fall 2026 data and model update not yet integrated | The hosted demo still uses the existing approved model and dataset |
 | Live counts, visitor pricing, and entrance photos are not built | Out of scope for this version |
 
 ---
