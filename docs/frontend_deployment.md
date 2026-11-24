@@ -58,7 +58,7 @@ separate. No files were deleted and no AWS redeployment was performed.
 The deployed backend reads `config/locations.json` from its immutable S3 release,
 not from the image. When a change edits the registry (for example the PR #45 lot
 pin fixes), uploading only the website ZIP makes the map pins correct while
-`/recommendations` keeps the old coordinates (P001 would still be in the ocean).
+`/recommendations` keeps the old coordinates for supported locations.
 Daira does these steps; nobody else runs AWS commands:
 
 1. Create a new release prefix with the unchanged `selected.pkl` and
@@ -77,7 +77,9 @@ Daira does these steps; nobody else runs AWS commands:
 3. Prepare a change-set preview that updates only `ReleasePrefix` and send it to
    Yra before anything runs.
 4. After it is executed, check that hosted `GET /locations` returns the corrected
-   P001 point, then upload the website ZIP.
+   P503 point against the release registry, then upload the website ZIP.
+   Validate non-supported registry pins locally using
+   `tests/test_location_registry.py`, not the hosted catalog.
 
 ### Rebuild and update the existing site (one command)
 

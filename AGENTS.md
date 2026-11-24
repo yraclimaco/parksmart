@@ -244,7 +244,11 @@ shorter-walk preference search have passed operator checks. Routing is disabled;
 walks are estimates. Dylan reported a successful public website check. The first
 search after long idle has not been verified within the website's 20-second
 timeout; hosted routes and alerts/failure-state checks remain pending. Automated
-results are recorded in the resource log.
+results are recorded in the resource log. The November 23 PR #45 deployment
+uses private release `issue33-pins-2026-11-23` with corrected coordinates and the
+existing model/data and image unchanged. Hosted catalog comparison passed; the
+updated frontend passed 375 tests and public card/marker checks. Permit mapping
+review and the Fall 2026 model/data update remain separate follow-ups.
 
 `bash scripts/prepare_lambda_release.sh [new-release-id]` prepares a private
 release in the pinned linux/amd64 Lambda-compatible environment. Generation runs
@@ -269,7 +273,8 @@ the deployed files), the new registry and a new manifest, running
 `scripts.prepare_serving_bundle` and `scripts.verify_prediction_release` in the
 pinned release-prep image rebuilt from merged `main` (no retraining; never pass
 the old `metadata.json`, which binds the old registry hash), sends Yra a change-set preview updating `ReleasePrefix`, verifies hosted
-`/locations` shows the corrected P001 point, then uploads the website ZIP. See
+`/locations` shows the corrected supported P503 point, then uploads the website
+ZIP. Check non-supported pins locally with `tests/test_location_registry.py`. See
 `docs/frontend_deployment.md`.
 
 Amplify uses manual ZIP deployment to the existing `parksmart-website` app,
