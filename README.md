@@ -115,7 +115,7 @@ parksmart/
 ├── scripts/             dev.sh, check.sh, build_site.sh, sync_frontend.sh
 ├── docs/                Detailed guides (see Section 12)
 ├── notebooks/           Data exploration
-├── results/, models/    Generated outputs (git-ignored)
+├── results/, models/    Generated outputs (git-ignored, except a few small reports)
 └── .env.example         Configuration template
 ```
 
@@ -157,7 +157,7 @@ Further reading: [recommendations](docs/recommendations.md), [routing](docs/rout
 | Node.js and npm | 20.19+ or 22.12+ | `node --version` |
 | Git | any recent version | `git --version` |
 
-On macOS, the built-in `python3` is 3.9, which is too old. Install 3.12 with `brew install python@3.12`. Details: [Supported Python setup](docs/backend.md#supported-python-setup).
+Any Python 3.11 or newer works; the steps use `python3.12`, so swap in your version's command (for example `python3.11`) if needed. On macOS, the built-in `python3` is 3.9, which is too old. Install 3.12 with `brew install python@3.12`. Details: [Supported Python setup](docs/backend.md#supported-python-setup).
 
 **Steps** (run from the folder you want the project in):
 
@@ -223,7 +223,8 @@ Not needed for the quick start. These commands rebuild the dataset and retrain t
 
 | Command | Overwrites |
 | --- | --- |
-| `python -m src.build_dataset` | `data/processed/pipeline/` (dataset, audit, summary) and `data/interim/pipeline/capacity/` |
+| `python -m src.download_inventory` | `results/capacity_matching/inventory_sources.csv` (download manifest; workbooks already downloaded are kept) |
+| `python -m src.build_dataset` | `data/processed/pipeline/` (dataset, audit, summary), `data/interim/pipeline/capacity/` and `data/interim/inventory/` |
 | `python -m src.train_availability` | `models/issue18/selected.pkl`, `models/issue18/baseline.pkl`, and `results/issue18/` (including `metadata.json`) |
 
 Everything these commands produce is local and unreviewed. To keep your existing files, write to separate folders instead (about 2 minutes in total):
@@ -231,7 +232,8 @@ Everything these commands produce is local and unreviewed. To keep your existing
 ```bash
 python -m src.download_qpass
 python -m src.download_inventory
-python -m src.build_dataset --output-dir data/processed/rebuild --capacity-dir data/interim/rebuild-capacity
+python -m src.build_dataset --output-dir data/processed/rebuild \
+    --capacity-dir data/interim/rebuild-capacity --inventory-dir data/interim/rebuild-inventory
 python -m src.train_availability --dataset data/processed/rebuild/analysis_dataset.csv \
     --output-dir results/rebuild --model-dir models/rebuild
 ```
