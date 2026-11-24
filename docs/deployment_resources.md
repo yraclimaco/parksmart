@@ -7,9 +7,10 @@ resources and stored objects are added. Do not record credentials here.
 
 ## Current summary
 
-- Stack `parksmart-backend`: UPDATE_COMPLETE after Yra approved and the operator
-  executed `issue33-ui-cors-r1`. The current image is `issue33-ui-alerts-r1`;
-  exact digest and size are recorded below.
+- Backend release: `releases/issue33-pins-2026-11-23`, applied through
+  `issue33-corrected-pins-r1`. Hosted readiness and registry comparison passed.
+  The existing image `issue33-ui-alerts-r1` is unchanged; its digest and size
+  are recorded below.
 - API: https://3auautq1ga.execute-api.us-west-2.amazonaws.com — saved readiness
   returned HTTP 200; the private release loaded successfully.
 - Website: https://demo.d2ru7u75tkpr69.amplifyapp.com — existing Amplify app
@@ -28,17 +29,18 @@ resources and stored objects are added. Do not record credentials here.
 
 ## Automated verification results
 
-Local verification completed on November 16, 2026. Build, container, and browser
-checks are recorded below.
+Results include November 16 checks and the November 23 frontend deployment.
+Earlier Python and SAM results apply to their original revisions; they were not
+rerun for this documentation update. Build and browser checks are recorded below.
 
 | Check | Reported result | Scope / follow-up |
 | --- | --- | --- |
 | Full Python suite | 1,176 tests and 39 subtests passed; 38 warnings; 57.31 seconds | Python 3.12.16 with OpenSSL 3.5.9. Post-fix run includes the 32 new helper tests. |
-| Frontend tests | 205 tests across 16 files passed | No frontend implementation changes since this run. |
-| TypeScript check | `npm run lint` (`tsc --noEmit`) passed | No frontend implementation changes since this run. |
+| Frontend tests | 375 tests across 32 files passed on November 23 | API-mode build from merged commit `8eaaacf`, including PR #45. |
+| TypeScript check | `npm run lint` (`tsc --noEmit`) passed on November 23 | Same frontend revision as the 375-test run. |
 | SAM lint | Valid SAM template | Post-fix validation passed, including the updated ReleasePrefix pattern. |
 | New helper tests | 32 passed in 3.19 seconds | Naming consistency, separate image tags, missing resources, build failures, and smoke-check response handling; uses synthetic temporary fixtures and stubs. |
-| DS3 review | Refreshed using `docs/codeReviewer.md` after fixes | Six Should fix findings resolved; no remaining Must fix or Should fix findings in the reviewed scope. One optional documentation Nit remains. Report stays local; hosted acceptance checks remain separate. |
+| DS3 review | Documentation follow-up reviewed on November 23 using `docs/codeReviewer.md` | No Must fix or Should fix findings in the documentation-only scope. Tests were not independently rerun during review. The report stays local. |
 
 The initial Python 3.9/LibreSSL run failed because dependencies and TLS support
 were unsuitable. The passing full run above used the supported environment;
@@ -54,12 +56,12 @@ live billing or account-wide resource scan.
 | Resource | Identifier | Current status / evidence | Removal or ownership |
 | --- | --- | --- | --- |
 | Private ECR repository | `parksmart-backend` | Two confirmed uploaded tags: original `issue33-lambda-2026-11-14` and deployed `issue33-ui-alerts-r1`. Digests and sizes below; Lambda pull policy confirmed by Yra. | Outside stack; remove unused images/repository only after approved shutdown. |
-| Private artifact bucket | `parksmart-artifacts-684494100594` | Six release objects total 24,210,536 bytes. All object checks reported AES256; all four Block Public Access settings were true. AWS saved readiness confirms runtime access. Bucket-level encryption/ownership inspection remains denied by scoped permissions. | Outside stack; retain or remove releases only with data-owner approval. |
-| CloudFormation stack | `parksmart-backend` | UPDATE_COMPLETE after approved `issue33-ui-cors-r1`; manages the backend resources below. | Approved stack deletion removes managed resources; S3, ECR and Amplify remain separate. |
+| Private artifact bucket | `parksmart-artifacts-684494100594` | Original six-object release totals 24,210,536 bytes; five additional objects uploaded under `releases/issue33-pins-2026-11-23/` with AES256 requested. New remote object sizes remain to be recorded. Original object checks reported AES256; all four Block Public Access settings were true. AWS saved readiness confirms runtime access. Bucket-level encryption/ownership inspection remains denied by scoped permissions. | Outside stack; retain or remove releases only with data-owner approval. |
+| CloudFormation stack | `parksmart-backend` | Latest update used `issue33-corrected-pins-r1`; hosted readiness and corrected coordinates passed afterward. Final stack-status output is not recorded for this update. | Approved stack deletion removes managed resources; S3, ECR and Amplify remain separate. |
 | Lambda function | `parksmart-backend-BackendFunction-zp73rvpICDuS` | Saved readiness and recommendations passed. Reviewed configuration: 1024 MB, 30-second timeout, shared concurrency; no provisioned concurrency. | Stack-managed; runtime role is retained separately. |
 | API Gateway HTTP API and default stage | `3auautq1ga`, `$default` | HTTPS API serves public website requests. Reviewed stage throttle: rate 1 / burst 2. | Stack-managed, including two Lambda invocation permissions. |
 | CloudWatch log group | `/aws/lambda/parksmart-backend-BackendFunction-zp73rvpICDuS` | Runtime logs read successfully; reviewed retention is seven days. | Stack-managed; verify removal during approved teardown. |
-| Amplify Hosting app | `parksmart-website`, app ID `d2ru7u75tkpr69`, branch `demo` | Updated frontend and preview description deployed by manual ZIP upload; public browser and incognito searches passed. No Git-connected automatic deployment. | Outside backend stack; delete separately only after approval. |
+| Amplify Hosting app | `parksmart-website`, app ID `d2ru7u75tkpr69`, branch `demo` | Merged frontend `8eaaacf` deployed by manual ZIP upload on November 23; public first/backup cards and matching markers confirmed. No Git-connected automatic deployment. | Outside backend stack; delete separately only after approval. |
 | Runtime/deployment IAM roles | `ParkSmartLambdaRuntime`, `ParkSmartCloudFormationExecution` | Existing roles supplied and managed by Yra; not created by this issue. | Retain; do not delete or replace during stack cleanup. |
 
 The public API and website URLs are in the current summary above. Resource names,
@@ -286,3 +288,52 @@ matched, so the frontend content stayed unchanged. This records source provenanc
 without claiming a full frontend sync or bringing unrelated UI changes into
 Issue #33. No files were deleted or resources redeployed. Scope and the omitted
 upstream Twitter-description tag are documented in `docs/frontend_deployment.md`.
+
+
+## Corrected registry and frontend deployment — 2026-11-23
+
+Merged main commit `8eaaacf` includes PR #45. The deployed backend reads its
+registry from S3, so the backend release was updated before uploading the website.
+The new private bundle `issue33-pins-2026-11-23` reuses the existing approved
+`selected.pkl` and `analysis_dataset.csv` unchanged, with the corrected registry,
+new manifest and dependency pins. It does not retrain or switch to Fall 2026-only
+data. Old reproduction metadata was omitted because it binds the old registry.
+The original immutable release remains available.
+
+The rebuilt pinned Lambda-compatible preparation image passed local verification:
+saved readiness, one artifact load and two requests returning distinct first and
+backup choices, with training forbidden and routing disabled. Five files were
+uploaded to the existing private bucket under the new release prefix, requesting
+AES256 encryption and refusing overwrites; the manifest was uploaded last.
+No new ECR image or repository was needed. New object sizes remain unrecorded.
+
+Change set `issue33-corrected-pins-r1` retained the deployed image digest, exact
+frontend origin and other parameters. Its preview showed a Lambda environment
+update and a dependent API integration update, both without replacement. Yra's
+request covered this deployment. After execution, hosted
+`/readiness` returned HTTP 200 with saved predictions ready. A comparison of
+`/locations` against every supported registry entry found no ID or coordinate
+mismatches. Approximate coordinates intentionally become null in the API,
+including P386.
+
+A hosted recommendation for Geisel Library (32.8811, -117.2376), November 24,
+2026 at 10:00 America/Los_Angeles, S permit, Balanced and a 20-minute maximum
+walk returned `ready` and `is_example: false`. First choice was Torrey Pines
+Center North (53% estimated open, 18-minute walk); backup was Pangea (9%,
+10-minute walk). Both disclose historical availability and straight-line walks.
+This verifies response behavior, not independent permit-policy accuracy.
+
+`bash scripts/build_site.sh issue33-pins-8eaaacf-20261123` completed API readiness,
+375 frontend tests, TypeScript checking and the API-mode production build.
+The install audit reported zero vulnerabilities; no dependency changes were
+made for this deployment. The bundle-size warning did not fail the build.
+The generated ZIP was uploaded to the existing Amplify app's `demo` branch.
+The operator confirmed the updated public page, first-choice/backup cards and
+matching map markers. No ZIP, model, dataset or credentials belong in this PR.
+
+Remaining work: verify first-search timing after long idle; hosted routing is
+disabled; complete alert freshness and failure-state checks; review permit and
+location mappings; and integrate Vivaan's Fall 2026 release when ready. Existing
+alert displays do not establish source completeness. These are separate from
+the completed coordinate and frontend deployment. Account-owner billing review
+and recording the new S3 object sizes remain pending.
