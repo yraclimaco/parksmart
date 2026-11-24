@@ -40,7 +40,7 @@ rerun for this documentation update. Build and browser checks are recorded below
 | TypeScript check | `npm run lint` (`tsc --noEmit`) passed on November 23 | Same frontend revision as the 375-test run. |
 | SAM lint | Valid SAM template | Post-fix validation passed, including the updated ReleasePrefix pattern. |
 | New helper tests | 32 passed in 3.19 seconds | Naming consistency, separate image tags, missing resources, build failures, and smoke-check response handling; uses synthetic temporary fixtures and stubs. |
-| DS3 review | Documentation follow-up reviewed on November 23 using `docs/codeReviewer.md` | No Must fix or Should fix findings in the documentation-only scope. Tests were not independently rerun during review. The report stays local. |
+| DS3 review | Documentation follow-up reviewed after the PR #47 revisions using `docs/codeReviewer.md` | Scope and results are recorded in the local review report. Automated test results are operator-supplied; tests were not independently rerun during review. |
 
 The initial Python 3.9/LibreSSL run failed because dependencies and TLS support
 were unsuitable. The passing full run above used the supported environment;
@@ -56,7 +56,7 @@ live billing or account-wide resource scan.
 | Resource | Identifier | Current status / evidence | Removal or ownership |
 | --- | --- | --- | --- |
 | Private ECR repository | `parksmart-backend` | Two confirmed uploaded tags: original `issue33-lambda-2026-11-14` and deployed `issue33-ui-alerts-r1`. Digests and sizes below; Lambda pull policy confirmed by Yra. | Outside stack; remove unused images/repository only after approved shutdown. |
-| Private artifact bucket | `parksmart-artifacts-684494100594` | Original six-object release totals 24,210,536 bytes; five additional objects uploaded under `releases/issue33-pins-2026-11-23/` with AES256 requested. New remote object sizes remain to be recorded. Original object checks reported AES256; all four Block Public Access settings were true. AWS saved readiness confirms runtime access. Bucket-level encryption/ownership inspection remains denied by scoped permissions. | Outside stack; retain or remove releases only with data-owner approval. |
+| Private artifact bucket | `parksmart-artifacts-684494100594` | Original six-object release totals 24,210,536 bytes; five additional objects under `releases/issue33-pins-2026-11-23/` total 24,211,553 bytes. HeadObject reports AES256 for all five and sizes matching local files; hashes are recorded below. Original object checks reported AES256; all four Block Public Access settings were true. AWS saved readiness confirms runtime access. Bucket-level encryption/ownership inspection remains denied by scoped permissions. | Outside stack; retain or remove releases only with data-owner approval. |
 | CloudFormation stack | `parksmart-backend` | Latest update used `issue33-corrected-pins-r1`; hosted readiness and corrected coordinates passed afterward. Final stack-status output is not recorded for this update. | Approved stack deletion removes managed resources; S3, ECR and Amplify remain separate. |
 | Lambda function | `parksmart-backend-BackendFunction-zp73rvpICDuS` | Saved readiness and recommendations passed. Reviewed configuration: 1024 MB, 30-second timeout, shared concurrency; no provisioned concurrency. | Stack-managed; runtime role is retained separately. |
 | API Gateway HTTP API and default stage | `3auautq1ga`, `$default` | HTTPS API serves public website requests. Reviewed stage throttle: rate 1 / burst 2. | Stack-managed, including two Lambda invocation permissions. |
@@ -292,7 +292,8 @@ upstream Twitter-description tag are documented in `docs/frontend_deployment.md`
 
 ## Corrected registry and frontend deployment — 2026-11-23
 
-Merged main commit `8eaaacf` includes PR #45. The deployed backend reads its
+Release preparation used source commit `8eaaacfcd51879cfaed65aa615134723409116c2`
+([merged PR #45](https://github.com/yraclimaco/parksmart/commit/8eaaacfcd51879cfaed65aa615134723409116c2)). The deployed backend reads its
 registry from S3, so the backend release was updated before uploading the website.
 The new private bundle `issue33-pins-2026-11-23` reuses the existing approved
 `selected.pkl` and `analysis_dataset.csv` unchanged, with the corrected registry,
@@ -305,7 +306,39 @@ saved readiness, one artifact load and two requests returning distinct first and
 backup choices, with training forbidden and routing disabled. Five files were
 uploaded to the existing private bucket under the new release prefix, requesting
 AES256 encryption and refusing overwrites; the manifest was uploaded last.
-No new ECR image or repository was needed. New object sizes remain unrecorded.
+No new ECR image or repository was needed. The five new objects total
+24,211,553 bytes; the original six-object release is retained separately.
+
+
+### Release identity and stored-object evidence
+
+The operator computed SHA-256 values from local bundle bytes and checked S3
+ContentLength and ServerSideEncryption with HeadObject for each new object.
+All five remote sizes match local sizes, and all five report `AES256` (SSE-S3).
+HeadObject size/encryption checks do not independently establish remote SHA-256
+values. The release verifier checked the local manifest-bound runtime files;
+the serving loader verifies manifest hashes when materializing its runtime files.
+No remote full-object rehash is claimed here.
+
+| New release object | SHA-256 of local file | Local and S3 bytes |
+| --- | --- | ---: |
+| `selected.pkl` | `5f94df4c9c60772421e5a190fc75153716f264b1360f42db3a6843fac8c8a940` | 531,977 |
+| `analysis_dataset.csv` | `9660b051971facacb12b34a6722223416051b0e5f9e43656688df04a1150384b` | 23,627,422 |
+| `locations.json` | `06fecc3beffca21b3f019e032a3958a9cea48cf238afea9b591f0b8d521885a9` | 51,250 |
+| `requirements-model.txt` | `6c51abc4852c31b99a34e334b1cfeee39afb7366fd149009a6923c96f5badb24` | 75 |
+| `manifest.json` | `4e9036127fa6040e2c1f2ccd39a30915b7ae283f9f5be97e5b681ffaf0c98af7` | 829 |
+| **Total** | | **24,211,553** |
+
+Direct local SHA-256 comparisons with the previous
+`issue33-lambda-2026-11-14/bundle` returned equal hashes for both `selected.pkl`
+and `analysis_dataset.csv`: the previous hashes are identical to their new-release
+values in the table. The new bundle registry hash also matches the working-tree
+`config/locations.json` from the release source commit recorded above. This
+provides byte-level evidence for unchanged model/data and the corrected registry,
+without publishing their contents. Object sizes are storage inventory, not a
+measurement of charges or remaining credits.
+
+### Hosted and browser verification
 
 Change set `issue33-corrected-pins-r1` retained the deployed image digest, exact
 frontend origin and other parameters. Its preview showed a Lambda environment
@@ -314,7 +347,12 @@ request covered this deployment. After execution, hosted
 `/readiness` returned HTTP 200 with saved predictions ready. A comparison of
 `/locations` against every supported registry entry found no ID or coordinate
 mismatches. Approximate coordinates intentionally become null in the API,
-including P386.
+including P386. Supported P503 was included in this catalog comparison. P001
+is not supported and was not verified through `/locations`; non-supported pins
+were checked locally with `python -m pytest tests/test_location_registry.py -q`:
+25 tests passed in 4.40 seconds, including registry/website coordinate consistency
+and lot-outline checks. These checks do not verify vehicle entrances or permit
+rules.
 
 A hosted recommendation for Geisel Library (32.8811, -117.2376), November 24,
 2026 at 10:00 America/Los_Angeles, S permit, Balanced and a 20-minute maximum
@@ -336,4 +374,4 @@ disabled; complete alert freshness and failure-state checks; review permit and
 location mappings; and integrate Vivaan's Fall 2026 release when ready. Existing
 alert displays do not establish source completeness. These are separate from
 the completed coordinate and frontend deployment. Account-owner billing review
-and recording the new S3 object sizes remain pending.
+remains pending.

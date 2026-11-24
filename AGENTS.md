@@ -273,7 +273,8 @@ the deployed files), the new registry and a new manifest, running
 `scripts.prepare_serving_bundle` and `scripts.verify_prediction_release` in the
 pinned release-prep image rebuilt from merged `main` (no retraining; never pass
 the old `metadata.json`, which binds the old registry hash), sends Yra a change-set preview updating `ReleasePrefix`, verifies hosted
-`/locations` shows the corrected P001 point, then uploads the website ZIP. See
+`/locations` shows the corrected supported P503 point, then uploads the website
+ZIP. Check non-supported pins locally with `tests/test_location_registry.py`. See
 `docs/frontend_deployment.md`.
 
 Amplify uses manual ZIP deployment to the existing `parksmart-website` app,
